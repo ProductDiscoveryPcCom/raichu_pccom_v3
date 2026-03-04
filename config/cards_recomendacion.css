@@ -1,0 +1,596 @@
+/**
+ * =====================================================
+ * CMS MODULE - VERTICAL CARD GRID
+ * Cards verticales simples para listados de productos
+ * =====================================================
+ */
+
+/* ===========================================
+   1. VARIABLES CSS
+   =========================================== */
+
+:root {
+  /* --- Colores --- */
+  --vcard-color-primary: #FF6000;
+  --vcard-color-primary-light: #FFAE80;
+  --vcard-color-text-dark: #090029;
+  --vcard-color-text-medium: #170453;
+  --vcard-color-text-body: #333333;
+  
+  --vcard-color-bg-light: #F4F4F4;
+  --vcard-color-bg-white: #FFFFFF;
+  --vcard-color-border: #E6E6E6;
+  
+  /* --- Espaciado --- */
+  --vcard-spacing-xs: 0.35rem;
+  --vcard-spacing-sm: 0.5rem;
+  --vcard-spacing-md: 1rem;
+  --vcard-spacing-lg: 1.5rem;
+  --vcard-spacing-xl: 2rem;
+  
+  /* --- Tipografía --- */
+  --vcard-font-family: 'Open Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --vcard-font-size-xs: 0.75rem;
+  --vcard-font-size-sm: 0.85rem;
+  --vcard-font-size-base: 0.9rem;
+  --vcard-font-size-md: 1.05rem;
+  --vcard-font-size-lg: 1.25rem;
+  
+  /* --- Bordes y sombras --- */
+  --vcard-radius-md: 12px;
+  --vcard-radius-full: 999px;
+  --vcard-shadow: 0 4px 10px rgba(9, 0, 41, 0.06);
+  --vcard-shadow-hover: 0 6px 16px rgba(9, 0, 41, 0.1);
+}
+
+
+/* ===========================================
+   2. CONTENEDOR DEL MÓDULO
+   =========================================== */
+
+.vcard-module {
+  background-color: var(--vcard-color-bg-light);
+  padding: var(--vcard-spacing-xl);
+  border-radius: var(--vcard-radius-md);
+  font-family: var(--vcard-font-family);
+}
+
+.vcard-module__title {
+  color: var(--vcard-color-text-dark);
+  margin: 0 0 var(--vcard-spacing-lg);
+  font-size: var(--vcard-font-size-lg);
+  font-weight: 700;
+}
+
+.vcard-module__intro {
+  color: var(--vcard-color-text-body);
+  margin: -0.5rem 0 var(--vcard-spacing-lg);
+  font-size: var(--vcard-font-size-base);
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .vcard-module {
+    padding: var(--vcard-spacing-lg);
+  }
+}
+
+/* Variantes de fondo */
+.vcard-module--white {
+  background-color: var(--vcard-color-bg-white);
+}
+
+.vcard-module--transparent {
+  background-color: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.vcard-module--bordered {
+  border: 1px solid var(--vcard-color-border);
+}
+
+
+/* ===========================================
+   3. GRID DE CARDS
+   =========================================== */
+
+.vcard-grid {
+  display: grid;
+  gap: var(--vcard-spacing-lg);
+}
+
+/* 2 columnas - tablet */
+@media (min-width: 600px) {
+  .vcard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* 3 columnas - tablet landscape */
+@media (min-width: 900px) {
+  .vcard-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* 4 columnas - desktop (como el original) */
+@media (min-width: 768px) {
+  .vcard-grid--4cols {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Forzar columnas específicas */
+.vcard-grid--2cols {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+  .vcard-grid--3cols {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* 1 columna en móvil siempre */
+@media (max-width: 599px) {
+  .vcard-grid,
+  .vcard-grid--2cols,
+  .vcard-grid--3cols,
+  .vcard-grid--4cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ===========================================
+   4. CARD VERTICAL
+   =========================================== */
+
+.vcard {
+  background-color: var(--vcard-color-bg-white);
+  border: 1px solid var(--vcard-color-border);
+  border-radius: var(--vcard-radius-md);
+  padding: 1.25rem;
+  box-shadow: var(--vcard-shadow);
+  display: flex;
+  flex-direction: column;
+}
+
+.vcard__title {
+  margin: 0 0 var(--vcard-spacing-sm);
+  font-size: var(--vcard-font-size-md);
+  font-weight: 700;
+  color: var(--vcard-color-text-dark);
+}
+
+/* Card con imagen */
+.vcard--with-image .vcard__title {
+  margin-top: var(--vcard-spacing-sm);
+}
+
+
+/* ===========================================
+   5. CHIP / ETIQUETA
+   =========================================== */
+
+.vcard__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--vcard-radius-full);
+  background-color: var(--vcard-color-primary-light);
+  color: var(--vcard-color-text-dark);
+  font-size: var(--vcard-font-size-xs);
+  font-weight: 600;
+  margin-bottom: 0.6rem;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+/* Variantes de chip */
+.vcard__chip--primary {
+  background-color: var(--vcard-color-primary);
+  color: var(--vcard-color-bg-white);
+}
+
+.vcard__chip--dark {
+  background-color: var(--vcard-color-text-dark);
+  color: var(--vcard-color-bg-white);
+}
+
+.vcard__chip--outline {
+  background-color: transparent;
+  border: 1px solid var(--vcard-color-border);
+  color: var(--vcard-color-text-medium);
+}
+
+.vcard__chip--success {
+  background-color: #C8E6C9;
+  color: #2E7D32;
+}
+
+.vcard__chip--warning {
+  background-color: #FFF3E0;
+  color: #E65100;
+}
+
+.vcard__chip--info {
+  background-color: #E3F2FD;
+  color: #1565C0;
+}
+
+
+/* ===========================================
+   6. LISTA DE CARACTERÍSTICAS
+   =========================================== */
+
+.vcard__list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+  font-size: var(--vcard-font-size-sm);
+  color: var(--vcard-color-text-body);
+  line-height: 1.5;
+}
+
+.vcard__list li + li {
+  margin-top: var(--vcard-spacing-xs);
+}
+
+.vcard__list strong {
+  color: var(--vcard-color-text-medium);
+  font-weight: 600;
+}
+
+/* Lista con bullets */
+.vcard__list--bullets {
+  list-style: disc;
+  padding-left: 1.2rem;
+}
+
+/* Lista con checks */
+.vcard__list--checks li {
+  padding-left: 1.4rem;
+  position: relative;
+}
+
+.vcard__list--checks li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--vcard-color-primary);
+  font-weight: 700;
+}
+
+
+/* ===========================================
+   7. SEPARADOR / DIVIDER
+   =========================================== */
+
+.vcard__divider {
+  border: none;
+  border-top: 1px solid var(--vcard-color-border);
+  margin: var(--vcard-spacing-md) 0;
+}
+
+.vcard__divider--sm {
+  margin: var(--vcard-spacing-sm) 0;
+}
+
+.vcard__divider--lg {
+  margin: var(--vcard-spacing-lg) 0;
+}
+
+
+/* ===========================================
+   8. BENEFICIO / TEXTO DESTACADO
+   =========================================== */
+
+.vcard__benefit {
+  margin: 0.4rem 0 0;
+  font-size: var(--vcard-font-size-base);
+  color: var(--vcard-color-text-medium);
+  line-height: 1.5;
+  flex-grow: 1; /* Empuja el CTA hacia abajo */
+}
+
+.vcard__text {
+  margin: 0 0 var(--vcard-spacing-sm);
+  font-size: var(--vcard-font-size-sm);
+  color: var(--vcard-color-text-body);
+  line-height: 1.5;
+}
+
+
+/* ===========================================
+   9. IMAGEN
+   =========================================== */
+
+.vcard__image {
+  width: 100%;
+  height: auto;
+  border-radius: calc(var(--vcard-radius-md) - 4px);
+  margin-bottom: var(--vcard-spacing-sm);
+  object-fit: cover;
+}
+
+.vcard__figure {
+  margin: 0 0 var(--vcard-spacing-sm);
+  border-radius: calc(var(--vcard-radius-md) - 4px);
+  overflow: hidden;
+}
+
+.vcard__figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.vcard__figure figcaption {
+  padding: var(--vcard-spacing-sm);
+  font-size: var(--vcard-font-size-xs);
+  color: var(--vcard-color-text-body);
+  background-color: var(--vcard-color-bg-light);
+}
+
+
+/* ===========================================
+   10. BOTÓN CTA
+   =========================================== */
+
+.vcard__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--vcard-radius-full);
+  border: 1px solid var(--vcard-color-primary);
+  background-color: var(--vcard-color-primary);
+  color: var(--vcard-color-bg-white);
+  font-size: var(--vcard-font-size-sm);
+  font-weight: 600;
+  text-decoration: none;
+  margin-top: var(--vcard-spacing-sm);
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+  white-space: nowrap;
+}
+
+.vcard__cta:hover {
+  background-color: #E65500;
+  border-color: #E65500;
+  color: var(--vcard-color-bg-white);
+}
+
+.vcard__cta:active {
+  transform: scale(0.98);
+}
+
+/* CTA Ghost / Outline */
+.vcard__cta--ghost {
+  background-color: transparent;
+  color: var(--vcard-color-primary);
+}
+
+.vcard__cta--ghost:hover {
+  background-color: var(--vcard-color-primary);
+  color: var(--vcard-color-bg-white);
+}
+
+/* CTA Secundario */
+.vcard__cta--secondary {
+  background-color: var(--vcard-color-bg-white);
+  border-color: var(--vcard-color-border);
+  color: var(--vcard-color-text-dark);
+}
+
+.vcard__cta--secondary:hover {
+  background-color: var(--vcard-color-bg-light);
+  color: var(--vcard-color-text-dark);
+}
+
+/* CTA Oscuro */
+.vcard__cta--dark {
+  background-color: var(--vcard-color-text-dark);
+  border-color: var(--vcard-color-text-dark);
+}
+
+.vcard__cta--dark:hover {
+  background-color: var(--vcard-color-text-medium);
+  border-color: var(--vcard-color-text-medium);
+}
+
+/* CTA Full Width */
+.vcard__cta--block {
+  width: 100%;
+  text-align: center;
+}
+
+/* Tamaños */
+.vcard__cta--sm {
+  padding: 0.3rem 0.6rem;
+  font-size: var(--vcard-font-size-xs);
+}
+
+.vcard__cta--lg {
+  padding: 0.6rem 1.1rem;
+  font-size: var(--vcard-font-size-base);
+}
+
+
+/* ===========================================
+   11. FOOTER DE CARD (múltiples CTAs)
+   =========================================== */
+
+.vcard__footer {
+  margin-top: auto;
+  padding-top: var(--vcard-spacing-sm);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vcard-spacing-sm);
+}
+
+.vcard__footer--border {
+  border-top: 1px solid var(--vcard-color-border);
+  margin-top: var(--vcard-spacing-md);
+  padding-top: var(--vcard-spacing-md);
+}
+
+
+/* ===========================================
+   12. VARIANTES DE CARD
+   =========================================== */
+
+/* Card sin sombra */
+.vcard--flat {
+  box-shadow: none;
+}
+
+/* Card destacada */
+.vcard--featured {
+  border-color: var(--vcard-color-primary);
+  border-width: 2px;
+}
+
+/* Card con hover */
+.vcard--hoverable {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  cursor: pointer;
+}
+
+.vcard--hoverable:hover {
+  box-shadow: var(--vcard-shadow-hover);
+  transform: translateY(-2px);
+}
+
+/* Card compacta */
+.vcard--compact {
+  padding: var(--vcard-spacing-md);
+}
+
+.vcard--compact .vcard__title {
+  font-size: var(--vcard-font-size-base);
+}
+
+.vcard--compact .vcard__list {
+  font-size: var(--vcard-font-size-xs);
+}
+
+/* Card sin borde */
+.vcard--borderless {
+  border: none;
+}
+
+/* Card centrada */
+.vcard--centered {
+  text-align: center;
+  align-items: center;
+}
+
+.vcard--centered .vcard__chip {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+/* ===========================================
+   13. ICONO EN CARD
+   =========================================== */
+
+.vcard__icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--vcard-spacing-sm);
+  fill: var(--vcard-color-primary);
+}
+
+.vcard__icon--sm {
+  width: 32px;
+  height: 32px;
+}
+
+.vcard__icon--lg {
+  width: 64px;
+  height: 64px;
+}
+
+.vcard__icon-wrapper {
+  width: 64px;
+  height: 64px;
+  background-color: var(--vcard-color-bg-light);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--vcard-spacing-md);
+}
+
+.vcard__icon-wrapper .vcard__icon {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 0;
+}
+
+
+/* ===========================================
+   14. PRECIO (para cards de producto)
+   =========================================== */
+
+.vcard__price {
+  font-size: var(--vcard-font-size-lg);
+  font-weight: 700;
+  color: var(--vcard-color-text-dark);
+  margin: var(--vcard-spacing-sm) 0;
+}
+
+.vcard__price-old {
+  font-size: var(--vcard-font-size-sm);
+  color: var(--vcard-color-text-body);
+  text-decoration: line-through;
+  margin-right: var(--vcard-spacing-sm);
+}
+
+.vcard__price-discount {
+  font-size: var(--vcard-font-size-xs);
+  font-weight: 600;
+  color: #D32F2F;
+  background-color: #FFEBEE;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  margin-left: var(--vcard-spacing-sm);
+}
+
+
+/* ===========================================
+   15. UTILIDADES
+   =========================================== */
+
+/* Espaciado */
+.vcard-mt-0 { margin-top: 0; }
+.vcard-mt-1 { margin-top: var(--vcard-spacing-sm); }
+.vcard-mt-2 { margin-top: var(--vcard-spacing-md); }
+.vcard-mt-3 { margin-top: var(--vcard-spacing-lg); }
+
+.vcard-mb-0 { margin-bottom: 0; }
+.vcard-mb-1 { margin-bottom: var(--vcard-spacing-sm); }
+.vcard-mb-2 { margin-bottom: var(--vcard-spacing-md); }
+.vcard-mb-3 { margin-bottom: var(--vcard-spacing-lg); }
+
+/* Texto */
+.vcard-text-center { text-align: center; }
+.vcard-text-muted { color: var(--vcard-color-text-body); }
+.vcard-text-primary { color: var(--vcard-color-primary); }
+.vcard-text-bold { font-weight: 700; }
+
+/* Visibilidad */
+@media (max-width: 767px) {
+  .vcard-hide-mobile { display: none !important; }
+}
+
+@media (min-width: 768px) {
+  .vcard-hide-desktop { display: none !important; }
+}
+
+/* Flex grow para empujar elementos */
+.vcard-grow { flex-grow: 1; }

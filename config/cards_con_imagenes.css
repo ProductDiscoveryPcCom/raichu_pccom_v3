@@ -1,0 +1,589 @@
+/**
+ * =====================================================
+ * CMS MODULE - CARD GRID SYSTEM
+ * Componentes reutilizables para módulos de contenido
+ * =====================================================
+ */
+
+/* ===========================================
+   1. VARIABLES CSS
+   =========================================== */
+
+:root {
+  /* --- Colores del módulo --- */
+  --mod-color-primary: #FF6000;
+  --mod-color-primary-light: #FFAE80;
+  --mod-color-text-dark: #090029;
+  --mod-color-text-medium: #170453;
+  --mod-color-text-muted: #46405E;
+  
+  --mod-color-bg-light: #F4F4F4;
+  --mod-color-bg-white: #FFFFFF;
+  --mod-color-border: #E6E6E6;
+  
+  /* --- Espaciado --- */
+  --mod-spacing-xs: 0.25rem;
+  --mod-spacing-sm: 0.5rem;
+  --mod-spacing-md: 1rem;
+  --mod-spacing-lg: 1.5rem;
+  --mod-spacing-xl: 1.75rem;
+  
+  /* --- Tipografía --- */
+  --mod-font-family: 'Open Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mod-font-size-xs: 0.72rem;
+  --mod-font-size-sm: 0.8rem;
+  --mod-font-size-base: 0.88rem;
+  --mod-font-size-md: 0.95rem;
+  --mod-font-size-lg: 1.02rem;
+  --mod-font-size-xl: 1.2rem;
+  
+  /* --- Bordes --- */
+  --mod-radius-sm: 8px;
+  --mod-radius-md: 10px;
+  --mod-radius-lg: 12px;
+  --mod-radius-full: 999px;
+  
+  /* --- Sombras --- */
+  --mod-shadow-card: 0 3px 8px rgba(9, 0, 41, 0.05);
+}
+
+
+/* ===========================================
+   2. MÓDULO CONTENEDOR
+   =========================================== */
+
+.mod-section {
+  background-color: var(--mod-color-bg-light);
+  border: 1px solid var(--mod-color-border);
+  border-radius: var(--mod-radius-lg);
+  padding: 1.25rem var(--mod-spacing-lg);
+  font-family: var(--mod-font-family);
+}
+
+.mod-section__title {
+  margin: 0;
+  color: var(--mod-color-text-dark);
+  font-size: var(--mod-font-size-xl);
+  font-weight: 700;
+}
+
+.mod-section__intro {
+  margin: 0.4rem 0 1.1rem;
+  color: var(--mod-color-text-muted);
+  font-size: var(--mod-font-size-md);
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .mod-section {
+    padding: var(--mod-spacing-md);
+  }
+}
+
+
+/* ===========================================
+   3. GRID DE CARDS
+   =========================================== */
+
+.mod-grid {
+  display: grid;
+  gap: var(--mod-spacing-md);
+}
+
+/* 2 columnas en tablet+ */
+@media (min-width: 768px) {
+  .mod-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--mod-spacing-xl);
+    margin: 0;
+  }
+}
+
+/* 3 columnas en desktop grande */
+@media (min-width: 1200px) {
+  .mod-grid--3cols {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* 4 columnas en desktop grande */
+@media (min-width: 1400px) {
+  .mod-grid--4cols {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Forzar 1 columna */
+.mod-grid--1col {
+  grid-template-columns: 1fr;
+}
+
+
+/* ===========================================
+   4. CARD BASE
+   =========================================== */
+
+.mod-card {
+  background-color: var(--mod-color-bg-white);
+  border: 1px solid var(--mod-color-border);
+  border-radius: var(--mod-radius-md);
+  box-shadow: var(--mod-shadow-card);
+  padding: 0.75rem var(--mod-spacing-md);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Card con layout horizontal (texto + imagen lado a lado) */
+.mod-card--horizontal {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 0.7rem;
+}
+
+@media (max-width: 900px) {
+  .mod-card--horizontal {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ===========================================
+   5. CARD - SECCIÓN SUPERIOR
+   =========================================== */
+
+.mod-card__top {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  gap: 0.7rem;
+  align-items: flex-start;
+}
+
+@media (max-width: 900px) {
+  .mod-card__top {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ===========================================
+   6. CARD - CONTENIDO DE TEXTO
+   =========================================== */
+
+.mod-card__content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.mod-card__title {
+  margin: 0 0 0.4rem;
+  font-size: var(--mod-font-size-lg);
+  font-weight: 700;
+  color: var(--mod-color-text-dark);
+}
+
+.mod-card__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: var(--mod-font-size-base);
+  color: var(--mod-color-text-muted);
+  line-height: 1.5;
+}
+
+.mod-card__list li + li {
+  margin-top: 0.28rem;
+}
+
+.mod-card__list strong {
+  color: var(--mod-color-text-medium);
+  font-weight: 600;
+}
+
+.mod-card__text {
+  font-size: var(--mod-font-size-base);
+  color: var(--mod-color-text-muted);
+  line-height: 1.5;
+  margin: 0 0 0.5rem;
+}
+
+
+/* ===========================================
+   7. CHIPS / BADGES
+   =========================================== */
+
+.mod-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.55rem;
+  border-radius: var(--mod-radius-full);
+  background-color: var(--mod-color-primary-light);
+  color: var(--mod-color-text-dark);
+  font-size: var(--mod-font-size-xs);
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  white-space: nowrap;
+}
+
+/* Variantes de color */
+.mod-chip--primary {
+  background-color: var(--mod-color-primary);
+  color: var(--mod-color-bg-white);
+}
+
+.mod-chip--dark {
+  background-color: var(--mod-color-text-dark);
+  color: var(--mod-color-bg-white);
+}
+
+.mod-chip--outline {
+  background-color: transparent;
+  border: 1px solid var(--mod-color-border);
+  color: var(--mod-color-text-muted);
+}
+
+/* Tamaños */
+.mod-chip--sm {
+  padding: 0.1rem 0.4rem;
+  font-size: 0.65rem;
+}
+
+.mod-chip--lg {
+  padding: 0.2rem 0.75rem;
+  font-size: var(--mod-font-size-sm);
+}
+
+
+/* ===========================================
+   8. FIGURAS E IMÁGENES
+   =========================================== */
+
+.mod-figure {
+  margin: 0;
+  border-radius: var(--mod-radius-sm);
+  overflow: hidden;
+  background-color: var(--mod-color-bg-light);
+}
+
+.mod-figure__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.mod-figure__caption {
+  padding: 0.35rem 0.5rem 0.45rem;
+  font-size: var(--mod-font-size-sm);
+  color: var(--mod-color-text-muted);
+  line-height: 1.4;
+}
+
+.mod-figure__caption strong {
+  color: var(--mod-color-text-medium);
+}
+
+/* Figura con ratio fijo */
+.mod-figure--ratio {
+  position: relative;
+}
+
+.mod-figure--ratio::before {
+  content: "";
+  display: block;
+  padding-top: 58.31%; /* Ratio 343x200 ≈ 58.31% */
+}
+
+.mod-figure--ratio .mod-figure__img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Ratios alternativos */
+.mod-figure--16x9::before {
+  padding-top: 56.25%;
+}
+
+.mod-figure--4x3::before {
+  padding-top: 75%;
+}
+
+.mod-figure--1x1::before {
+  padding-top: 100%;
+}
+
+
+/* ===========================================
+   9. CARD - SECCIÓN INFERIOR / FOOTER
+   =========================================== */
+
+.mod-card__bottom {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--mod-color-border);
+  margin-top: var(--mod-spacing-sm);
+  padding-top: var(--mod-spacing-sm);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem var(--mod-spacing-md);
+  align-items: center;
+}
+
+.mod-card__benefit {
+  margin: 0;
+  font-size: 0.87rem;
+  color: var(--mod-color-text-medium);
+  flex: 1 1 220px;
+  line-height: 1.5;
+}
+
+/* Footer sin borde */
+.mod-card__bottom--borderless {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+
+/* ===========================================
+   10. BOTONES CTA
+   =========================================== */
+
+.mod-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.95rem;
+  border-radius: var(--mod-radius-full);
+  border: 1px solid var(--mod-color-primary);
+  background-color: var(--mod-color-primary);
+  color: var(--mod-color-bg-white);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+
+.mod-cta:hover {
+  background-color: #E65500;
+  border-color: #E65500;
+}
+
+.mod-cta:active {
+  transform: scale(0.98);
+}
+
+/* CTA Outline / Secundario */
+.mod-cta--outline {
+  background-color: transparent;
+  color: var(--mod-color-primary);
+}
+
+.mod-cta--outline:hover {
+  background-color: var(--mod-color-primary);
+  color: var(--mod-color-bg-white);
+}
+
+/* CTA Oscuro */
+.mod-cta--dark {
+  background-color: var(--mod-color-text-dark);
+  border-color: var(--mod-color-text-dark);
+}
+
+.mod-cta--dark:hover {
+  background-color: var(--mod-color-text-medium);
+  border-color: var(--mod-color-text-medium);
+}
+
+/* CTA Ghost */
+.mod-cta--ghost {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--mod-color-primary);
+}
+
+.mod-cta--ghost:hover {
+  background-color: rgba(255, 96, 0, 0.1);
+}
+
+/* Tamaños de CTA */
+.mod-cta--sm {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+}
+
+.mod-cta--lg {
+  padding: 0.55rem 1.25rem;
+  font-size: 0.95rem;
+}
+
+/* CTA con icono */
+.mod-cta__icon {
+  width: 1em;
+  height: 1em;
+  margin-left: 0.4rem;
+  fill: currentColor;
+}
+
+.mod-cta__icon--left {
+  margin-left: 0;
+  margin-right: 0.4rem;
+}
+
+/* CTA full width */
+.mod-cta--block {
+  width: 100%;
+}
+
+/* Margen superior para separación */
+.mod-cta--spaced {
+  margin-top: 0.6rem;
+}
+
+
+/* ===========================================
+   11. UTILIDADES DEL MÓDULO
+   =========================================== */
+
+/* Separadores */
+.mod-divider {
+  width: 100%;
+  height: 1px;
+  background-color: var(--mod-color-border);
+  margin: var(--mod-spacing-md) 0;
+  border: none;
+}
+
+.mod-divider--sm {
+  margin: var(--mod-spacing-sm) 0;
+}
+
+/* Texto destacado */
+.mod-highlight {
+  color: var(--mod-color-text-medium);
+  font-weight: 600;
+}
+
+/* Texto silenciado */
+.mod-muted {
+  color: var(--mod-color-text-muted);
+}
+
+/* Espaciado inferior */
+.mod-mb-0 { margin-bottom: 0; }
+.mod-mb-1 { margin-bottom: var(--mod-spacing-xs); }
+.mod-mb-2 { margin-bottom: var(--mod-spacing-sm); }
+.mod-mb-3 { margin-bottom: var(--mod-spacing-md); }
+.mod-mb-4 { margin-bottom: var(--mod-spacing-lg); }
+
+/* Espaciado superior */
+.mod-mt-0 { margin-top: 0; }
+.mod-mt-1 { margin-top: var(--mod-spacing-xs); }
+.mod-mt-2 { margin-top: var(--mod-spacing-sm); }
+.mod-mt-3 { margin-top: var(--mod-spacing-md); }
+.mod-mt-4 { margin-top: var(--mod-spacing-lg); }
+
+/* Alineación de texto */
+.mod-text-left { text-align: left; }
+.mod-text-center { text-align: center; }
+.mod-text-right { text-align: right; }
+
+/* Ocultar en móvil */
+@media (max-width: 767px) {
+  .mod-hide-mobile { display: none !important; }
+}
+
+/* Ocultar en desktop */
+@media (min-width: 768px) {
+  .mod-hide-desktop { display: none !important; }
+}
+
+
+/* ===========================================
+   12. VARIANTES DE CARD
+   =========================================== */
+
+/* Card compacta */
+.mod-card--compact {
+  padding: var(--mod-spacing-sm);
+}
+
+.mod-card--compact .mod-card__title {
+  font-size: var(--mod-font-size-base);
+}
+
+/* Card destacada */
+.mod-card--featured {
+  border-color: var(--mod-color-primary);
+  border-width: 2px;
+}
+
+/* Card con sombra elevada */
+.mod-card--elevated {
+  box-shadow: 0 6px 16px rgba(9, 0, 41, 0.1);
+}
+
+/* Card sin borde */
+.mod-card--borderless {
+  border: none;
+  box-shadow: var(--mod-shadow-card);
+}
+
+/* Card clickable */
+.mod-card--clickable {
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.mod-card--clickable:hover {
+  box-shadow: 0 6px 16px rgba(9, 0, 41, 0.12);
+  transform: translateY(-2px);
+}
+
+
+/* ===========================================
+   13. VARIANTES DE SECCIÓN
+   =========================================== */
+
+/* Sección sin fondo */
+.mod-section--transparent {
+  background-color: transparent;
+  border: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Sección con fondo blanco */
+.mod-section--white {
+  background-color: var(--mod-color-bg-white);
+}
+
+/* Sección con fondo oscuro */
+.mod-section--dark {
+  background-color: var(--mod-color-text-dark);
+  border-color: var(--mod-color-text-dark);
+}
+
+.mod-section--dark .mod-section__title,
+.mod-section--dark .mod-section__intro {
+  color: var(--mod-color-bg-white);
+}
+
+/* Sección compacta */
+.mod-section--compact {
+  padding: var(--mod-spacing-md);
+}
+
+/* Sección sin padding lateral */
+.mod-section--flush {
+  padding-left: 0;
+  padding-right: 0;
+}

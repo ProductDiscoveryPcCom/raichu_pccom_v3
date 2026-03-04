@@ -1,0 +1,2858 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biblioteca Visual — Design System PcComponentes</title>
+
+<!-- ════════════════════════════════════════════════
+     CMS CSS REAL (cms_compatible.css)
+     ════════════════════════════════════════════════ -->
+<style id="cms-base">
+/**
+ * CSS Compatible con CMS de PcComponentes
+ * Versión 4.1.1
+ * 
+ * Este archivo contiene todos los estilos necesarios para el Content Generator
+ * Compatible con el CMS de PcComponentes
+ * 
+ * IMPORTANTE: Este CSS debe incluirse al inicio de cada artículo generado
+ */
+
+/* ============================================================================
+   VARIABLES CSS - Design System PcComponentes
+   ============================================================================ */
+
+:root {
+  /* Colores - Naranja (Accent) */
+  --orange-900: #FF6000;
+  --orange-700: #FF8640;
+  --orange-500: #FFAE80;
+  --orange-300: #FFB7BF;
+  
+  /* Colores - Azul Medio */
+  --blue-m-900: #170453;
+  --blue-m-700: #51437E;
+  --blue-m-500: #8B81A9;
+  --blue-m-300: #C5C0D4;
+  
+  /* Colores - Azul Oscuro */
+  --blue-d-900: #090029;
+  --blue-d-700: #46405E;
+  --blue-d-500: #848094;
+  --blue-d-300: #C1BFC9;
+  
+  /* Colores - Base */
+  --white: #FFFFFF;
+  --gray-900: #999999;
+  --gray-700: #949494;
+  --gray-500: #C2C2C2;
+  --gray-300: #E6E6E6;
+  --gray-200: #D9D9D9;
+  --gray-150: #CFCFCF;
+  --gray-50: #F4F4F4;
+  
+  /* Colores - Semánticos */
+  --ink: #141822;
+  --muted: #62697A;
+  --line: var(--gray-300);
+  
+  /* Colores - Componentes */
+  --primary: var(--blue-m-900);
+  --primary-100: var(--blue-m-300);
+  --accent: var(--orange-900);
+  --accent-100: var(--orange-500);
+  
+  /* Espaciado */
+  --space-1: 6px;
+  --space-2: 10px;
+  --space-3: 14px;
+  --space-4: 18px;
+  --space-5: 22px;
+  
+  /* Radius */
+  --radius-0: 0;
+  --radius-6: 6px;
+  --radius-10: 10px;
+}
+
+/* ============================================================================
+   RESET Y BASE
+   ============================================================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--white);
+  color: var(--ink);
+  font: 16px/1.6 'Open Sans', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial;
+}
+
+article {
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* ============================================================================
+   TIPOGRAFÍA
+   ============================================================================ */
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 800;
+  margin: var(--space-4) 0 var(--space-2);
+  color: var(--primary);
+}
+
+h1 {
+  font-size: 34px;
+}
+
+h2 {
+  font-size: 24px;
+}
+
+h3 {
+  font-size: 20px;
+}
+
+h4 {
+  font-size: 16px;
+}
+
+strong {
+  font-weight: 800;
+}
+
+p,
+ul,
+ol {
+  margin: var(--space-2) 0;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+a:hover {
+  opacity: 0.9;
+}
+
+/* ============================================================================
+   COMPONENTES - Kicker (Etiqueta superior)
+   ============================================================================ */
+
+.kicker {
+  display: inline-block;
+  background: var(--primary-100);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: var(--space-2);
+}
+
+/* ============================================================================
+   COMPONENTES - Badges
+   ============================================================================ */
+
+.badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: var(--space-2) 0;
+}
+
+.badge {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--muted);
+  background: #fff;
+}
+
+/* ============================================================================
+   COMPONENTES - Callouts (Destacados)
+   ============================================================================ */
+
+.callout {
+  border-left: 6px solid var(--primary);
+  background: var(--gray-50);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-10);
+  margin: var(--space-4) 0;
+}
+
+.callout.accent {
+  border-left-color: var(--accent);
+  background: var(--accent-100);
+}
+
+.callout strong {
+  color: var(--primary);
+}
+
+/* Callout específico para Black Friday */
+.bf-callout {
+  background-color: #f4f4f4;
+  padding: 0.8em 1em;
+  margin: 1.2em 0;
+  border-left: 4px solid #FF8640;
+  font-size: 0.95em;
+}
+
+.bf-callout a {
+  color: #ff6000;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+/* ============================================================================
+   COMPONENTES - Botones
+   ============================================================================ */
+
+.btns {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: var(--space-3) 0;
+}
+
+.btn {
+  display: inline-block;
+  padding: 10px 14px;
+  border-radius: var(--radius-6);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.btn.ghost {
+  background: #fff;
+  color: var(--ink);
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+/* ============================================================================
+   COMPONENTES - Tabla de Contenidos (TOC)
+   ============================================================================ */
+
+.toc {
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-6);
+  padding: 12px;
+  background: #fff;
+}
+
+.toc h4 {
+  margin: 0 0 6px;
+}
+
+.toc a {
+  display: block;
+  padding: 4px 0;
+  text-decoration: none;
+  border-bottom: 1px dashed var(--line);
+  color: var(--muted);
+}
+
+.toc a:last-child {
+  border-bottom: none;
+}
+
+.toc a:hover {
+  color: var(--primary);
+}
+
+/* ============================================================================
+   COMPONENTES - Utilidades
+   ============================================================================ */
+
+.note {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+meter {
+  width: 100%;
+  height: 10px;
+}
+
+/* ============================================================================
+   LAYOUT - Grid System
+   ============================================================================ */
+
+.grid {
+  display: grid;
+  gap: 16px;
+  margin: var(--space-3) 0;
+}
+
+@media (min-width: 860px) {
+  .grid.cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .grid.cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ============================================================================
+   COMPONENTES - Cards
+   ============================================================================ */
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-6);
+  padding: 14px;
+  background: #fff;
+}
+
+.card h4 {
+  margin: 0 0 8px;
+}
+
+.card .why {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ============================================================================
+   COMPONENTES - Separadores
+   ============================================================================ */
+
+.hr {
+  height: 1px;
+  background: var(--line);
+  margin: var(--space-4) 0;
+}
+
+/* ============================================================================
+   COMPONENTES - Tablas HTML genéricas
+   ============================================================================ */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--space-3) 0;
+  font-size: 15px;
+}
+
+table thead th {
+  background: var(--gray-50);
+  font-weight: 800;
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 2px solid var(--line);
+}
+
+table tbody td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+table tbody tr:hover {
+  background: #fafafa;
+}
+
+/* ============================================================================
+   COMPONENTES - Tablas (Light Table System)
+   ============================================================================ */
+
+.lt {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-0);
+  overflow: hidden;
+  background: #fff;
+  margin: var(--space-3) 0;
+}
+
+.lt .r {
+  display: grid;
+  border-top: 1px solid var(--line);
+}
+
+.lt .r:first-child {
+  border-top: none;
+  background: var(--gray-50);
+  font-weight: 800;
+}
+
+.lt .c {
+  padding: 10px;
+}
+
+/* Tabla con filas alternas */
+.lt.zebra .r:nth-child(odd):not(:first-child) {
+  background: #FCFCFD;
+}
+
+/* Configuraciones de columnas */
+.lt.cols-2 .r {
+  grid-template-columns: 1.4fr 0.6fr;
+}
+
+.lt.cols-3 .r {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.lt.cols-7 .r {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (min-width: 900px) {
+  .lt.cols-7 .r {
+    grid-template-columns: 0.7fr 0.9fr 0.7fr 1.1fr 0.8fr 0.9fr 0.8fr;
+  }
+}
+
+/* ============================================================================
+   COMPONENTES - FAQs
+   ============================================================================ */
+
+.faqs .q {
+  font-weight: 800;
+  margin: var(--space-3) 0 var(--space-2);
+  font-size: 18px;
+  color: var(--primary);
+}
+
+.faqs .a {
+  margin: 0 0 var(--space-3);
+}
+
+/* ============================================================================
+   COMPONENTES - Verdict Box (Veredicto Final)
+   ============================================================================ */
+
+.verdict-box {
+  background: #f8f9fa;
+  padding: 1.5em;
+  border-left: 4px solid var(--primary);
+  margin: 1.5em 0;
+  border-radius: var(--radius-6);
+}
+
+.verdict-box h3 {
+  margin-top: 0;
+}
+
+.verdict-box ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.verdict-box li {
+  margin-bottom: 0.5em;
+}
+
+/* ============================================================================
+   COMPONENTES - Tabla de Comparación (Comparison Table)
+   ============================================================================ */
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--space-4) 0;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+.comparison-table th {
+  background: var(--gray-50);
+  font-weight: 600;
+}
+
+.comparison-table .comparison-highlight {
+  background: var(--orange-900);
+  color: var(--white);
+  font-weight: 700;
+}
+
+.comparison-table td.comparison-highlight {
+  background: #fff5ef;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.comparison-table th:first-child,
+.comparison-table td:first-child {
+  width: 30%;
+  font-weight: 600;
+}
+
+/* ============================================================================
+   FIN DEL CSS
+   ============================================================================ */
+
+</style>
+
+<!-- Inline component CSS (callout-alert, intro, check-list, etc.) -->
+<style id="cms-inline">
+.verdict-box{background:linear-gradient(135deg,var(--blue-m-900),#2E1A7A);color:var(--white);padding:var(--space-xl);border-radius:var(--radius-md);margin-top:var(--space-lg);}
+.verdict-box a{color:#FFD700;text-decoration:underline;}.verdict-box a:hover{color:var(--white);}.verdict-box p:last-child{margin-bottom:0;}
+.callout{background:var(--gray-100);border-left:4px solid var(--orange-900);padding:var(--space-md) var(--space-lg);margin:var(--space-lg) 0;border-radius:0 var(--radius-md) var(--radius-md) 0;}.callout p:last-child{margin-bottom:0;}
+.callout-bf{background:linear-gradient(135deg,#FF6000,#FF8533);color:var(--white);padding:var(--space-lg);border-radius:var(--radius-md);text-align:center;margin:var(--space-lg) 0;}
+.callout-alert{background:linear-gradient(135deg,#FF6000,#FF8533);color:var(--white);padding:var(--space-lg);border-radius:var(--radius-md);text-align:center;margin:var(--space-lg) 0;border-left:6px solid #CC4D00;}
+.callout-alert p:first-of-type{font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;font-size:1.2em;}
+table{width:100%;border-collapse:collapse;margin:var(--space-lg) 0;}th,td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--gray-200);}th{background:var(--gray-100);font-weight:600;}
+.grid{display:grid;gap:16px;margin:var(--space-lg) 0;}
+.grid-layout{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--space-lg);margin-top:var(--space-lg);}
+.grid-item{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-md);padding:var(--space-md) var(--space-lg);}
+.grid-item.destacado{border:2px solid var(--orange-900);position:relative;}.grid-item.destacado::before{content:'DESTACADO';position:absolute;top:-10px;left:20px;background:var(--orange-900);color:var(--white);padding:2px 8px;font-size:11px;border-radius:4px;}
+.intro{font-size:17px;color:#1a1a1a;margin-bottom:32px;padding:20px;background-color:var(--gray-100);border-radius:var(--radius-md);line-height:1.8;}
+.check-list{list-style:none;padding-left:0;}.check-list li{padding-left:28px;position:relative;margin-bottom:12px;}.check-list li::before{content:"✓";position:absolute;left:0;color:var(--orange-900);font-weight:700;font-size:18px;}
+.specs-list{background-color:var(--gray-100);padding:20px 24px;border-radius:var(--radius-md);margin:28px 0;}.specs-list h4{font-weight:600;margin:0 0 14px 0;}.specs-list ul{list-style:none;margin:0;padding:0;}.specs-list ul li{padding:8px 0;border-bottom:1px solid #e0e0e0;display:flex;justify-content:space-between;font-size:15px;}.specs-list ul li:last-child{border-bottom:none;}
+.product-module{background:var(--gray-100);padding:var(--space-lg);border-radius:var(--radius-md);margin:var(--space-lg) 0;border-left:4px solid var(--orange-900);}.product-module h4{margin-top:0;margin-bottom:12px;color:var(--orange-900);}.product-module a{color:var(--orange-900);font-weight:600;}
+.video-container{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;margin:28px 0;border-radius:var(--radius-md);}.video-container iframe{position:absolute;top:0;left:0;width:100%;height:100%;border-radius:var(--radius-md);}
+.price-highlight{background:linear-gradient(90deg,#FF6000,#FF8640);color:var(--white);padding:20px 28px;border-radius:var(--radius-md);margin:28px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}.price-highlight .price{font-size:28px;font-weight:700;}.price-highlight .price-label{font-size:14px;color:rgba(255,255,255,0.9);}
+</style>
+
+<!-- Cards horizontales (módulo CMS) -->
+<style id="cms-cards-h">
+/**
+ * =====================================================
+ * CMS MODULE - CARD GRID SYSTEM
+ * Componentes reutilizables para módulos de contenido
+ * =====================================================
+ */
+
+/* ===========================================
+   1. VARIABLES CSS
+   =========================================== */
+
+:root {
+  /* --- Colores del módulo --- */
+  --mod-color-primary: #FF6000;
+  --mod-color-primary-light: #FFAE80;
+  --mod-color-text-dark: #090029;
+  --mod-color-text-medium: #170453;
+  --mod-color-text-muted: #46405E;
+  
+  --mod-color-bg-light: #F4F4F4;
+  --mod-color-bg-white: #FFFFFF;
+  --mod-color-border: #E6E6E6;
+  
+  /* --- Espaciado --- */
+  --mod-spacing-xs: 0.25rem;
+  --mod-spacing-sm: 0.5rem;
+  --mod-spacing-md: 1rem;
+  --mod-spacing-lg: 1.5rem;
+  --mod-spacing-xl: 1.75rem;
+  
+  /* --- Tipografía --- */
+  --mod-font-family: 'Open Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mod-font-size-xs: 0.72rem;
+  --mod-font-size-sm: 0.8rem;
+  --mod-font-size-base: 0.88rem;
+  --mod-font-size-md: 0.95rem;
+  --mod-font-size-lg: 1.02rem;
+  --mod-font-size-xl: 1.2rem;
+  
+  /* --- Bordes --- */
+  --mod-radius-sm: 8px;
+  --mod-radius-md: 10px;
+  --mod-radius-lg: 12px;
+  --mod-radius-full: 999px;
+  
+  /* --- Sombras --- */
+  --mod-shadow-card: 0 3px 8px rgba(9, 0, 41, 0.05);
+}
+
+
+/* ===========================================
+   2. MÓDULO CONTENEDOR
+   =========================================== */
+
+.mod-section {
+  background-color: var(--mod-color-bg-light);
+  border: 1px solid var(--mod-color-border);
+  border-radius: var(--mod-radius-lg);
+  padding: 1.25rem var(--mod-spacing-lg);
+  font-family: var(--mod-font-family);
+}
+
+.mod-section__title {
+  margin: 0;
+  color: var(--mod-color-text-dark);
+  font-size: var(--mod-font-size-xl);
+  font-weight: 700;
+}
+
+.mod-section__intro {
+  margin: 0.4rem 0 1.1rem;
+  color: var(--mod-color-text-muted);
+  font-size: var(--mod-font-size-md);
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .mod-section {
+    padding: var(--mod-spacing-md);
+  }
+}
+
+
+/* ===========================================
+   3. GRID DE CARDS
+   =========================================== */
+
+.mod-grid {
+  display: grid;
+  gap: var(--mod-spacing-md);
+}
+
+/* 2 columnas en tablet+ */
+@media (min-width: 768px) {
+  .mod-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--mod-spacing-xl);
+    margin: 0;
+  }
+}
+
+/* 3 columnas en desktop grande */
+@media (min-width: 1200px) {
+  .mod-grid--3cols {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* 4 columnas en desktop grande */
+@media (min-width: 1400px) {
+  .mod-grid--4cols {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Forzar 1 columna */
+.mod-grid--1col {
+  grid-template-columns: 1fr;
+}
+
+
+/* ===========================================
+   4. CARD BASE
+   =========================================== */
+
+.mod-card {
+  background-color: var(--mod-color-bg-white);
+  border: 1px solid var(--mod-color-border);
+  border-radius: var(--mod-radius-md);
+  box-shadow: var(--mod-shadow-card);
+  padding: 0.75rem var(--mod-spacing-md);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Card con layout horizontal (texto + imagen lado a lado) */
+.mod-card--horizontal {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 0.7rem;
+}
+
+@media (max-width: 900px) {
+  .mod-card--horizontal {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ===========================================
+   5. CARD - SECCIÓN SUPERIOR
+   =========================================== */
+
+.mod-card__top {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  gap: 0.7rem;
+  align-items: flex-start;
+}
+
+@media (max-width: 900px) {
+  .mod-card__top {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ===========================================
+   6. CARD - CONTENIDO DE TEXTO
+   =========================================== */
+
+.mod-card__content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.mod-card__title {
+  margin: 0 0 0.4rem;
+  font-size: var(--mod-font-size-lg);
+  font-weight: 700;
+  color: var(--mod-color-text-dark);
+}
+
+.mod-card__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: var(--mod-font-size-base);
+  color: var(--mod-color-text-muted);
+  line-height: 1.5;
+}
+
+.mod-card__list li + li {
+  margin-top: 0.28rem;
+}
+
+.mod-card__list strong {
+  color: var(--mod-color-text-medium);
+  font-weight: 600;
+}
+
+.mod-card__text {
+  font-size: var(--mod-font-size-base);
+  color: var(--mod-color-text-muted);
+  line-height: 1.5;
+  margin: 0 0 0.5rem;
+}
+
+
+/* ===========================================
+   7. CHIPS / BADGES
+   =========================================== */
+
+.mod-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.55rem;
+  border-radius: var(--mod-radius-full);
+  background-color: var(--mod-color-primary-light);
+  color: var(--mod-color-text-dark);
+  font-size: var(--mod-font-size-xs);
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  white-space: nowrap;
+}
+
+/* Variantes de color */
+.mod-chip--primary {
+  background-color: var(--mod-color-primary);
+  color: var(--mod-color-bg-white);
+}
+
+.mod-chip--dark {
+  background-color: var(--mod-color-text-dark);
+  color: var(--mod-color-bg-white);
+}
+
+.mod-chip--outline {
+  background-color: transparent;
+  border: 1px solid var(--mod-color-border);
+  color: var(--mod-color-text-muted);
+}
+
+/* Tamaños */
+.mod-chip--sm {
+  padding: 0.1rem 0.4rem;
+  font-size: 0.65rem;
+}
+
+.mod-chip--lg {
+  padding: 0.2rem 0.75rem;
+  font-size: var(--mod-font-size-sm);
+}
+
+
+/* ===========================================
+   8. FIGURAS E IMÁGENES
+   =========================================== */
+
+.mod-figure {
+  margin: 0;
+  border-radius: var(--mod-radius-sm);
+  overflow: hidden;
+  background-color: var(--mod-color-bg-light);
+}
+
+.mod-figure__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.mod-figure__caption {
+  padding: 0.35rem 0.5rem 0.45rem;
+  font-size: var(--mod-font-size-sm);
+  color: var(--mod-color-text-muted);
+  line-height: 1.4;
+}
+
+.mod-figure__caption strong {
+  color: var(--mod-color-text-medium);
+}
+
+/* Figura con ratio fijo */
+.mod-figure--ratio {
+  position: relative;
+}
+
+.mod-figure--ratio::before {
+  content: "";
+  display: block;
+  padding-top: 58.31%; /* Ratio 343x200 ≈ 58.31% */
+}
+
+.mod-figure--ratio .mod-figure__img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Ratios alternativos */
+.mod-figure--16x9::before {
+  padding-top: 56.25%;
+}
+
+.mod-figure--4x3::before {
+  padding-top: 75%;
+}
+
+.mod-figure--1x1::before {
+  padding-top: 100%;
+}
+
+
+/* ===========================================
+   9. CARD - SECCIÓN INFERIOR / FOOTER
+   =========================================== */
+
+.mod-card__bottom {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--mod-color-border);
+  margin-top: var(--mod-spacing-sm);
+  padding-top: var(--mod-spacing-sm);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem var(--mod-spacing-md);
+  align-items: center;
+}
+
+.mod-card__benefit {
+  margin: 0;
+  font-size: 0.87rem;
+  color: var(--mod-color-text-medium);
+  flex: 1 1 220px;
+  line-height: 1.5;
+}
+
+/* Footer sin borde */
+.mod-card__bottom--borderless {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+
+/* ===========================================
+   10. BOTONES CTA
+   =========================================== */
+
+.mod-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.95rem;
+  border-radius: var(--mod-radius-full);
+  border: 1px solid var(--mod-color-primary);
+  background-color: var(--mod-color-primary);
+  color: var(--mod-color-bg-white);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+
+.mod-cta:hover {
+  background-color: #E65500;
+  border-color: #E65500;
+}
+
+.mod-cta:active {
+  transform: scale(0.98);
+}
+
+/* CTA Outline / Secundario */
+.mod-cta--outline {
+  background-color: transparent;
+  color: var(--mod-color-primary);
+}
+
+.mod-cta--outline:hover {
+  background-color: var(--mod-color-primary);
+  color: var(--mod-color-bg-white);
+}
+
+/* CTA Oscuro */
+.mod-cta--dark {
+  background-color: var(--mod-color-text-dark);
+  border-color: var(--mod-color-text-dark);
+}
+
+.mod-cta--dark:hover {
+  background-color: var(--mod-color-text-medium);
+  border-color: var(--mod-color-text-medium);
+}
+
+/* CTA Ghost */
+.mod-cta--ghost {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--mod-color-primary);
+}
+
+.mod-cta--ghost:hover {
+  background-color: rgba(255, 96, 0, 0.1);
+}
+
+/* Tamaños de CTA */
+.mod-cta--sm {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+}
+
+.mod-cta--lg {
+  padding: 0.55rem 1.25rem;
+  font-size: 0.95rem;
+}
+
+/* CTA con icono */
+.mod-cta__icon {
+  width: 1em;
+  height: 1em;
+  margin-left: 0.4rem;
+  fill: currentColor;
+}
+
+.mod-cta__icon--left {
+  margin-left: 0;
+  margin-right: 0.4rem;
+}
+
+/* CTA full width */
+.mod-cta--block {
+  width: 100%;
+}
+
+/* Margen superior para separación */
+.mod-cta--spaced {
+  margin-top: 0.6rem;
+}
+
+
+/* ===========================================
+   11. UTILIDADES DEL MÓDULO
+   =========================================== */
+
+/* Separadores */
+.mod-divider {
+  width: 100%;
+  height: 1px;
+  background-color: var(--mod-color-border);
+  margin: var(--mod-spacing-md) 0;
+  border: none;
+}
+
+.mod-divider--sm {
+  margin: var(--mod-spacing-sm) 0;
+}
+
+/* Texto destacado */
+.mod-highlight {
+  color: var(--mod-color-text-medium);
+  font-weight: 600;
+}
+
+/* Texto silenciado */
+.mod-muted {
+  color: var(--mod-color-text-muted);
+}
+
+/* Espaciado inferior */
+.mod-mb-0 { margin-bottom: 0; }
+.mod-mb-1 { margin-bottom: var(--mod-spacing-xs); }
+.mod-mb-2 { margin-bottom: var(--mod-spacing-sm); }
+.mod-mb-3 { margin-bottom: var(--mod-spacing-md); }
+.mod-mb-4 { margin-bottom: var(--mod-spacing-lg); }
+
+/* Espaciado superior */
+.mod-mt-0 { margin-top: 0; }
+.mod-mt-1 { margin-top: var(--mod-spacing-xs); }
+.mod-mt-2 { margin-top: var(--mod-spacing-sm); }
+.mod-mt-3 { margin-top: var(--mod-spacing-md); }
+.mod-mt-4 { margin-top: var(--mod-spacing-lg); }
+
+/* Alineación de texto */
+.mod-text-left { text-align: left; }
+.mod-text-center { text-align: center; }
+.mod-text-right { text-align: right; }
+
+/* Ocultar en móvil */
+@media (max-width: 767px) {
+  .mod-hide-mobile { display: none !important; }
+}
+
+/* Ocultar en desktop */
+@media (min-width: 768px) {
+  .mod-hide-desktop { display: none !important; }
+}
+
+
+/* ===========================================
+   12. VARIANTES DE CARD
+   =========================================== */
+
+/* Card compacta */
+.mod-card--compact {
+  padding: var(--mod-spacing-sm);
+}
+
+.mod-card--compact .mod-card__title {
+  font-size: var(--mod-font-size-base);
+}
+
+/* Card destacada */
+.mod-card--featured {
+  border-color: var(--mod-color-primary);
+  border-width: 2px;
+}
+
+/* Card con sombra elevada */
+.mod-card--elevated {
+  box-shadow: 0 6px 16px rgba(9, 0, 41, 0.1);
+}
+
+/* Card sin borde */
+.mod-card--borderless {
+  border: none;
+  box-shadow: var(--mod-shadow-card);
+}
+
+/* Card clickable */
+.mod-card--clickable {
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.mod-card--clickable:hover {
+  box-shadow: 0 6px 16px rgba(9, 0, 41, 0.12);
+  transform: translateY(-2px);
+}
+
+
+/* ===========================================
+   13. VARIANTES DE SECCIÓN
+   =========================================== */
+
+/* Sección sin fondo */
+.mod-section--transparent {
+  background-color: transparent;
+  border: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Sección con fondo blanco */
+.mod-section--white {
+  background-color: var(--mod-color-bg-white);
+}
+
+/* Sección con fondo oscuro */
+.mod-section--dark {
+  background-color: var(--mod-color-text-dark);
+  border-color: var(--mod-color-text-dark);
+}
+
+.mod-section--dark .mod-section__title,
+.mod-section--dark .mod-section__intro {
+  color: var(--mod-color-bg-white);
+}
+
+/* Sección compacta */
+.mod-section--compact {
+  padding: var(--mod-spacing-md);
+}
+
+/* Sección sin padding lateral */
+.mod-section--flush {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+</style>
+
+<!-- Cards verticales (módulo CMS) -->
+<style id="cms-cards-v">
+/**
+ * =====================================================
+ * CMS MODULE - VERTICAL CARD GRID
+ * Cards verticales simples para listados de productos
+ * =====================================================
+ */
+
+/* ===========================================
+   1. VARIABLES CSS
+   =========================================== */
+
+:root {
+  /* --- Colores --- */
+  --vcard-color-primary: #FF6000;
+  --vcard-color-primary-light: #FFAE80;
+  --vcard-color-text-dark: #090029;
+  --vcard-color-text-medium: #170453;
+  --vcard-color-text-body: #333333;
+  
+  --vcard-color-bg-light: #F4F4F4;
+  --vcard-color-bg-white: #FFFFFF;
+  --vcard-color-border: #E6E6E6;
+  
+  /* --- Espaciado --- */
+  --vcard-spacing-xs: 0.35rem;
+  --vcard-spacing-sm: 0.5rem;
+  --vcard-spacing-md: 1rem;
+  --vcard-spacing-lg: 1.5rem;
+  --vcard-spacing-xl: 2rem;
+  
+  /* --- Tipografía --- */
+  --vcard-font-family: 'Open Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --vcard-font-size-xs: 0.75rem;
+  --vcard-font-size-sm: 0.85rem;
+  --vcard-font-size-base: 0.9rem;
+  --vcard-font-size-md: 1.05rem;
+  --vcard-font-size-lg: 1.25rem;
+  
+  /* --- Bordes y sombras --- */
+  --vcard-radius-md: 12px;
+  --vcard-radius-full: 999px;
+  --vcard-shadow: 0 4px 10px rgba(9, 0, 41, 0.06);
+  --vcard-shadow-hover: 0 6px 16px rgba(9, 0, 41, 0.1);
+}
+
+
+/* ===========================================
+   2. CONTENEDOR DEL MÓDULO
+   =========================================== */
+
+.vcard-module {
+  background-color: var(--vcard-color-bg-light);
+  padding: var(--vcard-spacing-xl);
+  border-radius: var(--vcard-radius-md);
+  font-family: var(--vcard-font-family);
+}
+
+.vcard-module__title {
+  color: var(--vcard-color-text-dark);
+  margin: 0 0 var(--vcard-spacing-lg);
+  font-size: var(--vcard-font-size-lg);
+  font-weight: 700;
+}
+
+.vcard-module__intro {
+  color: var(--vcard-color-text-body);
+  margin: -0.5rem 0 var(--vcard-spacing-lg);
+  font-size: var(--vcard-font-size-base);
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .vcard-module {
+    padding: var(--vcard-spacing-lg);
+  }
+}
+
+/* Variantes de fondo */
+.vcard-module--white {
+  background-color: var(--vcard-color-bg-white);
+}
+
+.vcard-module--transparent {
+  background-color: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.vcard-module--bordered {
+  border: 1px solid var(--vcard-color-border);
+}
+
+
+/* ===========================================
+   3. GRID DE CARDS
+   =========================================== */
+
+.vcard-grid {
+  display: grid;
+  gap: var(--vcard-spacing-lg);
+}
+
+/* 2 columnas - tablet */
+@media (min-width: 600px) {
+  .vcard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* 3 columnas - tablet landscape */
+@media (min-width: 900px) {
+  .vcard-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* 4 columnas - desktop (como el original) */
+@media (min-width: 768px) {
+  .vcard-grid--4cols {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Forzar columnas específicas */
+.vcard-grid--2cols {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+  .vcard-grid--3cols {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* 1 columna en móvil siempre */
+@media (max-width: 599px) {
+  .vcard-grid,
+  .vcard-grid--2cols,
+  .vcard-grid--3cols,
+  .vcard-grid--4cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ===========================================
+   4. CARD VERTICAL
+   =========================================== */
+
+.vcard {
+  background-color: var(--vcard-color-bg-white);
+  border: 1px solid var(--vcard-color-border);
+  border-radius: var(--vcard-radius-md);
+  padding: 1.25rem;
+  box-shadow: var(--vcard-shadow);
+  display: flex;
+  flex-direction: column;
+}
+
+.vcard__title {
+  margin: 0 0 var(--vcard-spacing-sm);
+  font-size: var(--vcard-font-size-md);
+  font-weight: 700;
+  color: var(--vcard-color-text-dark);
+}
+
+/* Card con imagen */
+.vcard--with-image .vcard__title {
+  margin-top: var(--vcard-spacing-sm);
+}
+
+
+/* ===========================================
+   5. CHIP / ETIQUETA
+   =========================================== */
+
+.vcard__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--vcard-radius-full);
+  background-color: var(--vcard-color-primary-light);
+  color: var(--vcard-color-text-dark);
+  font-size: var(--vcard-font-size-xs);
+  font-weight: 600;
+  margin-bottom: 0.6rem;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+/* Variantes de chip */
+.vcard__chip--primary {
+  background-color: var(--vcard-color-primary);
+  color: var(--vcard-color-bg-white);
+}
+
+.vcard__chip--dark {
+  background-color: var(--vcard-color-text-dark);
+  color: var(--vcard-color-bg-white);
+}
+
+.vcard__chip--outline {
+  background-color: transparent;
+  border: 1px solid var(--vcard-color-border);
+  color: var(--vcard-color-text-medium);
+}
+
+.vcard__chip--success {
+  background-color: #C8E6C9;
+  color: #2E7D32;
+}
+
+.vcard__chip--warning {
+  background-color: #FFF3E0;
+  color: #E65100;
+}
+
+.vcard__chip--info {
+  background-color: #E3F2FD;
+  color: #1565C0;
+}
+
+
+/* ===========================================
+   6. LISTA DE CARACTERÍSTICAS
+   =========================================== */
+
+.vcard__list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+  font-size: var(--vcard-font-size-sm);
+  color: var(--vcard-color-text-body);
+  line-height: 1.5;
+}
+
+.vcard__list li + li {
+  margin-top: var(--vcard-spacing-xs);
+}
+
+.vcard__list strong {
+  color: var(--vcard-color-text-medium);
+  font-weight: 600;
+}
+
+/* Lista con bullets */
+.vcard__list--bullets {
+  list-style: disc;
+  padding-left: 1.2rem;
+}
+
+/* Lista con checks */
+.vcard__list--checks li {
+  padding-left: 1.4rem;
+  position: relative;
+}
+
+.vcard__list--checks li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--vcard-color-primary);
+  font-weight: 700;
+}
+
+
+/* ===========================================
+   7. SEPARADOR / DIVIDER
+   =========================================== */
+
+.vcard__divider {
+  border: none;
+  border-top: 1px solid var(--vcard-color-border);
+  margin: var(--vcard-spacing-md) 0;
+}
+
+.vcard__divider--sm {
+  margin: var(--vcard-spacing-sm) 0;
+}
+
+.vcard__divider--lg {
+  margin: var(--vcard-spacing-lg) 0;
+}
+
+
+/* ===========================================
+   8. BENEFICIO / TEXTO DESTACADO
+   =========================================== */
+
+.vcard__benefit {
+  margin: 0.4rem 0 0;
+  font-size: var(--vcard-font-size-base);
+  color: var(--vcard-color-text-medium);
+  line-height: 1.5;
+  flex-grow: 1; /* Empuja el CTA hacia abajo */
+}
+
+.vcard__text {
+  margin: 0 0 var(--vcard-spacing-sm);
+  font-size: var(--vcard-font-size-sm);
+  color: var(--vcard-color-text-body);
+  line-height: 1.5;
+}
+
+
+/* ===========================================
+   9. IMAGEN
+   =========================================== */
+
+.vcard__image {
+  width: 100%;
+  height: auto;
+  border-radius: calc(var(--vcard-radius-md) - 4px);
+  margin-bottom: var(--vcard-spacing-sm);
+  object-fit: cover;
+}
+
+.vcard__figure {
+  margin: 0 0 var(--vcard-spacing-sm);
+  border-radius: calc(var(--vcard-radius-md) - 4px);
+  overflow: hidden;
+}
+
+.vcard__figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.vcard__figure figcaption {
+  padding: var(--vcard-spacing-sm);
+  font-size: var(--vcard-font-size-xs);
+  color: var(--vcard-color-text-body);
+  background-color: var(--vcard-color-bg-light);
+}
+
+
+/* ===========================================
+   10. BOTÓN CTA
+   =========================================== */
+
+.vcard__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--vcard-radius-full);
+  border: 1px solid var(--vcard-color-primary);
+  background-color: var(--vcard-color-primary);
+  color: var(--vcard-color-bg-white);
+  font-size: var(--vcard-font-size-sm);
+  font-weight: 600;
+  text-decoration: none;
+  margin-top: var(--vcard-spacing-sm);
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+  white-space: nowrap;
+}
+
+.vcard__cta:hover {
+  background-color: #E65500;
+  border-color: #E65500;
+  color: var(--vcard-color-bg-white);
+}
+
+.vcard__cta:active {
+  transform: scale(0.98);
+}
+
+/* CTA Ghost / Outline */
+.vcard__cta--ghost {
+  background-color: transparent;
+  color: var(--vcard-color-primary);
+}
+
+.vcard__cta--ghost:hover {
+  background-color: var(--vcard-color-primary);
+  color: var(--vcard-color-bg-white);
+}
+
+/* CTA Secundario */
+.vcard__cta--secondary {
+  background-color: var(--vcard-color-bg-white);
+  border-color: var(--vcard-color-border);
+  color: var(--vcard-color-text-dark);
+}
+
+.vcard__cta--secondary:hover {
+  background-color: var(--vcard-color-bg-light);
+  color: var(--vcard-color-text-dark);
+}
+
+/* CTA Oscuro */
+.vcard__cta--dark {
+  background-color: var(--vcard-color-text-dark);
+  border-color: var(--vcard-color-text-dark);
+}
+
+.vcard__cta--dark:hover {
+  background-color: var(--vcard-color-text-medium);
+  border-color: var(--vcard-color-text-medium);
+}
+
+/* CTA Full Width */
+.vcard__cta--block {
+  width: 100%;
+  text-align: center;
+}
+
+/* Tamaños */
+.vcard__cta--sm {
+  padding: 0.3rem 0.6rem;
+  font-size: var(--vcard-font-size-xs);
+}
+
+.vcard__cta--lg {
+  padding: 0.6rem 1.1rem;
+  font-size: var(--vcard-font-size-base);
+}
+
+
+/* ===========================================
+   11. FOOTER DE CARD (múltiples CTAs)
+   =========================================== */
+
+.vcard__footer {
+  margin-top: auto;
+  padding-top: var(--vcard-spacing-sm);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vcard-spacing-sm);
+}
+
+.vcard__footer--border {
+  border-top: 1px solid var(--vcard-color-border);
+  margin-top: var(--vcard-spacing-md);
+  padding-top: var(--vcard-spacing-md);
+}
+
+
+/* ===========================================
+   12. VARIANTES DE CARD
+   =========================================== */
+
+/* Card sin sombra */
+.vcard--flat {
+  box-shadow: none;
+}
+
+/* Card destacada */
+.vcard--featured {
+  border-color: var(--vcard-color-primary);
+  border-width: 2px;
+}
+
+/* Card con hover */
+.vcard--hoverable {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  cursor: pointer;
+}
+
+.vcard--hoverable:hover {
+  box-shadow: var(--vcard-shadow-hover);
+  transform: translateY(-2px);
+}
+
+/* Card compacta */
+.vcard--compact {
+  padding: var(--vcard-spacing-md);
+}
+
+.vcard--compact .vcard__title {
+  font-size: var(--vcard-font-size-base);
+}
+
+.vcard--compact .vcard__list {
+  font-size: var(--vcard-font-size-xs);
+}
+
+/* Card sin borde */
+.vcard--borderless {
+  border: none;
+}
+
+/* Card centrada */
+.vcard--centered {
+  text-align: center;
+  align-items: center;
+}
+
+.vcard--centered .vcard__chip {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+/* ===========================================
+   13. ICONO EN CARD
+   =========================================== */
+
+.vcard__icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--vcard-spacing-sm);
+  fill: var(--vcard-color-primary);
+}
+
+.vcard__icon--sm {
+  width: 32px;
+  height: 32px;
+}
+
+.vcard__icon--lg {
+  width: 64px;
+  height: 64px;
+}
+
+.vcard__icon-wrapper {
+  width: 64px;
+  height: 64px;
+  background-color: var(--vcard-color-bg-light);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--vcard-spacing-md);
+}
+
+.vcard__icon-wrapper .vcard__icon {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 0;
+}
+
+
+/* ===========================================
+   14. PRECIO (para cards de producto)
+   =========================================== */
+
+.vcard__price {
+  font-size: var(--vcard-font-size-lg);
+  font-weight: 700;
+  color: var(--vcard-color-text-dark);
+  margin: var(--vcard-spacing-sm) 0;
+}
+
+.vcard__price-old {
+  font-size: var(--vcard-font-size-sm);
+  color: var(--vcard-color-text-body);
+  text-decoration: line-through;
+  margin-right: var(--vcard-spacing-sm);
+}
+
+.vcard__price-discount {
+  font-size: var(--vcard-font-size-xs);
+  font-weight: 600;
+  color: #D32F2F;
+  background-color: #FFEBEE;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  margin-left: var(--vcard-spacing-sm);
+}
+
+
+/* ===========================================
+   15. UTILIDADES
+   =========================================== */
+
+/* Espaciado */
+.vcard-mt-0 { margin-top: 0; }
+.vcard-mt-1 { margin-top: var(--vcard-spacing-sm); }
+.vcard-mt-2 { margin-top: var(--vcard-spacing-md); }
+.vcard-mt-3 { margin-top: var(--vcard-spacing-lg); }
+
+.vcard-mb-0 { margin-bottom: 0; }
+.vcard-mb-1 { margin-bottom: var(--vcard-spacing-sm); }
+.vcard-mb-2 { margin-bottom: var(--vcard-spacing-md); }
+.vcard-mb-3 { margin-bottom: var(--vcard-spacing-lg); }
+
+/* Texto */
+.vcard-text-center { text-align: center; }
+.vcard-text-muted { color: var(--vcard-color-text-body); }
+.vcard-text-primary { color: var(--vcard-color-primary); }
+.vcard-text-bold { font-weight: 700; }
+
+/* Visibilidad */
+@media (max-width: 767px) {
+  .vcard-hide-mobile { display: none !important; }
+}
+
+@media (min-width: 768px) {
+  .vcard-hide-desktop { display: none !important; }
+}
+
+/* Flex grow para empujar elementos */
+.vcard-grow { flex-grow: 1; }
+
+</style>
+
+<!-- ════════════════════════════════════════════════
+     LIBRARY UI (no afecta al CMS)
+     ════════════════════════════════════════════════ -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Library shell */
+:root {
+  --lib-bg: #0c0a1a;
+  --lib-surface: #161331;
+  --lib-surface-2: #1e1945;
+  --lib-border: #2a2555;
+  --lib-text: #e8e6f0;
+  --lib-text-muted: #9994b8;
+  --lib-accent: #ff6000;
+  --lib-accent-dim: rgba(255,96,0,0.15);
+  --lib-code-bg: #0d0b1e;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body.lib-body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--lib-bg);
+  color: var(--lib-text);
+  line-height: 1.6;
+}
+
+.lib-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+}
+
+/* Sidebar nav */
+.lib-nav {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 24px 16px;
+  background: var(--lib-surface);
+  border-right: 1px solid var(--lib-border);
+}
+
+.lib-nav__logo {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--lib-accent);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+}
+
+.lib-nav__sub {
+  font-size: 11px;
+  color: var(--lib-text-muted);
+  margin-bottom: 24px;
+  line-height: 1.4;
+}
+
+.lib-nav__group {
+  margin-bottom: 16px;
+}
+
+.lib-nav__label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--lib-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 6px 0;
+  padding-left: 8px;
+}
+
+.lib-nav__link {
+  display: block;
+  padding: 5px 8px;
+  font-size: 13px;
+  color: var(--lib-text);
+  text-decoration: none;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+.lib-nav__link:hover {
+  background: var(--lib-accent-dim);
+  color: var(--lib-accent);
+}
+
+/* Main content */
+.lib-main {
+  padding: 40px 48px 80px;
+  max-width: 960px;
+}
+
+.lib-header {
+  margin-bottom: 48px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--lib-border);
+}
+
+.lib-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+}
+
+.lib-header h1 span { color: var(--lib-accent); }
+
+.lib-header p {
+  color: var(--lib-text-muted);
+  font-size: 15px;
+  margin: 0;
+}
+
+.lib-stats {
+  display: flex;
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.lib-stat {
+  background: var(--lib-surface);
+  border: 1px solid var(--lib-border);
+  border-radius: 8px;
+  padding: 12px 18px;
+  font-size: 13px;
+}
+
+.lib-stat strong {
+  color: var(--lib-accent);
+  font-size: 20px;
+  display: block;
+  margin-bottom: 2px;
+}
+
+/* Category headers */
+.lib-cat {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 48px 0 20px 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--lib-accent);
+  color: var(--lib-text);
+}
+
+/* Component cards */
+.lib-card {
+  background: var(--lib-surface);
+  border: 1px solid var(--lib-border);
+  border-radius: 12px;
+  margin-bottom: 28px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.lib-card:hover {
+  border-color: var(--lib-accent);
+}
+
+.lib-card__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px 24px 12px;
+}
+
+.lib-card__icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.lib-card__title {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: var(--lib-text);
+}
+
+.lib-card__desc {
+  font-size: 13px;
+  color: var(--lib-text-muted);
+  margin: 0;
+}
+
+.lib-card__when {
+  font-size: 12px;
+  color: var(--lib-text-muted);
+  padding: 0 24px 16px;
+  border-bottom: 1px solid var(--lib-border);
+}
+
+.lib-card__when strong {
+  color: var(--lib-accent);
+}
+
+/* CMS preview area — white background to match real CMS */
+.lib-card__preview.cms-preview {
+  background: #ffffff;
+  padding: 28px 24px;
+  margin: 0;
+  /* Reset library styles inside preview */
+  color: #141822;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+/* Code block */
+.lib-card__code {
+  border-top: 1px solid var(--lib-border);
+}
+
+.lib-card__code summary {
+  padding: 10px 24px;
+  font-size: 13px;
+  color: var(--lib-text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+.lib-card__code summary:hover {
+  color: var(--lib-accent);
+}
+
+.lib-card__code pre {
+  margin: 0;
+  padding: 16px 24px;
+  background: var(--lib-code-bg);
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #b0adc8;
+}
+
+.lib-card__code code {
+  font-family: 'Fira Code', 'Consolas', monospace;
+}
+
+/* Copy button */
+.lib-copy-btn {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--lib-border);
+  color: var(--lib-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.lib-copy-btn:hover {
+  background: var(--lib-accent-dim);
+  color: var(--lib-accent);
+}
+.lib-copy-btn.copied {
+  color: #4ade80;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .lib-layout { grid-template-columns: 1fr; }
+  .lib-nav { display: none; }
+  .lib-main { padding: 24px 16px; }
+}
+</style>
+</head>
+<body class="lib-body">
+<div class="lib-layout">
+
+<!-- Sidebar -->
+<nav class="lib-nav">
+  <div class="lib-nav__logo">PcComponentes</div>
+  <div class="lib-nav__sub">Design System v5.0<br>Biblioteca de componentes visuales</div>
+  <div class="lib-nav__group"><p class="lib-nav__label">Estructura</p><a class="lib-nav__link" href="#toc">📑 Tabla de Contenidos</a><a class="lib-nav__link" href="#intro_box">📝 Intro Destacada</a><a class="lib-nav__link" href="#kicker">🏷️ Kicker</a><a class="lib-nav__link" href="#section_divider">🔹 Separador de Sección</a></div><div class="lib-nav__group"><p class="lib-nav__label">Contenido destacado</p><a class="lib-nav__link" href="#callout">💡 Callout / Destacado</a><a class="lib-nav__link" href="#callout_promo">🔥 Callout Promocional</a><a class="lib-nav__link" href="#callout_alert">🚨 Callout de Alerta</a><a class="lib-nav__link" href="#product_module">📦 Módulo de Producto</a><a class="lib-nav__link" href="#price_highlight">💰 Destacado de Precio</a></div><div class="lib-nav__group"><p class="lib-nav__label">Listas y datos</p><a class="lib-nav__link" href="#check_list">✔️ Check List</a><a class="lib-nav__link" href="#specs_list">🔧 Lista de Especificaciones</a><a class="lib-nav__link" href="#badges">🏷️ Badges / Tags</a><a class="lib-nav__link" href="#stats_grid">📊 Cifras / Estadísticas</a></div><div class="lib-nav__group"><p class="lib-nav__label">Tablas</p><a class="lib-nav__link" href="#table">📊 Tabla HTML Estándar</a><a class="lib-nav__link" href="#light_table">📋 Light Table (CSS Grid)</a><a class="lib-nav__link" href="#comparison_table">⚖️ Tabla de Comparación</a></div><div class="lib-nav__group"><p class="lib-nav__label">Layouts</p><a class="lib-nav__link" href="#grid">📐 Grid Layout</a><a class="lib-nav__link" href="#buttons">🔘 Botones CTA</a></div><div class="lib-nav__group"><p class="lib-nav__label">Bloques finales</p><a class="lib-nav__link" href="#verdict">✅ Veredicto Final</a><a class="lib-nav__link" href="#faqs">❓ Preguntas Frecuentes</a></div><div class="lib-nav__group"><p class="lib-nav__label">Módulos CMS</p><a class="lib-nav__link" href="#mod_cards">🃏 Cards Horizontales (Módulo CMS)</a><a class="lib-nav__link" href="#vcard_cards">📇 Cards Verticales (Módulo CMS)</a></div>
+</nav>
+
+<!-- Main -->
+<main class="lib-main">
+  <header class="lib-header">
+    <h1>Biblioteca <span>Visual</span></h1>
+    <p>Todos los componentes del Design System renderizados con el CSS real del CMS. Lo que ves aquí es exactamente lo que produce Raichu.</p>
+    <div class="lib-stats">
+      <div class="lib-stat"><strong>22</strong>Componentes</div>
+      <div class="lib-stat"><strong>7</strong>Categorías</div>
+      <div class="lib-stat"><strong>3</strong>Archivos CSS</div>
+    </div>
+  </header>
+
+  <h2 class="lib-cat" id="cat-estructura">Estructura</h2>
+<section class="lib-card" id="toc">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">📑</span>
+    <div>
+      <h3 class="lib-card__title">Tabla de Contenidos</h3>
+      <p class="lib-card__desc">Navegación interna del artículo. Se coloca tras el primer H2.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Artículos de >800 palabras con múltiples secciones.</div>
+  <div class="lib-card__preview cms-preview"><nav class="toc">
+  <p class="toc__title">Contenido</p>
+  <ol class="toc__list">
+    <li><a href="#mejores-portatiles">Los mejores portátiles gaming de 2025</a></li>
+    <li><a href="#que-buscar">Qué buscar en un portátil gaming</a></li>
+    <li><a href="#comparativa">Comparativa de rendimiento</a></li>
+    <li><a href="#veredicto">Nuestro veredicto</a></li>
+  </ol>
+</nav></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;nav class=&quot;toc&quot;&gt;
+  &lt;p class=&quot;toc__title&quot;&gt;Contenido&lt;/p&gt;
+  &lt;ol class=&quot;toc__list&quot;&gt;
+    &lt;li&gt;&lt;a href=&quot;#mejores-portatiles&quot;&gt;Los mejores portátiles gaming de 2025&lt;/a&gt;&lt;/li&gt;
+    &lt;li&gt;&lt;a href=&quot;#que-buscar&quot;&gt;Qué buscar en un portátil gaming&lt;/a&gt;&lt;/li&gt;
+    &lt;li&gt;&lt;a href=&quot;#comparativa&quot;&gt;Comparativa de rendimiento&lt;/a&gt;&lt;/li&gt;
+    &lt;li&gt;&lt;a href=&quot;#veredicto&quot;&gt;Nuestro veredicto&lt;/a&gt;&lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/nav&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section>
+<section class="lib-card" id="intro_box">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">📝</span>
+    <div>
+      <h3 class="lib-card__title">Intro Destacada</h3>
+      <p class="lib-card__desc">Párrafo introductorio con fondo gris y bordes redondeados.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Guías de compra, artículos editoriales. Lead visual potente.</div>
+  <div class="lib-card__preview cms-preview"><div class="intro">
+  <p>Si buscas un portátil gaming que rinda en 1440p sin dejar tu cuenta a cero, has llegado al lugar adecuado. Hemos probado 12 modelos para encontrar los que mejor equilibran potencia, pantalla y precio en 2025.</p>
+</div></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;div class=&quot;intro&quot;&gt;
+  &lt;p&gt;Si buscas un portátil gaming que rinda en 1440p sin dejar tu cuenta a cero, has llegado al lugar adecuado. Hemos probado 12 modelos para encontrar los que mejor equilibran potencia, pantalla y precio en 2025.&lt;/p&gt;
+&lt;/div&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section>
+<section class="lib-card" id="kicker">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">🏷️</span>
+    <div>
+      <h3 class="lib-card__title">Kicker</h3>
+      <p class="lib-card__desc">Etiqueta sobre el H1 que contextualiza el tipo de contenido.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Antes del H1 para indicar categoría (GUÍA, REVIEW, COMPARATIVA).</div>
+  <div class="lib-card__preview cms-preview"><span class="kicker">GUÍA DE COMPRA</span></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;span class=&quot;kicker&quot;&gt;GUÍA DE COMPRA&lt;/span&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section>
+<section class="lib-card" id="section_divider">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">🔹</span>
+    <div>
+      <h3 class="lib-card__title">Separador de Sección</h3>
+      <p class="lib-card__desc">Banner con degradado azul, kicker naranja y título blanco.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Mega-guías con múltiples verticales temáticas.</div>
+  <div class="lib-card__preview cms-preview"><div style="background:linear-gradient(135deg,#170453 0%,#0a0220 100%);margin:40px -20px;padding:30px 40px;border-radius:8px;">
+  <p style="color:#ff6000;font-size:13px;text-transform:uppercase;letter-spacing:2px;margin:0 0 5px 0;">Rendimiento</p>
+  <h2 style="color:#ffffff;font-size:28px;margin:0;">GPUs para gaming en 1440p</h2>
+</div></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;div style=&quot;background:linear-gradient(135deg,#170453 0%,#0a0220 100%);margin:40px -20px;padding:30px 40px;border-radius:8px;&quot;&gt;
+  &lt;p style=&quot;color:#ff6000;font-size:13px;text-transform:uppercase;letter-spacing:2px;margin:0 0 5px 0;&quot;&gt;Rendimiento&lt;/p&gt;
+  &lt;h2 style=&quot;color:#ffffff;font-size:28px;margin:0;&quot;&gt;GPUs para gaming en 1440p&lt;/h2&gt;
+&lt;/div&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section><h2 class="lib-cat" id="cat-contenido-destacado">Contenido destacado</h2>
+<section class="lib-card" id="callout">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">💡</span>
+    <div>
+      <h3 class="lib-card__title">Callout / Destacado</h3>
+      <p class="lib-card__desc">Caja con borde izquierdo naranja y fondo gris claro.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Tips, datos clave, advertencias. 1-3 por artículo.</div>
+  <div class="lib-card__preview cms-preview"><div class="callout">
+  <p><strong>💡 Consejo:</strong> Si juegas principalmente a títulos competitivos como Valorant o CS2, prioriza la tasa de refresco (144Hz+) sobre la resolución. Una pantalla 1080p a 165Hz te dará mejor experiencia que una 4K a 60Hz.</p>
+</div></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;div class=&quot;callout&quot;&gt;
+  &lt;p&gt;&lt;strong&gt;💡 Consejo:&lt;/strong&gt; Si juegas principalmente a títulos competitivos como Valorant o CS2, prioriza la tasa de refresco (144Hz+) sobre la resolución. Una pantalla 1080p a 165Hz te dará mejor experiencia que una 4K a 60Hz.&lt;/p&gt;
+&lt;/div&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section>
+<section class="lib-card" id="callout_promo">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">🔥</span>
+    <div>
+      <h3 class="lib-card__title">Callout Promocional</h3>
+      <p class="lib-card__desc">Banner degradado naranja con texto blanco centrado.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Ofertas, campañas activas. Máximo 1 por artículo.</div>
+  <div class="lib-card__preview cms-preview"><div class="callout-bf">
+  <p><strong>🔥 OFERTA BLACK FRIDAY</strong></p>
+  <p>Hasta -30% en portátiles gaming seleccionados. <a href="#">Ver ofertas en PcComponentes</a></p>
+</div></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;div class=&quot;callout-bf&quot;&gt;
+  &lt;p&gt;&lt;strong&gt;🔥 OFERTA BLACK FRIDAY&lt;/strong&gt;&lt;/p&gt;
+  &lt;p&gt;Hasta -30% en portátiles gaming seleccionados. &lt;a href=&quot;#&quot;&gt;Ver ofertas en PcComponentes&lt;/a&gt;&lt;/p&gt;
+&lt;/div&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section>
+<section class="lib-card" id="callout_alert">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">🚨</span>
+    <div>
+      <h3 class="lib-card__title">Callout de Alerta</h3>
+      <p class="lib-card__desc">Aviso urgente con degradado naranja + borde izquierdo oscuro.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Fechas límite, alertas de stock, cambios importantes.</div>
+  <div class="lib-card__preview cms-preview"><div class="callout-alert">
+  <p>⚠️ STOCK LIMITADO</p>
+  <p>La NVIDIA RTX 5070 Ti se agota rápido. Si te interesa, <strong>no esperes al Black Friday</strong> — el precio actual ya es competitivo.</p>
+</div></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;div class=&quot;callout-alert&quot;&gt;
+  &lt;p&gt;⚠️ STOCK LIMITADO&lt;/p&gt;
+  &lt;p&gt;La NVIDIA RTX 5070 Ti se agota rápido. Si te interesa, &lt;strong&gt;no esperes al Black Friday&lt;/strong&gt; — el precio actual ya es competitivo.&lt;/p&gt;
+&lt;/div&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section>
+<section class="lib-card" id="product_module">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">📦</span>
+    <div>
+      <h3 class="lib-card__title">Módulo de Producto</h3>
+      <p class="lib-card__desc">Bloque con fondo gris y borde naranja para destacar un producto.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Reviews, menciones de producto con enlace a PcComponentes.</div>
+  <div class="lib-card__preview cms-preview"><div class="product-module">
+  <h4>ASUS ROG Strix G16 (2025)</h4>
+  <p>El ROG Strix G16 combina el Ryzen 9 8945HX con la RTX 4070, pantalla QHD+ a 240Hz y 32GB de DDR5. Un todoterreno que rinde tanto en juegos como en tareas de creación.</p>
+  <p><a href="#">Ver en PcComponentes →</a></p>
+</div></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;div class=&quot;product-module&quot;&gt;
+  &lt;h4&gt;ASUS ROG Strix G16 (2025)&lt;/h4&gt;
+  &lt;p&gt;El ROG Strix G16 combina el Ryzen 9 8945HX con la RTX 4070, pantalla QHD+ a 240Hz y 32GB de DDR5. Un todoterreno que rinde tanto en juegos como en tareas de creación.&lt;/p&gt;
+  &lt;p&gt;&lt;a href=&quot;#&quot;&gt;Ver en PcComponentes →&lt;/a&gt;&lt;/p&gt;
+&lt;/div&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section>
+<section class="lib-card" id="price_highlight">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">💰</span>
+    <div>
+      <h3 class="lib-card__title">Destacado de Precio</h3>
+      <p class="lib-card__desc">Banner degradado naranja con precio grande y disponibilidad.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Reviews de producto, artículos de lanzamiento.</div>
+  <div class="lib-card__preview cms-preview"><div class="price-highlight">
+  <div class="price-info">
+    <p class="price-label">PVP recomendado</p>
+    <p class="price">1.299,99 €</p>
+  </div>
+  <div class="availability">
+    <strong>Disponible en:</strong> PcComponentes
+  </div>
+</div></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;div class=&quot;price-highlight&quot;&gt;
+  &lt;div class=&quot;price-info&quot;&gt;
+    &lt;p class=&quot;price-label&quot;&gt;PVP recomendado&lt;/p&gt;
+    &lt;p class=&quot;price&quot;&gt;1.299,99 €&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;availability&quot;&gt;
+    &lt;strong&gt;Disponible en:&lt;/strong&gt; PcComponentes
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section><h2 class="lib-cat" id="cat-listas-y-datos">Listas y datos</h2>
+<section class="lib-card" id="check_list">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">✔️</span>
+    <div>
+      <h3 class="lib-card__title">Check List</h3>
+      <p class="lib-card__desc">Lista con checkmarks naranja en vez de bullets estándar.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Requisitos, compatibilidad, características confirmadas.</div>
+  <div class="lib-card__preview cms-preview"><ul class="check-list">
+  <li><strong>Wi-Fi 6E integrado:</strong> Conexión estable para juego online sin latencia.</li>
+  <li><strong>SSD NVMe Gen4:</strong> Tiempos de carga reducidos a la mitad vs SATA.</li>
+  <li><strong>Pantalla 165Hz:</strong> Fluidez real en shooters competitivos.</li>
+  <li><strong>USB-C con DisplayPort:</strong> Conecta un monitor externo directamente.</li>
+</ul></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;ul class=&quot;check-list&quot;&gt;
+  &lt;li&gt;&lt;strong&gt;Wi-Fi 6E integrado:&lt;/strong&gt; Conexión estable para juego online sin latencia.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;SSD NVMe Gen4:&lt;/strong&gt; Tiempos de carga reducidos a la mitad vs SATA.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Pantalla 165Hz:&lt;/strong&gt; Fluidez real en shooters competitivos.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;USB-C con DisplayPort:&lt;/strong&gt; Conecta un monitor externo directamente.&lt;/li&gt;
+&lt;/ul&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section>
+<section class="lib-card" id="specs_list">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">🔧</span>
+    <div>
+      <h3 class="lib-card__title">Lista de Especificaciones</h3>
+      <p class="lib-card__desc">Ficha técnica key-value con fondo gris.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Reviews de producto, comparativas técnicas.</div>
+  <div class="lib-card__preview cms-preview"><div class="specs-list">
+  <h4>Especificaciones técnicas</h4>
+  <ul>
+    <li><span>Procesador</span><span>AMD Ryzen 9 8945HX</span></li>
+    <li><span>GPU</span><span>NVIDIA RTX 4070 (8GB)</span></li>
+    <li><span>RAM</span><span>32GB DDR5 5600MHz</span></li>
+    <li><span>Pantalla</span><span>16" QHD+ 240Hz IPS</span></li>
+    <li><span>Almacenamiento</span><span>1TB SSD NVMe Gen4</span></li>
+    <li><span>Peso</span><span>2.3 kg</span></li>
+  </ul>
+</div></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;div class=&quot;specs-list&quot;&gt;
+  &lt;h4&gt;Especificaciones técnicas&lt;/h4&gt;
+  &lt;ul&gt;
+    &lt;li&gt;&lt;span&gt;Procesador&lt;/span&gt;&lt;span&gt;AMD Ryzen 9 8945HX&lt;/span&gt;&lt;/li&gt;
+    &lt;li&gt;&lt;span&gt;GPU&lt;/span&gt;&lt;span&gt;NVIDIA RTX 4070 (8GB)&lt;/span&gt;&lt;/li&gt;
+    &lt;li&gt;&lt;span&gt;RAM&lt;/span&gt;&lt;span&gt;32GB DDR5 5600MHz&lt;/span&gt;&lt;/li&gt;
+    &lt;li&gt;&lt;span&gt;Pantalla&lt;/span&gt;&lt;span&gt;16&quot; QHD+ 240Hz IPS&lt;/span&gt;&lt;/li&gt;
+    &lt;li&gt;&lt;span&gt;Almacenamiento&lt;/span&gt;&lt;span&gt;1TB SSD NVMe Gen4&lt;/span&gt;&lt;/li&gt;
+    &lt;li&gt;&lt;span&gt;Peso&lt;/span&gt;&lt;span&gt;2.3 kg&lt;/span&gt;&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/div&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section>
+<section class="lib-card" id="badges">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">🏷️</span>
+    <div>
+      <h3 class="lib-card__title">Badges / Tags</h3>
+      <p class="lib-card__desc">Etiquetas inline tipo pill con borde redondeado.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Categorías, filtros, características técnicas destacadas.</div>
+  <div class="lib-card__preview cms-preview"><div class="badges">
+  <span class="badge">Gaming</span>
+  <span class="badge">RTX 4070</span>
+  <span class="badge">QHD+</span>
+  <span class="badge">240Hz</span>
+  <span class="badge">DDR5</span>
+</div></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;div class=&quot;badges&quot;&gt;
+  &lt;span class=&quot;badge&quot;&gt;Gaming&lt;/span&gt;
+  &lt;span class=&quot;badge&quot;&gt;RTX 4070&lt;/span&gt;
+  &lt;span class=&quot;badge&quot;&gt;QHD+&lt;/span&gt;
+  &lt;span class=&quot;badge&quot;&gt;240Hz&lt;/span&gt;
+  &lt;span class=&quot;badge&quot;&gt;DDR5&lt;/span&gt;
+&lt;/div&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section>
+<section class="lib-card" id="stats_grid">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">📊</span>
+    <div>
+      <h3 class="lib-card__title">Cifras / Estadísticas</h3>
+      <p class="lib-card__desc">Tarjetas con números grandes sobre fondo oscuro.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Datos impactantes, estadísticas de producto, métricas.</div>
+  <div class="lib-card__preview cms-preview"><div style="display:flex;flex-wrap:wrap;gap:15px;margin:30px 0;">
+  <div style="flex:1;min-width:140px;background:linear-gradient(135deg,#170453,#2a0a6e);padding:25px 20px;border-radius:10px;text-align:center;">
+    <p style="color:#ff6000;font-size:32px;font-weight:bold;margin:0;">240Hz</p>
+    <p style="color:#ffffff;font-size:13px;margin:8px 0 0 0;">Tasa de refresco</p>
+  </div>
+  <div style="flex:1;min-width:140px;background:linear-gradient(135deg,#170453,#2a0a6e);padding:25px 20px;border-radius:10px;text-align:center;">
+    <p style="color:#ff6000;font-size:32px;font-weight:bold;margin:0;">32GB</p>
+    <p style="color:#ffffff;font-size:13px;margin:8px 0 0 0;">Memoria DDR5</p>
+  </div>
+  <div style="flex:1;min-width:140px;background:linear-gradient(135deg,#170453,#2a0a6e);padding:25px 20px;border-radius:10px;text-align:center;">
+    <p style="color:#ff6000;font-size:32px;font-weight:bold;margin:0;">2.3kg</p>
+    <p style="color:#ffffff;font-size:13px;margin:8px 0 0 0;">Peso total</p>
+  </div>
+</div></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;div style=&quot;display:flex;flex-wrap:wrap;gap:15px;margin:30px 0;&quot;&gt;
+  &lt;div style=&quot;flex:1;min-width:140px;background:linear-gradient(135deg,#170453,#2a0a6e);padding:25px 20px;border-radius:10px;text-align:center;&quot;&gt;
+    &lt;p style=&quot;color:#ff6000;font-size:32px;font-weight:bold;margin:0;&quot;&gt;240Hz&lt;/p&gt;
+    &lt;p style=&quot;color:#ffffff;font-size:13px;margin:8px 0 0 0;&quot;&gt;Tasa de refresco&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div style=&quot;flex:1;min-width:140px;background:linear-gradient(135deg,#170453,#2a0a6e);padding:25px 20px;border-radius:10px;text-align:center;&quot;&gt;
+    &lt;p style=&quot;color:#ff6000;font-size:32px;font-weight:bold;margin:0;&quot;&gt;32GB&lt;/p&gt;
+    &lt;p style=&quot;color:#ffffff;font-size:13px;margin:8px 0 0 0;&quot;&gt;Memoria DDR5&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div style=&quot;flex:1;min-width:140px;background:linear-gradient(135deg,#170453,#2a0a6e);padding:25px 20px;border-radius:10px;text-align:center;&quot;&gt;
+    &lt;p style=&quot;color:#ff6000;font-size:32px;font-weight:bold;margin:0;&quot;&gt;2.3kg&lt;/p&gt;
+    &lt;p style=&quot;color:#ffffff;font-size:13px;margin:8px 0 0 0;&quot;&gt;Peso total&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section><h2 class="lib-cat" id="cat-tablas">Tablas</h2>
+<section class="lib-card" id="table">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">📊</span>
+    <div>
+      <h3 class="lib-card__title">Tabla HTML Estándar</h3>
+      <p class="lib-card__desc">Tabla &lt;table&gt; clásica con estilos del CMS.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Comparativas simples, datos tabulares.</div>
+  <div class="lib-card__preview cms-preview"><table>
+  <thead>
+    <tr>
+      <th>Modelo</th>
+      <th>GPU</th>
+      <th>Pantalla</th>
+      <th>Precio</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>ASUS ROG Strix G16</td>
+      <td>RTX 4070</td>
+      <td>16" QHD+ 240Hz</td>
+      <td>1.299 €</td>
+    </tr>
+    <tr>
+      <td>Lenovo Legion Pro 5</td>
+      <td>RTX 4060</td>
+      <td>16" WQXGA 165Hz</td>
+      <td>1.099 €</td>
+    </tr>
+    <tr>
+      <td>MSI Raider GE78</td>
+      <td>RTX 4080</td>
+      <td>17" QHD+ 240Hz</td>
+      <td>1.899 €</td>
+    </tr>
+  </tbody>
+</table></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Modelo&lt;/th&gt;
+      &lt;th&gt;GPU&lt;/th&gt;
+      &lt;th&gt;Pantalla&lt;/th&gt;
+      &lt;th&gt;Precio&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;ASUS ROG Strix G16&lt;/td&gt;
+      &lt;td&gt;RTX 4070&lt;/td&gt;
+      &lt;td&gt;16&quot; QHD+ 240Hz&lt;/td&gt;
+      &lt;td&gt;1.299 €&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Lenovo Legion Pro 5&lt;/td&gt;
+      &lt;td&gt;RTX 4060&lt;/td&gt;
+      &lt;td&gt;16&quot; WQXGA 165Hz&lt;/td&gt;
+      &lt;td&gt;1.099 €&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;MSI Raider GE78&lt;/td&gt;
+      &lt;td&gt;RTX 4080&lt;/td&gt;
+      &lt;td&gt;17&quot; QHD+ 240Hz&lt;/td&gt;
+      &lt;td&gt;1.899 €&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section>
+<section class="lib-card" id="light_table">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">📋</span>
+    <div>
+      <h3 class="lib-card__title">Light Table (CSS Grid)</h3>
+      <p class="lib-card__desc">Tabla flexible basada en CSS Grid. Soporta 2, 3 o 7 columnas.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Specs detalladas, comparativas con muchas filas.</div>
+  <div class="lib-card__preview cms-preview"><div class="lt cols-3">
+  <div class="r">
+    <div class="c"><strong>Característica</strong></div>
+    <div class="c"><strong>RTX 4070</strong></div>
+    <div class="c"><strong>RTX 4060</strong></div>
+  </div>
+  <div class="r">
+    <div class="c">VRAM</div>
+    <div class="c">8 GB GDDR6X</div>
+    <div class="c">8 GB GDDR6</div>
+  </div>
+  <div class="r">
+    <div class="c">TDP</div>
+    <div class="c">140W</div>
+    <div class="c">115W</div>
+  </div>
+  <div class="r">
+    <div class="c">Rango de precio</div>
+    <div class="c">1.200-1.500 €</div>
+    <div class="c">900-1.200 €</div>
+  </div>
+</div></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;div class=&quot;lt cols-3&quot;&gt;
+  &lt;div class=&quot;r&quot;&gt;
+    &lt;div class=&quot;c&quot;&gt;&lt;strong&gt;Característica&lt;/strong&gt;&lt;/div&gt;
+    &lt;div class=&quot;c&quot;&gt;&lt;strong&gt;RTX 4070&lt;/strong&gt;&lt;/div&gt;
+    &lt;div class=&quot;c&quot;&gt;&lt;strong&gt;RTX 4060&lt;/strong&gt;&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;r&quot;&gt;
+    &lt;div class=&quot;c&quot;&gt;VRAM&lt;/div&gt;
+    &lt;div class=&quot;c&quot;&gt;8 GB GDDR6X&lt;/div&gt;
+    &lt;div class=&quot;c&quot;&gt;8 GB GDDR6&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;r&quot;&gt;
+    &lt;div class=&quot;c&quot;&gt;TDP&lt;/div&gt;
+    &lt;div class=&quot;c&quot;&gt;140W&lt;/div&gt;
+    &lt;div class=&quot;c&quot;&gt;115W&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;r&quot;&gt;
+    &lt;div class=&quot;c&quot;&gt;Rango de precio&lt;/div&gt;
+    &lt;div class=&quot;c&quot;&gt;1.200-1.500 €&lt;/div&gt;
+    &lt;div class=&quot;c&quot;&gt;900-1.200 €&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section>
+<section class="lib-card" id="comparison_table">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">⚖️</span>
+    <div>
+      <h3 class="lib-card__title">Tabla de Comparación</h3>
+      <p class="lib-card__desc">Tabla con columna destacada para el producto recomendado.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Enfrentar 2-3 productos y resaltar el ganador.</div>
+  <div class="lib-card__preview cms-preview"><table class="comparison-table">
+  <thead>
+    <tr>
+      <th>Característica</th>
+      <th>Lenovo Legion Pro 5</th>
+      <th class="comparison-highlight">ASUS ROG Strix G16 ⭐</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>GPU</strong></td>
+      <td>RTX 4060</td>
+      <td class="comparison-highlight">RTX 4070</td>
+    </tr>
+    <tr>
+      <td><strong>Pantalla</strong></td>
+      <td>165Hz IPS</td>
+      <td class="comparison-highlight">240Hz IPS</td>
+    </tr>
+    <tr>
+      <td><strong>RAM</strong></td>
+      <td>16 GB DDR5</td>
+      <td class="comparison-highlight">32 GB DDR5</td>
+    </tr>
+    <tr>
+      <td><strong>Precio</strong></td>
+      <td>1.099 €</td>
+      <td class="comparison-highlight">1.299 €</td>
+    </tr>
+  </tbody>
+</table></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;table class=&quot;comparison-table&quot;&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Característica&lt;/th&gt;
+      &lt;th&gt;Lenovo Legion Pro 5&lt;/th&gt;
+      &lt;th class=&quot;comparison-highlight&quot;&gt;ASUS ROG Strix G16 ⭐&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;strong&gt;GPU&lt;/strong&gt;&lt;/td&gt;
+      &lt;td&gt;RTX 4060&lt;/td&gt;
+      &lt;td class=&quot;comparison-highlight&quot;&gt;RTX 4070&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;strong&gt;Pantalla&lt;/strong&gt;&lt;/td&gt;
+      &lt;td&gt;165Hz IPS&lt;/td&gt;
+      &lt;td class=&quot;comparison-highlight&quot;&gt;240Hz IPS&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;strong&gt;RAM&lt;/strong&gt;&lt;/td&gt;
+      &lt;td&gt;16 GB DDR5&lt;/td&gt;
+      &lt;td class=&quot;comparison-highlight&quot;&gt;32 GB DDR5&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;strong&gt;Precio&lt;/strong&gt;&lt;/td&gt;
+      &lt;td&gt;1.099 €&lt;/td&gt;
+      &lt;td class=&quot;comparison-highlight&quot;&gt;1.299 €&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section><h2 class="lib-cat" id="cat-layouts">Layouts</h2>
+<section class="lib-card" id="grid">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">📐</span>
+    <div>
+      <h3 class="lib-card__title">Grid Layout</h3>
+      <p class="lib-card__desc">Rejilla responsive de 2-3 columnas con cards.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Comparar opciones, listar características lado a lado.</div>
+  <div class="lib-card__preview cms-preview"><div class="grid cols-2">
+  <div class="card">
+    <h4>🎮 Para competitivo</h4>
+    <p>Prioriza tasa de refresco alta (165Hz+) y tiempos de respuesta bajos. Resolución 1080p es suficiente.</p>
+  </div>
+  <div class="card">
+    <h4>🎬 Para inmersión</h4>
+    <p>Apuesta por resolución QHD+ o 4K con buena reproducción de color. HDR marca la diferencia en títulos AAA.</p>
+  </div>
+</div></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;div class=&quot;grid cols-2&quot;&gt;
+  &lt;div class=&quot;card&quot;&gt;
+    &lt;h4&gt;🎮 Para competitivo&lt;/h4&gt;
+    &lt;p&gt;Prioriza tasa de refresco alta (165Hz+) y tiempos de respuesta bajos. Resolución 1080p es suficiente.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;card&quot;&gt;
+    &lt;h4&gt;🎬 Para inmersión&lt;/h4&gt;
+    &lt;p&gt;Apuesta por resolución QHD+ o 4K con buena reproducción de color. HDR marca la diferencia en títulos AAA.&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section>
+<section class="lib-card" id="buttons">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">🔘</span>
+    <div>
+      <h3 class="lib-card__title">Botones CTA</h3>
+      <p class="lib-card__desc">Botones de acción: primary (naranja sólido) y ghost (borde).</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Tras menciones de producto con enlace a PcComponentes.</div>
+  <div class="lib-card__preview cms-preview"><div class="btns">
+  <a href="#" class="btn primary">Ver en PcComponentes</a>
+  <a href="#" class="btn ghost">Comparar modelos</a>
+</div></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;div class=&quot;btns&quot;&gt;
+  &lt;a href=&quot;#&quot; class=&quot;btn primary&quot;&gt;Ver en PcComponentes&lt;/a&gt;
+  &lt;a href=&quot;#&quot; class=&quot;btn ghost&quot;&gt;Comparar modelos&lt;/a&gt;
+&lt;/div&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section><h2 class="lib-cat" id="cat-bloques-finales">Bloques finales</h2>
+<section class="lib-card" id="verdict">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">✅</span>
+    <div>
+      <h3 class="lib-card__title">Veredicto Final</h3>
+      <p class="lib-card__desc">Bloque de conclusión con fondo degradado azul oscuro y texto blanco.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Cierre de artículo. Conclusión honesta, no resumen.</div>
+  <div class="lib-card__preview cms-preview"><article class="contentGenerator__verdict">
+  <div class="verdict-box">
+    <h2>Nuestro veredicto</h2>
+    <p>El ASUS ROG Strix G16 es la opción más equilibrada para gaming en QHD+ sin arruinarte. Su combinación de RTX 4070, pantalla a 240Hz y 32GB DDR5 le da margen para aguantar 2-3 años sin quedarse corto.</p>
+    <p>Si tu presupuesto es más ajustado, el <a href="#">Lenovo Legion Pro 5</a> ofrece un 85% del rendimiento por 200€ menos.</p>
+  </div>
+</article></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;article class=&quot;contentGenerator__verdict&quot;&gt;
+  &lt;div class=&quot;verdict-box&quot;&gt;
+    &lt;h2&gt;Nuestro veredicto&lt;/h2&gt;
+    &lt;p&gt;El ASUS ROG Strix G16 es la opción más equilibrada para gaming en QHD+ sin arruinarte. Su combinación de RTX 4070, pantalla a 240Hz y 32GB DDR5 le da margen para aguantar 2-3 años sin quedarse corto.&lt;/p&gt;
+    &lt;p&gt;Si tu presupuesto es más ajustado, el &lt;a href=&quot;#&quot;&gt;Lenovo Legion Pro 5&lt;/a&gt; ofrece un 85% del rendimiento por 200€ menos.&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/article&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section>
+<section class="lib-card" id="faqs">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">❓</span>
+    <div>
+      <h3 class="lib-card__title">Preguntas Frecuentes</h3>
+      <p class="lib-card__desc">Sección FAQ con pares pregunta/respuesta. Rich snippets en Google.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Final del artículo. 4-8 preguntas relevantes para el usuario.</div>
+  <div class="lib-card__preview cms-preview"><article class="contentGenerator__faqs">
+  <h2>Preguntas frecuentes</h2>
+  <div class="faqs">
+    <div class="faqs__item">
+      <h3 class="faqs__question">¿Merece la pena pagar más por una RTX 4070 frente a la 4060?</h3>
+      <p class="faqs__answer">Depende de la resolución. En 1080p la diferencia es mínima, pero en QHD+ la RTX 4070 ofrece un 25-30% más de FPS de media, lo que justifica los ~200€ extra si planeas usar esa resolución.</p>
+    </div>
+    <div class="faqs__item">
+      <h3 class="faqs__question">¿16 GB de RAM son suficientes para gaming en 2025?</h3>
+      <p class="faqs__answer">Para la mayoría de juegos sí, pero títulos como Star Citizen o Cities: Skylines 2 ya exigen 32GB. Si quieres futureproof, ve directamente a 32GB DDR5.</p>
+    </div>
+  </div>
+</article></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;article class=&quot;contentGenerator__faqs&quot;&gt;
+  &lt;h2&gt;Preguntas frecuentes&lt;/h2&gt;
+  &lt;div class=&quot;faqs&quot;&gt;
+    &lt;div class=&quot;faqs__item&quot;&gt;
+      &lt;h3 class=&quot;faqs__question&quot;&gt;¿Merece la pena pagar más por una RTX 4070 frente a la 4060?&lt;/h3&gt;
+      &lt;p class=&quot;faqs__answer&quot;&gt;Depende de la resolución. En 1080p la diferencia es mínima, pero en QHD+ la RTX 4070 ofrece un 25-30% más de FPS de media, lo que justifica los ~200€ extra si planeas usar esa resolución.&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;faqs__item&quot;&gt;
+      &lt;h3 class=&quot;faqs__question&quot;&gt;¿16 GB de RAM son suficientes para gaming en 2025?&lt;/h3&gt;
+      &lt;p class=&quot;faqs__answer&quot;&gt;Para la mayoría de juegos sí, pero títulos como Star Citizen o Cities: Skylines 2 ya exigen 32GB. Si quieres futureproof, ve directamente a 32GB DDR5.&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/article&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section><h2 class="lib-cat" id="cat-modulos-cms">Módulos CMS</h2>
+<section class="lib-card" id="mod_cards">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">🃏</span>
+    <div>
+      <h3 class="lib-card__title">Cards Horizontales (Módulo CMS)</h3>
+      <p class="lib-card__desc">Cards horizontales con imagen, specs, beneficio y CTA.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Recomendaciones de productos con imágenes y enlace a ficha.</div>
+  <div class="lib-card__preview cms-preview"><div class="mod-section">
+  <h3 class="mod-section__title">Portátiles gaming recomendados</h3>
+  <p class="mod-section__intro">Nuestra selección para diferentes presupuestos y necesidades.</p>
+  <div class="mod-grid">
+    <article class="mod-card mod-card--horizontal">
+      <div class="mod-card__top">
+        <div class="mod-card__content">
+          <span class="mod-chip">Mejor calidad-precio</span>
+          <h4 class="mod-card__title">ASUS ROG Strix G16</h4>
+          <ul class="mod-card__list">
+            <li><strong>GPU:</strong> RTX 4070 (8GB)</li>
+            <li><strong>Pantalla:</strong> 16" QHD+ 240Hz</li>
+            <li><strong>RAM:</strong> 32GB DDR5</li>
+          </ul>
+        </div>
+        <figure class="mod-figure">
+          <img class="mod-figure__img" src="https://thumb.pccomponentes.com/w-300-300/articles/1081/10816889/1754-asus-rog-strix-g16.jpg" alt="ASUS ROG Strix G16">
+          <figcaption class="mod-figure__caption"><strong>Desde 1.299€</strong></figcaption>
+        </figure>
+      </div>
+      <div class="mod-card__bottom">
+        <p class="mod-card__benefit">✓ El equilibrio perfecto entre potencia y precio para QHD+</p>
+        <a href="#" class="mod-cta">Ver en PcComponentes</a>
+      </div>
+    </article>
+  </div>
+</div></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;div class=&quot;mod-section&quot;&gt;
+  &lt;h3 class=&quot;mod-section__title&quot;&gt;Portátiles gaming recomendados&lt;/h3&gt;
+  &lt;p class=&quot;mod-section__intro&quot;&gt;Nuestra selección para diferentes presupuestos y necesidades.&lt;/p&gt;
+  &lt;div class=&quot;mod-grid&quot;&gt;
+    &lt;article class=&quot;mod-card mod-card--horizontal&quot;&gt;
+      &lt;div class=&quot;mod-card__top&quot;&gt;
+        &lt;div class=&quot;mod-card__content&quot;&gt;
+          &lt;span class=&quot;mod-chip&quot;&gt;Mejor calidad-precio&lt;/span&gt;
+          &lt;h4 class=&quot;mod-card__title&quot;&gt;ASUS ROG Strix G16&lt;/h4&gt;
+          &lt;ul class=&quot;mod-card__list&quot;&gt;
+            &lt;li&gt;&lt;strong&gt;GPU:&lt;/strong&gt; RTX 4070 (8GB)&lt;/li&gt;
+            &lt;li&gt;&lt;strong&gt;Pantalla:&lt;/strong&gt; 16&quot; QHD+ 240Hz&lt;/li&gt;
+            &lt;li&gt;&lt;strong&gt;RAM:&lt;/strong&gt; 32GB DDR5&lt;/li&gt;
+          &lt;/ul&gt;
+        &lt;/div&gt;
+        &lt;figure class=&quot;mod-figure&quot;&gt;
+          &lt;img class=&quot;mod-figure__img&quot; src=&quot;https://thumb.pccomponentes.com/w-300-300/articles/1081/10816889/1754-asus-rog-strix-g16.jpg&quot; alt=&quot;ASUS ROG Strix G16&quot;&gt;
+          &lt;figcaption class=&quot;mod-figure__caption&quot;&gt;&lt;strong&gt;Desde 1.299€&lt;/strong&gt;&lt;/figcaption&gt;
+        &lt;/figure&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;mod-card__bottom&quot;&gt;
+        &lt;p class=&quot;mod-card__benefit&quot;&gt;✓ El equilibrio perfecto entre potencia y precio para QHD+&lt;/p&gt;
+        &lt;a href=&quot;#&quot; class=&quot;mod-cta&quot;&gt;Ver en PcComponentes&lt;/a&gt;
+      &lt;/div&gt;
+    &lt;/article&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section>
+<section class="lib-card" id="vcard_cards">
+  <div class="lib-card__header">
+    <span class="lib-card__icon">📇</span>
+    <div>
+      <h3 class="lib-card__title">Cards Verticales (Módulo CMS)</h3>
+      <p class="lib-card__desc">Cards verticales con chip, lista de beneficios y CTA.</p>
+    </div>
+  </div>
+  <div class="lib-card__when"><strong>Cuándo usar:</strong> Rankings, listados de 3-4 productos recomendados.</div>
+  <div class="lib-card__preview cms-preview"><div class="vcard-module">
+  <h3 class="vcard-module__title">Top 3 portátiles gaming 2025</h3>
+  <div class="vcard-grid">
+    <article class="vcard vcard--hoverable">
+      <span class="vcard__chip vcard__chip--primary">🥇 Mejor global</span>
+      <h4 class="vcard__title">ASUS ROG Strix G16</h4>
+      <ul class="vcard__list">
+        <li><strong>RTX 4070</strong> — QHD+ a 100+ FPS</li>
+        <li><strong>240Hz IPS</strong> — Fluidez real</li>
+        <li><strong>32GB DDR5</strong> — Multitarea sin límites</li>
+      </ul>
+      <hr class="vcard__divider">
+      <p class="vcard__benefit">El todoterreno que no falla</p>
+      <a href="#" class="vcard__cta">Ver opciones →</a>
+    </article>
+    <article class="vcard vcard--hoverable">
+      <span class="vcard__chip vcard__chip--secondary">🥈 Mejor precio</span>
+      <h4 class="vcard__title">Lenovo Legion Pro 5</h4>
+      <ul class="vcard__list">
+        <li><strong>RTX 4060</strong> — 1080p Ultra sin problemas</li>
+        <li><strong>165Hz WQXGA</strong> — Suficiente para AAA</li>
+        <li><strong>16GB DDR5</strong> — Ampliable a 32</li>
+      </ul>
+      <hr class="vcard__divider">
+      <p class="vcard__benefit">85% del rendimiento, 200€ menos</p>
+      <a href="#" class="vcard__cta">Ver opciones →</a>
+    </article>
+  </div>
+</div></div>
+  <details class="lib-card__code">
+    <summary>📄 Ver código HTML</summary>
+    <pre><code>&lt;div class=&quot;vcard-module&quot;&gt;
+  &lt;h3 class=&quot;vcard-module__title&quot;&gt;Top 3 portátiles gaming 2025&lt;/h3&gt;
+  &lt;div class=&quot;vcard-grid&quot;&gt;
+    &lt;article class=&quot;vcard vcard--hoverable&quot;&gt;
+      &lt;span class=&quot;vcard__chip vcard__chip--primary&quot;&gt;🥇 Mejor global&lt;/span&gt;
+      &lt;h4 class=&quot;vcard__title&quot;&gt;ASUS ROG Strix G16&lt;/h4&gt;
+      &lt;ul class=&quot;vcard__list&quot;&gt;
+        &lt;li&gt;&lt;strong&gt;RTX 4070&lt;/strong&gt; — QHD+ a 100+ FPS&lt;/li&gt;
+        &lt;li&gt;&lt;strong&gt;240Hz IPS&lt;/strong&gt; — Fluidez real&lt;/li&gt;
+        &lt;li&gt;&lt;strong&gt;32GB DDR5&lt;/strong&gt; — Multitarea sin límites&lt;/li&gt;
+      &lt;/ul&gt;
+      &lt;hr class=&quot;vcard__divider&quot;&gt;
+      &lt;p class=&quot;vcard__benefit&quot;&gt;El todoterreno que no falla&lt;/p&gt;
+      &lt;a href=&quot;#&quot; class=&quot;vcard__cta&quot;&gt;Ver opciones →&lt;/a&gt;
+    &lt;/article&gt;
+    &lt;article class=&quot;vcard vcard--hoverable&quot;&gt;
+      &lt;span class=&quot;vcard__chip vcard__chip--secondary&quot;&gt;🥈 Mejor precio&lt;/span&gt;
+      &lt;h4 class=&quot;vcard__title&quot;&gt;Lenovo Legion Pro 5&lt;/h4&gt;
+      &lt;ul class=&quot;vcard__list&quot;&gt;
+        &lt;li&gt;&lt;strong&gt;RTX 4060&lt;/strong&gt; — 1080p Ultra sin problemas&lt;/li&gt;
+        &lt;li&gt;&lt;strong&gt;165Hz WQXGA&lt;/strong&gt; — Suficiente para AAA&lt;/li&gt;
+        &lt;li&gt;&lt;strong&gt;16GB DDR5&lt;/strong&gt; — Ampliable a 32&lt;/li&gt;
+      &lt;/ul&gt;
+      &lt;hr class=&quot;vcard__divider&quot;&gt;
+      &lt;p class=&quot;vcard__benefit&quot;&gt;85% del rendimiento, 200€ menos&lt;/p&gt;
+      &lt;a href=&quot;#&quot; class=&quot;vcard__cta&quot;&gt;Ver opciones →&lt;/a&gt;
+    &lt;/article&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+  </details>
+  <button class="lib-copy-btn" onclick="copyCode(this)">📋 Copiar HTML</button>
+</section>
+</main>
+</div>
+
+<script>
+function copyCode(btn) {
+  const section = btn.closest('.lib-card');
+  const code = section.querySelector('code');
+  // Decode HTML entities
+  const ta = document.createElement('textarea');
+  ta.innerHTML = code.innerHTML;
+  const text = ta.value;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✅ Copiado';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '📋 Copiar HTML';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+</script>
+</body>
+</html>

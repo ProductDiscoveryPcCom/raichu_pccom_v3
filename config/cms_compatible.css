@@ -1,0 +1,501 @@
+/**
+ * CSS Compatible con CMS de PcComponentes
+ * Versión 4.1.1
+ * 
+ * Este archivo contiene todos los estilos necesarios para el Content Generator
+ * Compatible con el CMS de PcComponentes
+ * 
+ * IMPORTANTE: Este CSS debe incluirse al inicio de cada artículo generado
+ */
+
+/* ============================================================================
+   VARIABLES CSS - Design System PcComponentes
+   ============================================================================ */
+
+:root {
+  /* Colores - Naranja (Accent) */
+  --orange-900: #FF6000;
+  --orange-700: #FF8640;
+  --orange-500: #FFAE80;
+  --orange-300: #FFB7BF;
+  
+  /* Colores - Azul Medio */
+  --blue-m-900: #170453;
+  --blue-m-700: #51437E;
+  --blue-m-500: #8B81A9;
+  --blue-m-300: #C5C0D4;
+  
+  /* Colores - Azul Oscuro */
+  --blue-d-900: #090029;
+  --blue-d-700: #46405E;
+  --blue-d-500: #848094;
+  --blue-d-300: #C1BFC9;
+  
+  /* Colores - Base */
+  --white: #FFFFFF;
+  --gray-900: #999999;
+  --gray-700: #949494;
+  --gray-500: #C2C2C2;
+  --gray-300: #E6E6E6;
+  --gray-200: #D9D9D9;
+  --gray-150: #CFCFCF;
+  --gray-50: #F4F4F4;
+  
+  /* Colores - Semánticos */
+  --ink: #141822;
+  --muted: #62697A;
+  --line: var(--gray-300);
+  
+  /* Colores - Componentes */
+  --primary: var(--blue-m-900);
+  --primary-100: var(--blue-m-300);
+  --accent: var(--orange-900);
+  --accent-100: var(--orange-500);
+  
+  /* Espaciado */
+  --space-1: 6px;
+  --space-2: 10px;
+  --space-3: 14px;
+  --space-4: 18px;
+  --space-5: 22px;
+  
+  /* Radius */
+  --radius-0: 0;
+  --radius-6: 6px;
+  --radius-10: 10px;
+}
+
+/* ============================================================================
+   RESET Y BASE
+   ============================================================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--white);
+  color: var(--ink);
+  font: 16px/1.6 'Open Sans', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial;
+}
+
+article {
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* ============================================================================
+   TIPOGRAFÍA
+   ============================================================================ */
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 800;
+  margin: var(--space-4) 0 var(--space-2);
+  color: var(--primary);
+}
+
+h1 {
+  font-size: 34px;
+}
+
+h2 {
+  font-size: 24px;
+}
+
+h3 {
+  font-size: 20px;
+}
+
+h4 {
+  font-size: 16px;
+}
+
+strong {
+  font-weight: 800;
+}
+
+p,
+ul,
+ol {
+  margin: var(--space-2) 0;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+a:hover {
+  opacity: 0.9;
+}
+
+/* ============================================================================
+   COMPONENTES - Kicker (Etiqueta superior)
+   ============================================================================ */
+
+.kicker {
+  display: inline-block;
+  background: var(--primary-100);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: var(--space-2);
+}
+
+/* ============================================================================
+   COMPONENTES - Badges
+   ============================================================================ */
+
+.badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: var(--space-2) 0;
+}
+
+.badge {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--muted);
+  background: #fff;
+}
+
+/* ============================================================================
+   COMPONENTES - Callouts (Destacados)
+   ============================================================================ */
+
+.callout {
+  border-left: 6px solid var(--primary);
+  background: var(--gray-50);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-10);
+  margin: var(--space-4) 0;
+}
+
+.callout.accent {
+  border-left-color: var(--accent);
+  background: var(--accent-100);
+}
+
+.callout strong {
+  color: var(--primary);
+}
+
+/* Callout específico para Black Friday */
+.bf-callout {
+  background-color: #f4f4f4;
+  padding: 0.8em 1em;
+  margin: 1.2em 0;
+  border-left: 4px solid #FF8640;
+  font-size: 0.95em;
+}
+
+.bf-callout a {
+  color: #ff6000;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+/* ============================================================================
+   COMPONENTES - Botones
+   ============================================================================ */
+
+.btns {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: var(--space-3) 0;
+}
+
+.btn {
+  display: inline-block;
+  padding: 10px 14px;
+  border-radius: var(--radius-6);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.btn.ghost {
+  background: #fff;
+  color: var(--ink);
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+/* ============================================================================
+   COMPONENTES - Tabla de Contenidos (TOC)
+   ============================================================================ */
+
+.toc {
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-6);
+  padding: 12px;
+  background: #fff;
+}
+
+.toc h4 {
+  margin: 0 0 6px;
+}
+
+.toc a {
+  display: block;
+  padding: 4px 0;
+  text-decoration: none;
+  border-bottom: 1px dashed var(--line);
+  color: var(--muted);
+}
+
+.toc a:last-child {
+  border-bottom: none;
+}
+
+.toc a:hover {
+  color: var(--primary);
+}
+
+/* ============================================================================
+   COMPONENTES - Utilidades
+   ============================================================================ */
+
+.note {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+meter {
+  width: 100%;
+  height: 10px;
+}
+
+/* ============================================================================
+   LAYOUT - Grid System
+   ============================================================================ */
+
+.grid {
+  display: grid;
+  gap: 16px;
+  margin: var(--space-3) 0;
+}
+
+@media (min-width: 860px) {
+  .grid.cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .grid.cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ============================================================================
+   COMPONENTES - Cards
+   ============================================================================ */
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-6);
+  padding: 14px;
+  background: #fff;
+}
+
+.card h4 {
+  margin: 0 0 8px;
+}
+
+.card .why {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ============================================================================
+   COMPONENTES - Separadores
+   ============================================================================ */
+
+.hr {
+  height: 1px;
+  background: var(--line);
+  margin: var(--space-4) 0;
+}
+
+/* ============================================================================
+   COMPONENTES - Tablas HTML genéricas
+   ============================================================================ */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--space-3) 0;
+  font-size: 15px;
+}
+
+table thead th {
+  background: var(--gray-50);
+  font-weight: 800;
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 2px solid var(--line);
+}
+
+table tbody td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+table tbody tr:hover {
+  background: #fafafa;
+}
+
+/* ============================================================================
+   COMPONENTES - Tablas (Light Table System)
+   ============================================================================ */
+
+.lt {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-0);
+  overflow: hidden;
+  background: #fff;
+  margin: var(--space-3) 0;
+}
+
+.lt .r {
+  display: grid;
+  border-top: 1px solid var(--line);
+}
+
+.lt .r:first-child {
+  border-top: none;
+  background: var(--gray-50);
+  font-weight: 800;
+}
+
+.lt .c {
+  padding: 10px;
+}
+
+/* Tabla con filas alternas */
+.lt.zebra .r:nth-child(odd):not(:first-child) {
+  background: #FCFCFD;
+}
+
+/* Configuraciones de columnas */
+.lt.cols-2 .r {
+  grid-template-columns: 1.4fr 0.6fr;
+}
+
+.lt.cols-3 .r {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.lt.cols-7 .r {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (min-width: 900px) {
+  .lt.cols-7 .r {
+    grid-template-columns: 0.7fr 0.9fr 0.7fr 1.1fr 0.8fr 0.9fr 0.8fr;
+  }
+}
+
+/* ============================================================================
+   COMPONENTES - FAQs
+   ============================================================================ */
+
+.faqs .q {
+  font-weight: 800;
+  margin: var(--space-3) 0 var(--space-2);
+  font-size: 18px;
+  color: var(--primary);
+}
+
+.faqs .a {
+  margin: 0 0 var(--space-3);
+}
+
+/* ============================================================================
+   COMPONENTES - Verdict Box (Veredicto Final)
+   ============================================================================ */
+
+.verdict-box {
+  background: #f8f9fa;
+  padding: 1.5em;
+  border-left: 4px solid var(--primary);
+  margin: 1.5em 0;
+  border-radius: var(--radius-6);
+}
+
+.verdict-box h3 {
+  margin-top: 0;
+}
+
+.verdict-box ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.verdict-box li {
+  margin-bottom: 0.5em;
+}
+
+/* ============================================================================
+   COMPONENTES - Tabla de Comparación (Comparison Table)
+   ============================================================================ */
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--space-4) 0;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+.comparison-table th {
+  background: var(--gray-50);
+  font-weight: 600;
+}
+
+.comparison-table .comparison-highlight {
+  background: var(--orange-900);
+  color: var(--white);
+  font-weight: 700;
+}
+
+.comparison-table td.comparison-highlight {
+  background: #fff5ef;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.comparison-table th:first-child,
+.comparison-table td:first-child {
+  width: 30%;
+  font-weight: 600;
+}
+
+/* ============================================================================
+   FIN DEL CSS
+   ============================================================================ */

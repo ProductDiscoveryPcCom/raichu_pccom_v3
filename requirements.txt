@@ -1,0 +1,172 @@
+# ============================================================================
+# PcComponentes Content Generator - Requirements
+# Versión 1.2.0
+# ============================================================================
+
+# Framework Principal
+streamlit>=1.28.0,<2.0.0
+
+# API de Claude (Anthropic)
+anthropic>=0.34.0,<1.0.0
+
+# API de OpenAI (corrección dual en etapa 2 - opcional)
+openai>=1.30.0,<2.0.0
+
+# HTTP Requests y Web Scraping
+requests>=2.31.0,<3.0.0
+beautifulsoup4>=4.12.0,<5.0.0
+lxml>=4.9.0,<5.0.0
+
+# Google Gemini (generación de imágenes - opcional)
+google-genai>=1.0.0
+
+# Procesamiento de Datos
+pandas>=2.0.0,<3.0.0
+
+# Variables de Entorno
+python-dotenv>=1.0.0,<2.0.0
+
+# Google Search Console API (Service Account)
+google-api-python-client>=2.100.0,<3.0.0
+google-auth>=2.23.0,<3.0.0
+
+# Gestión de Configuración (para futura externalización de prompts)
+PyYAML>=6.0.0,<7.0.0
+Jinja2>=3.1.0,<4.0.0
+
+# Utilidades de Fecha y Tiempo
+python-dateutil>=2.8.0,<3.0.0
+
+# JSON y Validación
+jsonschema>=4.17.0,<5.0.0
+
+# Typing Extensions (para Python 3.9 compatibility)
+typing-extensions>=4.5.0
+
+# ============================================================================
+# Dependencias Opcionales (Recomendadas)
+# ============================================================================
+
+# Para procesamiento avanzado de HTML
+html5lib>=1.1
+
+# Para manejo de archivos Excel (si se usa para categorías)
+openpyxl>=3.1.0,<4.0.0
+
+# Para procesamiento de documentos Word (si se necesita)
+python-docx>=0.8.11,<1.0.0
+
+# Para rate limiting y retry logic
+tenacity>=8.2.0,<9.0.0
+
+# Para logging avanzado
+loguru>=0.7.0,<1.0.0
+
+# ============================================================================
+# Dependencias de Desarrollo (Opcional - comentar si no se usan)
+# ============================================================================
+
+# Testing
+# pytest>=7.4.0,<8.0.0
+# pytest-cov>=4.1.0,<5.0.0
+
+# Linting y Formateo
+# black>=23.0.0,<24.0.0
+# flake8>=6.0.0,<7.0.0
+# mypy>=1.5.0,<2.0.0
+
+# Pre-commit hooks
+# pre-commit>=3.3.0,<4.0.0
+
+# ============================================================================
+# Notas de Instalación
+# ============================================================================
+
+# Para instalar todas las dependencias:
+#   pip install -r requirements.txt
+
+# Para instalar solo las dependencias principales (sin opcionales):
+#   pip install streamlit anthropic requests beautifulsoup4 lxml pandas python-dotenv PyYAML Jinja2
+
+# Para actualizar todas las dependencias:
+#   pip install -r requirements.txt --upgrade
+
+# Para verificar versiones instaladas:
+#   pip list
+
+# Para crear un entorno virtual (recomendado):
+#   python -m venv venv
+#   source venv/bin/activate  # En Linux/Mac
+#   venv\Scripts\activate     # En Windows
+#   pip install -r requirements.txt
+
+# ============================================================================
+# Compatibilidad
+# ============================================================================
+
+# Python 3.9+
+# Streamlit Cloud compatible
+# Compatible con los siguientes sistemas operativos:
+# - Linux (Ubuntu 20.04+)
+# - macOS (10.15+)
+# - Windows (10+)
+
+# ============================================================================
+# Notas Específicas de Streamlit Cloud
+# ============================================================================
+
+# Este archivo está optimizado para Streamlit Cloud.
+# Streamlit Cloud instala automáticamente:
+# - Python 3.9+ (configurable)
+# - pip
+# - setuptools
+# - wheel
+
+# Variables de entorno en Streamlit Cloud:
+# Se configuran en: Settings > Secrets
+# Ejemplo de secrets.toml:
+# [api]
+# claude_key = "tu-api-key-aqui"
+
+# ============================================================================
+# Troubleshooting
+# ============================================================================
+
+# Si tienes problemas con lxml en Windows:
+#   pip install lxml --use-pep517
+
+# Si tienes problemas con beautifulsoup4:
+#   pip install beautifulsoup4[lxml]
+
+# Si el build falla en Streamlit Cloud:
+# 1. Verifica que Python version sea 3.9+
+# 2. Simplifica requirements.txt (comenta opcionales)
+# 3. Usa versiones específicas en lugar de rangos si hay conflictos
+
+# Para debug de dependencias:
+#   pip install pipdeptree
+#   pipdeptree
+
+# ============================================================================
+# Seguridad
+# ============================================================================
+
+# Para verificar vulnerabilidades conocidas:
+#   pip install safety
+#   safety check -r requirements.txt
+
+# Para actualizar solo parches de seguridad:
+#   pip install pip-review
+#   pip-review --local --auto
+
+# ============================================================================
+# Performance
+# ============================================================================
+
+# Para acelerar la instalación en desarrollo:
+#   pip install pip-tools
+#   pip-compile requirements.txt
+#   pip-sync
+
+# Cache de pip (útil en CI/CD):
+#   pip install --cache-dir .pip-cache -r requirements.txt
