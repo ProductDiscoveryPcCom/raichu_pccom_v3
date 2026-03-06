@@ -13,12 +13,15 @@ Centraliza toda la configuración visual del design system:
 Autor: PcComponentes - Product Discovery & Content
 """
 
+import logging
 import os
 import re
 import hashlib
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================================
@@ -62,6 +65,7 @@ def _load_css_file(filepath: Path) -> str:
         return _css_cache[key]
     
     if not filepath.exists():
+        logger.debug(f"CSS file not found: {filepath}")
         return ""
     
     try:

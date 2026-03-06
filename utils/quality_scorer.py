@@ -114,6 +114,8 @@ CONVERSATIONAL_PATTERNS_ES = [
 
 def _strip_html(html: str) -> str:
     """Extrae texto visible de HTML, decodificando entidades."""
+    if not html or not isinstance(html, str):
+        return ''
     import html as html_module
     # Eliminar style y script
     text = re.sub(r'<style[^>]*>.*?</style>', '', html, flags=re.DOTALL | re.IGNORECASE)
@@ -187,6 +189,13 @@ class QualityScorer:
         Returns:
             Dict con composite_score, passed, dimensions, priority_fixes
         """
+        if not html_content:
+            return {
+                'composite_score': 0, 'passed': False,
+                'dimensions': {d: {'score': 0, 'issues': []} for d in WEIGHTS},
+                'priority_fixes': [],
+            }
+
         text = _strip_html(html_content)
         secondary_keywords = secondary_keywords or []
 
