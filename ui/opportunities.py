@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 UI de Oportunidades SEO - PcComponentes Content Generator
-Versión 1.1.0
+Versión 1.2.0
 
 Pantalla que combina datos de GSC con el OpportunityScorer para mostrar:
 - Quick wins (posiciones 11-20 con alto volumen)
@@ -11,6 +11,13 @@ Pantalla que combina datos de GSC con el OpportunityScorer para mostrar:
 
 Cada oportunidad tiene un botón "Generar" que pre-rellena el modo
 "Nuevo Contenido" o "Reescritura" según el tipo.
+
+CAMBIOS v1.2.0:
+- URL visible en cada tarjeta de oportunidad
+- Botón "Análisis en profundidad" con tendencias 7d/28d/3mo
+- Detección de SWAPs de URL entre períodos
+- Comparativas de posición, clics e impresiones entre períodos
+- Recomendaciones contextuales basadas en la tendencia
 
 CAMBIOS v1.1.0:
 - Conexión directa con API de GSC si las credenciales están en secrets
@@ -27,7 +34,7 @@ from typing import Dict, List, Optional, Any
 
 logger = logging.getLogger(__name__)
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 
 def render_opportunities_mode() -> None:
@@ -45,11 +52,9 @@ def render_opportunities_mode() -> None:
     gsc_data = _load_gsc_data()
 
     if gsc_data is None:
-        # Comprobar si la API está configurada en secrets
         api_configured = _is_api_configured()
 
         if api_configured:
-            # API disponible pero no se ha conectado aún → botón de conexión
             _render_api_connect()
         else:
             st.warning(
@@ -145,7 +150,6 @@ def render_opportunities_mode() -> None:
             if not opp_types or opp['type'] in opp_types:
                 opportunities.append(opp)
 
-        # Ordenar por score descendente
         opportunities.sort(key=lambda x: -x['score'])
 
     if not opportunities:
@@ -179,68 +183,301 @@ def render_opportunities_mode() -> None:
     st.markdown("---")
     st.markdown("### 🏆 Top oportunidades")
 
-    # Mostrar top 20
     for i, opp in enumerate(opportunities[:20], 1):
-        _render_opportunity_card(i, opp)
+        _render_opportunity_card(i, opp, has_api=_is_api_configured())
 
 
-def _render_opportunity_card(rank: int, opp: Dict[str, Any]) -> None:
-    """Renderiza una tarjeta de oportunidad con botón de acción."""
+# ============================================================================
+# TARJETA DE OPORTUNIDAD (con URL y análisis)
+# ============================================================================
+
+def _render_opportunity_card(rank: int, opp: Dict[str, Any], has_api: bool = False) -> None:
+    """Renderiza una tarjeta de oportunidad con URL, score y botones de acción."""
     current = opp['current']
     factors = opp['factors']
+    keyword = opp['keyword']
+    url = current.get('url', '')
 
     # Color según tipo
-    type_colors = {
+    type_icons = {
         'quick_win': '🟢',
         'improvement': '🔵',
         'underperformer': '🟡',
         'declining': '🔴',
         'new_content': '⚪',
     }
-    color = type_colors.get(opp['type'], '⚪')
+    icon = type_icons.get(opp['type'], '⚪')
 
+    # Score badge
+    score = opp['score']
+    if score >= 70:
+        score_display = f"🔥 **{score:.0f}/100**"
+    elif score >= 50:
+        score_display = f"📊 **{score:.0f}/100**"
+    else:
+        score_display = f"📉 {score:.0f}/100"
+
+    # ── Fila principal ──
     with st.container():
-        cols = st.columns([0.5, 3, 1.5, 1, 1, 1, 2])
+        cols = st.columns([0.4, 4, 1.2, 1, 1, 1.4, 1.4])
 
         with cols[0]:
             st.markdown(f"**#{rank}**")
         with cols[1]:
-            st.markdown(f"**{opp['keyword']}**")
-            st.caption(f"{color} {opp['type_label']} · Pos. {current['position']:.0f} · {current['impressions']} impr.")
+            st.markdown(f"**{keyword}**")
+            # URL visible
+            if url:
+                short_url = url.replace("https://www.pccomponentes.com", "")
+                if len(short_url) > 60:
+                    short_url = short_url[:57] + "..."
+                st.caption(f"🔗 `{short_url}`")
+            st.caption(
+                f"{icon} {opp['type_label']} · "
+                f"Pos. {current['position']:.0f} · "
+                f"{current['impressions']} impr. · "
+                f"{current.get('clicks', 0)} clics"
+            )
         with cols[2]:
-            # Score badge
-            score = opp['score']
-            if score >= 70:
-                st.markdown(f"🔥 **{score:.0f}/100**")
-            elif score >= 50:
-                st.markdown(f"📊 **{score:.0f}/100**")
-            else:
-                st.markdown(f"📉 {score:.0f}/100")
+            st.markdown(score_display)
         with cols[3]:
-            st.caption(f"CTR: {current['ctr']*100:.1f}%")
+            ctr_val = current.get('ctr', 0)
+            ctr_pct = ctr_val * 100 if ctr_val < 1 else ctr_val
+            st.caption(f"CTR: {ctr_pct:.1f}%")
         with cols[4]:
             st.caption(f"+{opp['potential_clicks']} clics pot.")
         with cols[5]:
-            st.caption(f"Vol:{factors['volume']:.0f} Pos:{factors['position']:.0f} Int:{factors['intent']:.0f}")
+            # Botón análisis en profundidad (solo si API disponible)
+            if has_api:
+                analysis_key = f"opp_analysis_{rank}_{keyword[:15]}"
+                if st.button("🔍 Analizar", key=analysis_key, use_container_width=True):
+                    st.session_state[f'show_analysis_{keyword}'] = True
         with cols[6]:
-            # Botón de acción
-            action = "Reescribir" if current.get('url') else "Generar"
-            btn_key = f"opp_action_{rank}_{opp['keyword'][:20]}"
-
+            action = "Reescribir" if url else "Generar"
+            btn_key = f"opp_action_{rank}_{keyword[:15]}"
             if st.button(f"✏️ {action}", key=btn_key, use_container_width=True):
                 _launch_generation(opp)
 
-    # Recomendación en gris
+    # Recomendación
     st.caption(f"  💡 {opp['recommendation']}")
+
+    # ── Panel de análisis en profundidad (desplegable) ──
+    if st.session_state.get(f'show_analysis_{keyword}'):
+        _render_deep_analysis(keyword, current)
+
     st.markdown("")  # Spacer
 
+
+# ============================================================================
+# ANÁLISIS EN PROFUNDIDAD
+# ============================================================================
+
+def _render_deep_analysis(keyword: str, current: Dict[str, Any]) -> None:
+    """Renderiza el panel de análisis en profundidad con tendencias 7d/28d/3mo."""
+
+    with st.container():
+        st.markdown(f"---")
+        st.markdown(f"#### 🔍 Análisis en profundidad: *{keyword}*")
+
+        # Intentar obtener tendencias via API
+        trends_data = _fetch_trends(keyword)
+
+        if trends_data is None:
+            st.info(
+                "⚠️ No se pudieron obtener tendencias desde la API. "
+                "Mostrando datos disponibles del dataset actual."
+            )
+            _render_basic_analysis(keyword, current)
+            # Botón para cerrar
+            if st.button("✕ Cerrar análisis", key=f"close_analysis_{keyword}"):
+                del st.session_state[f'show_analysis_{keyword}']
+                st.rerun()
+            st.markdown("---")
+            return
+
+        periods = trends_data.get('periods', {})
+        trends = trends_data.get('trends', {})
+
+        # ── Métricas comparativas por período ──
+        st.markdown("##### 📊 Comparativa por período")
+
+        period_labels = {"7d": "Últimos 7 días", "28d": "Últimos 28 días", "90d": "Últimos 3 meses"}
+        metric_cols = st.columns(3)
+
+        for i, (period_key, label) in enumerate(period_labels.items()):
+            with metric_cols[i]:
+                p = periods.get(period_key, {})
+                if p:
+                    pos = p.get('position', 0)
+                    clicks = p.get('clicks', 0)
+                    impressions = p.get('impressions', 0)
+                    ctr = p.get('ctr', 0)
+                    ctr_pct = ctr * 100 if ctr < 1 else ctr
+
+                    st.markdown(f"**{label}**")
+                    st.metric("Posición", f"{pos:.1f}" if pos else "—")
+                    st.metric("Clics", f"{clicks:,}")
+                    st.metric("Impresiones", f"{impressions:,}")
+                    st.metric("CTR", f"{ctr_pct:.1f}%")
+
+                    # URL principal del período
+                    top_url = p.get('top_url', '')
+                    if top_url:
+                        short = top_url.replace("https://www.pccomponentes.com", "")
+                        if len(short) > 45:
+                            short = short[:42] + "..."
+                        st.caption(f"🔗 `{short}`")
+                else:
+                    st.markdown(f"**{label}**")
+                    st.caption("Sin datos")
+
+        # ── Indicadores de tendencia ──
+        st.markdown("##### 📈 Tendencias")
+
+        trend_cols = st.columns(4)
+
+        # Cambio de posición 7d vs 28d
+        pos_7_28 = trends.get('position_change_7d_vs_28d', 0)
+        with trend_cols[0]:
+            if pos_7_28 < -1:
+                st.metric("Posición 7d vs 28d", f"{abs(pos_7_28):.1f}", delta=f"↑ mejora", delta_color="normal")
+            elif pos_7_28 > 1:
+                st.metric("Posición 7d vs 28d", f"{pos_7_28:.1f}", delta=f"↓ caída", delta_color="inverse")
+            else:
+                st.metric("Posición 7d vs 28d", "Estable", delta="0")
+
+        # Cambio de posición 28d vs 90d
+        pos_28_90 = trends.get('position_change_28d_vs_90d', 0)
+        with trend_cols[1]:
+            if pos_28_90 < -1:
+                st.metric("Posición 28d vs 3mo", f"{abs(pos_28_90):.1f}", delta=f"↑ mejora", delta_color="normal")
+            elif pos_28_90 > 1:
+                st.metric("Posición 28d vs 3mo", f"{pos_28_90:.1f}", delta=f"↓ caída", delta_color="inverse")
+            else:
+                st.metric("Posición 28d vs 3mo", "Estable", delta="0")
+
+        # Cambio de clics
+        clicks_pct = trends.get('clicks_change_7d_vs_28d', 0)
+        with trend_cols[2]:
+            if abs(clicks_pct) > 5:
+                direction = "↑" if clicks_pct > 0 else "↓"
+                color = "normal" if clicks_pct > 0 else "inverse"
+                st.metric("Clics 7d vs 28d", f"{abs(clicks_pct):.0f}%", delta=f"{direction}", delta_color=color)
+            else:
+                st.metric("Clics 7d vs 28d", "Estable", delta="0")
+
+        # Cambio de impresiones
+        impr_pct = trends.get('impressions_change_7d_vs_28d', 0)
+        with trend_cols[3]:
+            if abs(impr_pct) > 5:
+                direction = "↑" if impr_pct > 0 else "↓"
+                color = "normal" if impr_pct > 0 else "inverse"
+                st.metric("Impresiones 7d vs 28d", f"{abs(impr_pct):.0f}%", delta=f"{direction}", delta_color=color)
+            else:
+                st.metric("Impresiones 7d vs 28d", "Estable", delta="0")
+
+        # ── SWAPs de URL ──
+        swaps = trends.get('url_swaps', [])
+        if swaps:
+            st.markdown("##### ⚠️ SWAPs de URL detectados")
+            st.warning(
+                "Google ha cambiado la URL que posiciona para esta keyword. "
+                "Esto puede indicar canibalización o un cambio en la relevancia del contenido."
+            )
+            for swap in swaps:
+                from_short = swap["from"].replace("https://www.pccomponentes.com", "")
+                to_short = swap["to"].replace("https://www.pccomponentes.com", "")
+                st.markdown(
+                    f"**{swap['period']}:** "
+                    f"`{from_short}` → `{to_short}`"
+                )
+
+        # ── URLs que posicionan ──
+        p7_urls = periods.get("7d", {}).get("urls", [])
+        if p7_urls and len(p7_urls) > 1:
+            st.markdown("##### 🔗 URLs que compiten (últimos 7 días)")
+            for u in p7_urls[:5]:
+                short = u["url"].replace("https://www.pccomponentes.com", "")
+                if len(short) > 55:
+                    short = short[:52] + "..."
+                st.caption(
+                    f"`{short}` — "
+                    f"Pos. {u['position']:.1f} · "
+                    f"{u['clicks']} clics · "
+                    f"{u['impressions']} impr."
+                )
+
+        # ── Análisis textual ──
+        analysis_text = trends_data.get('analysis', '')
+        if analysis_text:
+            st.markdown("##### 💡 Diagnóstico")
+            # Dirección general como badge
+            direction = trends.get('direction', 'stable')
+            direction_badges = {
+                'improving': '🟢 **MEJORANDO**',
+                'stable': '🔵 **ESTABLE**',
+                'declining': '🔴 **EN DECLIVE**',
+            }
+            st.markdown(f"Estado general: {direction_badges.get(direction, '⚪ Desconocido')}")
+            st.markdown(analysis_text)
+
+        # Botón cerrar
+        if st.button("✕ Cerrar análisis", key=f"close_analysis_{keyword}"):
+            del st.session_state[f'show_analysis_{keyword}']
+            st.rerun()
+
+        st.markdown("---")
+
+
+def _render_basic_analysis(keyword: str, current: Dict[str, Any]) -> None:
+    """Análisis básico cuando no hay API disponible (solo datos del dataset)."""
+    cols = st.columns(4)
+    with cols[0]:
+        st.metric("Posición", f"{current.get('position', 0):.0f}")
+    with cols[1]:
+        st.metric("Clics", f"{current.get('clicks', 0):,}")
+    with cols[2]:
+        st.metric("Impresiones", f"{current.get('impressions', 0):,}")
+    with cols[3]:
+        ctr = current.get('ctr', 0)
+        ctr_pct = ctr * 100 if ctr < 1 else ctr
+        st.metric("CTR", f"{ctr_pct:.1f}%")
+
+    url = current.get('url', '')
+    if url:
+        st.caption(f"🔗 URL: `{url}`")
+
+    st.info(
+        "Para un análisis completo con tendencias 7d/28d/3mo y detección de SWAPs, "
+        "conecta la API de GSC desde los secrets."
+    )
+
+
+def _fetch_trends(keyword: str) -> Optional[Dict]:
+    """Obtiene tendencias de la API de GSC para una keyword."""
+    try:
+        from utils.gsc_api import fetch_keyword_trends, is_gsc_api_configured
+
+        if not is_gsc_api_configured():
+            return None
+
+        return fetch_keyword_trends(keyword)
+    except ImportError:
+        logger.warning("fetch_keyword_trends no disponible")
+        return None
+    except Exception as e:
+        logger.warning(f"Error obteniendo tendencias para '{keyword}': {e}")
+        return None
+
+
+# ============================================================================
+# ACCIONES
+# ============================================================================
 
 def _launch_generation(opp: Dict[str, Any]) -> None:
     """Pre-rellena modo de generación y redirige."""
     current = opp['current']
 
     if current.get('url'):
-        # Tiene URL → modo reescritura
         st.session_state.mode = 'rewrite'
         st.session_state['prefill_keyword'] = opp['keyword']
         st.session_state['prefill_url'] = current['url']
@@ -249,7 +486,6 @@ def _launch_generation(opp: Dict[str, Any]) -> None:
             f"Cambia al modo '🔄 Reescritura Competitiva' para continuar."
         )
     else:
-        # Sin URL → modo nuevo contenido
         st.session_state.mode = 'new'
         st.session_state['prefill_keyword'] = opp['keyword']
         st.info(
@@ -278,12 +514,10 @@ def _load_gsc_data() -> Optional[Dict]:
     2. API de GSC (si configurada en secrets)
     3. CSV local (fallback)
     """
-    # 1. Cache en session_state
     cached = st.session_state.get('gsc_opportunities_data')
     if cached is not None:
         return cached
 
-    # 2. API de GSC
     if _is_api_configured():
         try:
             from utils.gsc_api import fetch_all_keywords
@@ -296,7 +530,6 @@ def _load_gsc_data() -> Optional[Dict]:
         except Exception as e:
             logger.warning(f"Error cargando GSC via API: {e}")
 
-    # 3. CSV fallback
     try:
         from utils.gsc_utils import load_gsc_data
         csv_data = load_gsc_data()
@@ -331,7 +564,6 @@ def _render_api_connect() -> None:
     with col1:
         if st.button("📡 Conectar con GSC", key="gsc_connect_btn", type="primary", use_container_width=True):
             with st.spinner("Conectando con Google Search Console..."):
-                # Primero testear la conexión
                 try:
                     from utils.gsc_api import test_gsc_api_connection, fetch_all_keywords
 
@@ -343,7 +575,6 @@ def _render_api_connect() -> None:
 
                     st.success(f"✅ {test_result['message']}")
 
-                    # Descargar datos
                     with st.spinner("Descargando keywords de GSC (esto puede tardar unos segundos)..."):
                         api_data = fetch_all_keywords()
 
@@ -396,7 +627,6 @@ def _render_csv_upload() -> None:
     if uploaded:
         try:
             import pandas as pd
-            # Detectar separador
             content = uploaded.getvalue().decode('utf-8')
             sep = ';' if content.count(';') > content.count(',') else ','
 
@@ -404,7 +634,6 @@ def _render_csv_upload() -> None:
             df = pd.read_csv(io.StringIO(content), sep=sep)
             df.columns = df.columns.str.lower().str.strip()
 
-            # Guardar temporalmente
             csv_path = "gsc_keywords.csv"
             df.to_csv(csv_path, index=False)
             st.success(f"✅ {len(df)} keywords cargadas. Recarga la página para ver oportunidades.")
