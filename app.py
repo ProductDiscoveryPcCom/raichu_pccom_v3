@@ -1316,9 +1316,9 @@ def _check_ai_phrases(html_content):
     from core.pipeline import _check_ai_phrases as _fn
     _fn(html_content)
 
-def _check_engagement_elements(html_content):
+def _check_engagement_elements(html_content, check_mini_stories=True):
     from core.pipeline import _check_engagement_elements as _fn
-    _fn(html_content)
+    _fn(html_content, check_mini_stories=check_mini_stories)
 
 
 

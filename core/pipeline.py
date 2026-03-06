@@ -829,7 +829,25 @@ Genera el HTML corregido:"""
                 _check_ai_phrases(st.session_state.final_html)
                 
                 # Post-generation PASO 6: verificar engagement (mini-stories + CTAs)
-                _check_engagement_elements(st.session_state.final_html)
+                # Mini-stories solo se verifican si el arquetipo lo requiere Y hay reviews
+                _arq_code = config.get('arquetipo_codigo', 'ARQ-1')
+                _products = config.get('products', [])
+                _has_reviews = False
+                if _products:
+                    _has_reviews = any(
+                        (p.get('json_data') or {}).get('advantages_list')
+                        or (p.get('json_data') or {}).get('disadvantages_list')
+                        or (p.get('json_data') or {}).get('top_comments')
+                        for p in _products
+                    )
+                else:
+                    from prompts.new_content import _merge_product_data
+                    _merged = _merge_product_data(config.get('pdp_data'), config.get('pdp_json_data'))
+                    _has_reviews = bool(_merged and _merged.get('has_user_feedback'))
+
+                from prompts.new_content import ARQUETIPOS_CON_MINI_STORIES
+                _check_mini_stories = (_arq_code in ARQUETIPOS_CON_MINI_STORIES and _has_reviews)
+                _check_engagement_elements(st.session_state.final_html, check_mini_stories=_check_mini_stories)
                 
                 # Post-generation PASO 7: generar meta title, meta description, TL;DR
                 try:
@@ -1157,31 +1175,40 @@ def _check_ai_phrases(html_content: str) -> None:
         )
 
 
-def _check_engagement_elements(html_content: str) -> None:
+def _check_engagement_elements(html_content: str, check_mini_stories: bool = True) -> None:
     """
     Verifica presencia de mini-stories y CTAs distribuidos.
     Si faltan, intenta auto-retry (1 iteración) para insertarlos.
-    
+
+    Args:
+        html_content: HTML generado
+        check_mini_stories: Si False, no verifica ni inserta mini-stories.
+            Solo se activa cuando el arquetipo lo requiere Y hay reviews disponibles.
+
     Detección:
-    - Mini-stories: nombres propios + cifras en proximidad
+    - Mini-stories: nombres propios + cifras en proximidad (solo si check_mini_stories=True)
     - CTAs distribuidos: enlaces con texto accionable en el HTML
     """
     if not html_content:
         return
-    
+
     try:
         from utils.html_utils import strip_html_tags as _strip
         text = _strip(html_content)
     except ImportError:
         text = re.sub(r'<[^>]+>', ' ', html_content)
-    
+
     text_lower = text.lower()
-    
-    # Detectar mini-stories (nombres españoles comunes en contexto narrativo)
+
+    # Detectar mini-stories solo si el arquetipo lo requiere y hay reviews
     nombres_pattern = r'\b(María|Carlos|Laura|Ana|Pedro|Miguel|Sara|Pablo|Lucía|Javier|Elena|David|Marta|Alberto|Carmen|Sofía|Diego|Andrea|Raúl|Cristina|Jorge)\b'
-    nombres = re.findall(nombres_pattern, html_content, re.IGNORECASE)
-    nombres_unicos = len(set(n.lower() for n in nombres))
-    
+    if check_mini_stories:
+        nombres = re.findall(nombres_pattern, html_content, re.IGNORECASE)
+        nombres_unicos = len(set(n.lower() for n in nombres))
+        missing_stories = nombres_unicos < 2
+    else:
+        missing_stories = False
+
     # Detectar CTAs (enlaces con texto accionable en español)
     cta_patterns = [
         'ver precio', 'comprar', 'ver en', 'echa un vistazo',
@@ -1189,12 +1216,11 @@ def _check_engagement_elements(html_content: str) -> None:
         'ver oferta', 'ir a', 'conocer', 'probar',
     ]
     ctas_found = sum(1 for p in cta_patterns if p in text_lower)
-    
+
     # También contar enlaces con → que suelen ser CTAs
     arrow_ctas = len(re.findall(r'<a[^>]+>[^<]*→[^<]*</a>', html_content))
     ctas_found += arrow_ctas
-    
-    missing_stories = nombres_unicos < 2
+
     missing_ctas = ctas_found < 2
     
     if not missing_stories and not missing_ctas:
