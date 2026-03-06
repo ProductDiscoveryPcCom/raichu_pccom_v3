@@ -1005,6 +1005,119 @@ def quick_keyword_check(
 
 
 # ============================================================================
+# FETCH ALL KEYWORDS (para Oportunidades — sin filtro de keyword)
+# ============================================================================
+
+def fetch_all_keywords(
+    days_back: int = 90,
+    row_limit: int = 5000,
+    min_impressions: int = 10,
+) -> Optional[Dict[str, Any]]:
+    """
+    Descarga TODAS las keywords de GSC (sin filtro) para el análisis de oportunidades.
+
+    Retorna un dict compatible con load_gsc_data() del CSV:
+        {"data": [{"query": ..., "page": ..., "clicks": ..., ...}], "source": "api"}
+
+    Los resultados se cachean 30 min en session_state.
+
+    Args:
+        days_back: Período de consulta (default: 90 días)
+        row_limit: Máximo de filas por request (API max = 25000)
+        min_impressions: Filtrar queries con pocas impresiones
+
+    Returns:
+        Dict compatible con load_gsc_data() o None si falla
+    """
+    # ── Cache ──
+    cache_key = f"gsc_all_keywords_{days_back}_{row_limit}"
+    if _streamlit_available:
+        cached = st.session_state.get(cache_key)
+        if cached is not None:
+            age = (datetime.now() - cached.get("timestamp", datetime.min)).total_seconds()
+            if age < CACHE_TTL_SECONDS:
+                logger.debug(f"fetch_all_keywords cache hit (age {age:.0f}s)")
+                return cached["data"]
+            else:
+                del st.session_state[cache_key]
+
+    if not is_gsc_api_configured():
+        return None
+
+    service = _build_service()
+    if not service:
+        return None
+
+    property_url = _get_property_url()
+
+    end_date = datetime.now() - timedelta(days=3)
+    start_date = end_date - timedelta(days=days_back)
+
+    all_rows = []
+    start_row = 0
+    max_per_request = min(row_limit, 25000)
+
+    try:
+        while True:
+            response = service.searchanalytics().query(
+                siteUrl=property_url,
+                body={
+                    "startDate": start_date.strftime("%Y-%m-%d"),
+                    "endDate": end_date.strftime("%Y-%m-%d"),
+                    "dimensions": ["query", "page"],
+                    "rowLimit": max_per_request,
+                    "startRow": start_row,
+                }
+            ).execute()
+
+            rows = response.get("rows", [])
+            if not rows:
+                break
+
+            for row in rows:
+                keys = row.get("keys", [])
+                if len(keys) >= 2:
+                    impressions = row.get("impressions", 0)
+                    if impressions >= min_impressions:
+                        clicks = row.get("clicks", 0)
+                        all_rows.append({
+                            "query": keys[0],
+                            "page": keys[1],
+                            "url": keys[1],
+                            "clicks": clicks,
+                            "impressions": impressions,
+                            "ctr": round(row.get("ctr", 0), 4),
+                            "position": round(row.get("position", 0), 1),
+                        })
+
+            start_row += len(rows)
+            if len(rows) < max_per_request or start_row >= row_limit:
+                break
+
+        logger.info(
+            f"GSC API fetch_all_keywords: {len(all_rows)} keywords "
+            f"({start_date.strftime('%d/%m/%Y')} - {end_date.strftime('%d/%m/%Y')})"
+        )
+
+        result = {
+            "data": all_rows,
+            "source": "api",
+            "period": f"{start_date.strftime('%Y-%m-%d')} — {end_date.strftime('%Y-%m-%d')}",
+            "total_rows": len(all_rows),
+        }
+
+        # Cachear
+        if _streamlit_available:
+            st.session_state[cache_key] = {"data": result, "timestamp": datetime.now()}
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Error en fetch_all_keywords: {e}")
+        return None
+
+
+# ============================================================================
 # EXPORTS
 # ============================================================================
 
@@ -1018,6 +1131,7 @@ __all__ = [
     # Consultas
     "query_search_analytics",
     "quick_keyword_check",
+    "fetch_all_keywords",
     
     # Funciones principales (compatibles con gsc_utils.py)
     "api_check_cannibalization",
