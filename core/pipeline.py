@@ -300,6 +300,15 @@ Usa este contenido como base, mejóralo y amplíalo según el análisis competit
         # ====================================================================
         
         if mode == 'rewrite':
+            # Inyectar contexto enriquecido de Oportunidades si existe
+            _prefill_ctx = st.session_state.pop('prefill_analysis_context', None)
+            if _prefill_ctx:
+                existing = st.session_state.get('rewrite_analysis') or ''
+                st.session_state.rewrite_analysis = (
+                    f"{existing}\n\n{_prefill_ctx}" if existing else _prefill_ctx
+                )
+                logger.info("Contexto enriquecido de Oportunidades inyectado en rewrite_analysis")
+
             if not st.session_state.get('rewrite_analysis'):
                 with progress_container:
                     st.markdown("### 🔍 Análisis Competitivo")

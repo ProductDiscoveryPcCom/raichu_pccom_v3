@@ -1117,6 +1117,339 @@ def fetch_all_keywords(
         return None
 
 
+def fetch_keyword_trends(
+    keyword: str,
+    periods: Optional[List[Dict[str, int]]] = None,
+) -> Optional[Dict[str, Any]]:
+    """
+    Consulta datos de GSC para una keyword en múltiples períodos temporales.
+
+    Permite comparar rendimiento en 7d vs 28d vs 3mo para detectar
+    tendencias, subidas/bajadas y SWAPs de URL.
+
+    Args:
+        keyword: Keyword a analizar
+        periods: Lista de períodos [{"label": "7d", "days": 7}, ...]
+            Si None, usa [7d, 28d, 90d]
+
+    Returns:
+        Dict con datos por período y análisis comparativo, o None si falla.
+        {
+            "keyword": str,
+            "periods": {
+                "7d": {"position": float, "clicks": int, "impressions": int,
+                       "ctr": float, "urls": [{"url": ..., "clicks": ..., ...}]},
+                "28d": {...},
+                "90d": {...},
+            },
+            "trends": {
+                "position_change_7d_vs_28d": float,
+                "position_change_28d_vs_90d": float,
+                "clicks_change_7d_vs_28d": float,
+                "impressions_change_7d_vs_28d": float,
+                "url_swaps": [{"from": url, "to": url, "period": str}],
+                "direction": "improving" | "stable" | "declining",
+            },
+            "analysis": str,  # Resumen textual del análisis
+        }
+    """
+    if periods is None:
+        periods = [
+            {"label": "7d", "days": 7},
+            {"label": "28d", "days": 28},
+            {"label": "90d", "days": 90},
+        ]
+
+    # Cache
+    cache_key = f"gsc_trends_{keyword.strip().lower()}"
+    if _streamlit_available:
+        cached = st.session_state.get(cache_key)
+        if cached is not None:
+            age = (datetime.now() - cached.get("timestamp", datetime.min)).total_seconds()
+            if age < CACHE_TTL_SECONDS:
+                return cached["data"]
+            else:
+                del st.session_state[cache_key]
+
+    if not is_gsc_api_configured():
+        return None
+
+    service = _build_service()
+    if not service:
+        return None
+
+    property_url = _get_property_url()
+    period_data = {}
+
+    try:
+        for period in periods:
+            label = period["label"]
+            days = period["days"]
+
+            end_date = datetime.now() - timedelta(days=3)
+            start_date = end_date - timedelta(days=days)
+
+            response = service.searchanalytics().query(
+                siteUrl=property_url,
+                body={
+                    "startDate": start_date.strftime("%Y-%m-%d"),
+                    "endDate": end_date.strftime("%Y-%m-%d"),
+                    "dimensions": ["query", "page"],
+                    "dimensionFilterGroups": [{
+                        "filters": [{
+                            "dimension": "query",
+                            "operator": "contains",
+                            "expression": keyword.strip().lower()
+                        }]
+                    }],
+                    "rowLimit": 50,
+                    "startRow": 0,
+                }
+            ).execute()
+
+            rows = response.get("rows", [])
+
+            # Agrupar por URL
+            url_metrics: Dict[str, Dict[str, Any]] = {}
+            total_clicks = 0
+            total_impressions = 0
+            weighted_position = 0.0
+
+            for row in rows:
+                keys = row.get("keys", [])
+                if len(keys) < 2:
+                    continue
+                query, page = keys[0], keys[1]
+                clicks = row.get("clicks", 0)
+                impressions = row.get("impressions", 0)
+                position = row.get("position", 0)
+
+                total_clicks += clicks
+                total_impressions += impressions
+                weighted_position += position * impressions
+
+                if page not in url_metrics:
+                    url_metrics[page] = {
+                        "url": page,
+                        "clicks": 0,
+                        "impressions": 0,
+                        "position_sum": 0.0,
+                        "imp_weight": 0,
+                        "queries": [],
+                    }
+                url_metrics[page]["clicks"] += clicks
+                url_metrics[page]["impressions"] += impressions
+                url_metrics[page]["position_sum"] += position * impressions
+                url_metrics[page]["imp_weight"] += impressions
+                if query not in url_metrics[page]["queries"]:
+                    url_metrics[page]["queries"].append(query)
+
+            # Calcular posición media ponderada por URL
+            urls_list = []
+            for url_data in sorted(url_metrics.values(), key=lambda x: -x["clicks"]):
+                avg_pos = (
+                    url_data["position_sum"] / url_data["imp_weight"]
+                    if url_data["imp_weight"] > 0 else 0
+                )
+                urls_list.append({
+                    "url": url_data["url"],
+                    "clicks": url_data["clicks"],
+                    "impressions": url_data["impressions"],
+                    "position": round(avg_pos, 1),
+                    "ctr": round(
+                        url_data["clicks"] / url_data["impressions"], 4
+                    ) if url_data["impressions"] > 0 else 0,
+                    "queries": url_data["queries"][:5],
+                })
+
+            avg_position = (
+                weighted_position / total_impressions
+                if total_impressions > 0 else 0
+            )
+
+            period_data[label] = {
+                "position": round(avg_position, 1),
+                "clicks": total_clicks,
+                "impressions": total_impressions,
+                "ctr": round(
+                    total_clicks / total_impressions, 4
+                ) if total_impressions > 0 else 0,
+                "urls": urls_list,
+                "top_url": urls_list[0]["url"] if urls_list else "",
+            }
+
+        # ── Análisis de tendencias ──
+        trends = _analyze_trends(period_data, periods)
+        analysis_text = _generate_analysis_text(keyword, period_data, trends)
+
+        result = {
+            "keyword": keyword,
+            "periods": period_data,
+            "trends": trends,
+            "analysis": analysis_text,
+        }
+
+        # Cachear
+        if _streamlit_available:
+            st.session_state[cache_key] = {"data": result, "timestamp": datetime.now()}
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Error en fetch_keyword_trends para '{keyword}': {e}")
+        return None
+
+
+def _analyze_trends(
+    period_data: Dict[str, Any],
+    periods: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Calcula cambios entre períodos y detecta SWAPs de URL."""
+    trends: Dict[str, Any] = {
+        "position_change_7d_vs_28d": 0,
+        "position_change_28d_vs_90d": 0,
+        "clicks_change_7d_vs_28d": 0,
+        "impressions_change_7d_vs_28d": 0,
+        "url_swaps": [],
+        "direction": "stable",
+    }
+
+    labels = [p["label"] for p in periods]
+
+    # Comparar pares consecutivos
+    if len(labels) >= 2 and labels[0] in period_data and labels[1] in period_data:
+        p_short = period_data[labels[0]]
+        p_long = period_data[labels[1]]
+
+        if p_long["position"] > 0:
+            # Negativo = mejoró (bajó en posición numérica)
+            trends["position_change_7d_vs_28d"] = round(
+                p_short["position"] - p_long["position"], 1
+            )
+        if p_long["clicks"] > 0:
+            trends["clicks_change_7d_vs_28d"] = round(
+                ((p_short["clicks"] - p_long["clicks"]) / p_long["clicks"]) * 100, 1
+            )
+        if p_long["impressions"] > 0:
+            trends["impressions_change_7d_vs_28d"] = round(
+                ((p_short["impressions"] - p_long["impressions"]) / p_long["impressions"]) * 100, 1
+            )
+
+    if len(labels) >= 3 and labels[1] in period_data and labels[2] in period_data:
+        p_mid = period_data[labels[1]]
+        p_long = period_data[labels[2]]
+        if p_long["position"] > 0:
+            trends["position_change_28d_vs_90d"] = round(
+                p_mid["position"] - p_long["position"], 1
+            )
+
+    # Detectar SWAPs de URL (la URL principal cambia entre períodos)
+    for i in range(len(labels) - 1):
+        l_current = labels[i]
+        l_prev = labels[i + 1]
+        if l_current in period_data and l_prev in period_data:
+            top_current = period_data[l_current].get("top_url", "")
+            top_prev = period_data[l_prev].get("top_url", "")
+            if top_current and top_prev and top_current != top_prev:
+                trends["url_swaps"].append({
+                    "from": top_prev,
+                    "to": top_current,
+                    "period": f"{l_prev} → {l_current}",
+                })
+
+    # Dirección general
+    pos_7_28 = trends["position_change_7d_vs_28d"]
+    pos_28_90 = trends["position_change_28d_vs_90d"]
+
+    if pos_7_28 < -2 or pos_28_90 < -2:
+        trends["direction"] = "improving"
+    elif pos_7_28 > 2 or pos_28_90 > 2:
+        trends["direction"] = "declining"
+    else:
+        trends["direction"] = "stable"
+
+    return trends
+
+
+def _generate_analysis_text(
+    keyword: str,
+    period_data: Dict[str, Any],
+    trends: Dict[str, Any],
+) -> str:
+    """Genera un texto de análisis en español basado en los datos."""
+    lines = []
+
+    # Posición actual
+    p7 = period_data.get("7d", {})
+    p28 = period_data.get("28d", {})
+    p90 = period_data.get("90d", {})
+
+    if p7.get("position"):
+        lines.append(
+            f"Posición media últimos 7 días: **{p7['position']}** "
+            f"({p7['clicks']} clics, {p7['impressions']} impresiones, "
+            f"CTR {p7['ctr']*100:.1f}%)"
+        )
+
+    # Cambios de posición
+    pos_change = trends.get("position_change_7d_vs_28d", 0)
+    if pos_change < -1:
+        lines.append(f"Mejora de **{abs(pos_change):.1f} posiciones** vs. últimos 28 días")
+    elif pos_change > 1:
+        lines.append(f"Caída de **{pos_change:.1f} posiciones** vs. últimos 28 días")
+    else:
+        lines.append("Posición **estable** respecto a los últimos 28 días")
+
+    pos_change_long = trends.get("position_change_28d_vs_90d", 0)
+    if abs(pos_change_long) > 1:
+        direction = "mejora" if pos_change_long < 0 else "caída"
+        lines.append(
+            f"Tendencia a 3 meses: {direction} de "
+            f"**{abs(pos_change_long):.1f} posiciones** (28d vs 90d)"
+        )
+
+    # Cambios de tráfico
+    clicks_pct = trends.get("clicks_change_7d_vs_28d", 0)
+    if abs(clicks_pct) > 10:
+        direction = "subida" if clicks_pct > 0 else "bajada"
+        lines.append(f"Clics: {direction} del **{abs(clicks_pct):.0f}%** (7d vs 28d)")
+
+    # SWAPs de URL
+    swaps = trends.get("url_swaps", [])
+    if swaps:
+        lines.append(f"**SWAP detectado:** Google ha cambiado la URL que posiciona:")
+        for swap in swaps:
+            from_short = swap["from"].replace("https://www.pccomponentes.com", "")
+            to_short = swap["to"].replace("https://www.pccomponentes.com", "")
+            lines.append(f"  {swap['period']}: `{from_short}` → `{to_short}`")
+
+    # Recomendación según dirección
+    direction = trends.get("direction", "stable")
+    if direction == "improving":
+        lines.append(
+            "**Recomendación:** La keyword está mejorando. "
+            "Refuerza el contenido existente para consolidar posición."
+        )
+    elif direction == "declining":
+        lines.append(
+            "**Recomendación:** La keyword está perdiendo posiciones. "
+            "Revisa el contenido, actualiza datos y mejora la experiencia de usuario."
+        )
+    else:
+        if p7.get("position", 0) > 10:
+            lines.append(
+                "**Recomendación:** Posición estable fuera de top 10. "
+                "Optimiza title/meta, añade contenido de valor y mejora enlaces internos para subir."
+            )
+        else:
+            lines.append(
+                "**Recomendación:** Posición estable en top 10. "
+                "Mantén el contenido actualizado y monitoriza competidores."
+            )
+
+    return "\n\n".join(lines)
+
+
 # ============================================================================
 # EXPORTS
 # ============================================================================
@@ -1132,6 +1465,7 @@ __all__ = [
     "query_search_analytics",
     "quick_keyword_check",
     "fetch_all_keywords",
+    "fetch_keyword_trends",
     
     # Funciones principales (compatibles con gsc_utils.py)
     "api_check_cannibalization",
