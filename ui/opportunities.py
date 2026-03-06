@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 UI de Oportunidades SEO - PcComponentes Content Generator
-Versión 1.2.0
+Versión 1.3.0
 
-Pantalla que combina datos de GSC con el OpportunityScorer para mostrar:
+Pantalla que muestra oportunidades SEO exclusivamente para URLs del blog,
+combinando datos de GSC con el OpportunityScorer para mostrar:
 - Quick wins (posiciones 11-20 con alto volumen)
 - Contenido con CTR bajo (underperformers)
 - Keywords en declive (necesitan actualización)
@@ -11,6 +12,12 @@ Pantalla que combina datos de GSC con el OpportunityScorer para mostrar:
 
 Cada oportunidad tiene un botón "Generar" que pre-rellena el modo
 "Nuevo Contenido" o "Reescritura" según el tipo.
+
+CAMBIOS v1.3.0:
+- Filtrado obligatorio por blog: solo se muestran URLs del sitemap/blog.xml
+- UI simplificada: tarjetas de 4 columnas, filtros de 3 columnas
+- Resumen compacto en una línea
+- Eliminado checkbox "Solo posts del blog" (ahora es siempre activo)
 
 CAMBIOS v1.2.0:
 - URL visible en cada tarjeta de oportunidad
@@ -34,16 +41,16 @@ from typing import Dict, List, Optional, Any
 
 logger = logging.getLogger(__name__)
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 
 def render_opportunities_mode() -> None:
     """Renderiza el modo de oportunidades SEO."""
 
-    st.markdown("### 📊 Oportunidades SEO")
+    st.markdown("### 📊 Oportunidades SEO — Blog")
     st.markdown(
-        "Análisis de tus datos de GSC para identificar las mejores oportunidades "
-        "de contenido. Ordena por score de oportunidad para priorizar."
+        "Oportunidades de contenido del **blog** de PcComponentes, "
+        "basadas en datos de GSC. Solo se muestran URLs del blog (sitemap/blog.xml)."
     )
 
     # ================================================================
@@ -73,10 +80,11 @@ def render_opportunities_mode() -> None:
     # Indicador de fuente
     source = gsc_data.get('source', 'csv')
     period = gsc_data.get('period', '')
+    total_before_filter = len(records)
     if source == 'api':
-        st.caption(f"📡 {len(records)} keywords cargadas desde GSC API · {period}")
+        st.caption(f"📡 {total_before_filter} keywords desde GSC API · {period}")
     else:
-        st.caption(f"📄 {len(records)} keywords cargadas desde CSV")
+        st.caption(f"📄 {total_before_filter} keywords desde CSV")
 
     # Botón para refrescar datos desde API
     if source == 'api':
@@ -88,25 +96,21 @@ def render_opportunities_mode() -> None:
     # PASO 2: Filtros
     # ================================================================
     with st.expander("🔧 Filtros", expanded=False):
-        # Fila 1: Filtro de keyword
         keyword_filter = st.text_input(
-            "🔍 Filtrar por keyword (contiene)",
+            "🔍 Filtrar por keyword",
             placeholder="Ej: portátil, gaming, monitor...",
-            help="Filtra oportunidades cuya keyword contenga este texto",
             key="opp_keyword_filter",
         )
 
-        filter_cols = st.columns(4)
+        filter_cols = st.columns(3)
         with filter_cols[0]:
             min_impressions = st.number_input(
                 "Impresiones mínimas", min_value=0, value=50, step=10,
-                help="Filtra keywords con pocas impresiones"
             )
         with filter_cols[1]:
             position_range = st.slider(
                 "Rango de posición", min_value=1, max_value=100,
                 value=(1, 50),
-                help="Solo mostrar keywords en este rango de posición"
             )
         with filter_cols[2]:
             opp_types = st.multiselect(
@@ -120,12 +124,6 @@ def render_opportunities_mode() -> None:
                     'declining': '📉 En declive',
                 }.get(x, x),
             )
-        with filter_cols[3]:
-            blog_only = st.checkbox(
-                "Solo posts del blog",
-                value=False,
-                help="Filtra solo URLs que pertenezcan al blog de PcComponentes (blog.xml)"
-            )
 
     # ================================================================
     # PASO 3: Calcular scores
@@ -138,9 +136,16 @@ def render_opportunities_mode() -> None:
 
     scorer = OpportunityScorer()
 
-    # Filtrar por blog si se solicita
-    if blog_only:
-        records = _filter_blog_records(records)
+    # Filtrar solo URLs del blog (sitemap/blog.xml)
+    records = _filter_blog_records(records)
+    if not records:
+        st.warning(
+            "⚠️ No se encontraron URLs del blog en los datos de GSC. "
+            "Verifica que el sitemap del blog sea accesible."
+        )
+        return
+
+    st.caption(f"📝 {len(records)} keywords vinculadas a posts del blog (de {total_before_filter} totales)")
 
     # Filtrar registros por métricas y keyword
     kw_filter_lower = keyword_filter.strip().lower() if keyword_filter else ""
@@ -177,31 +182,22 @@ def render_opportunities_mode() -> None:
         return
 
     # ================================================================
-    # PASO 4: Resumen rápido
+    # PASO 4: Resumen + tabla
     # ================================================================
-    st.markdown("---")
+    st.divider()
 
-    summary_cols = st.columns(4)
     type_counts = {}
     for opp in opportunities:
         t = opp['type']
         type_counts[t] = type_counts.get(t, 0) + 1
 
-    with summary_cols[0]:
-        st.metric("Total oportunidades", len(opportunities))
-    with summary_cols[1]:
-        st.metric("⚡ Quick Wins", type_counts.get('quick_win', 0))
-    with summary_cols[2]:
-        st.metric("📈 Mejoras", type_counts.get('improvement', 0))
-    with summary_cols[3]:
-        underp = type_counts.get('underperformer', 0) + type_counts.get('declining', 0)
-        st.metric("🔧 Necesitan atención", underp)
-
-    # ================================================================
-    # PASO 5: Tabla de oportunidades
-    # ================================================================
-    st.markdown("---")
-    st.markdown("### 🏆 Top oportunidades")
+    qw = type_counts.get('quick_win', 0)
+    imp = type_counts.get('improvement', 0)
+    underp = type_counts.get('underperformer', 0) + type_counts.get('declining', 0)
+    st.markdown(
+        f"**{len(opportunities)} oportunidades** encontradas — "
+        f"⚡ {qw} Quick Wins · 📈 {imp} Mejoras · 🔧 {underp} Necesitan atención"
+    )
 
     for i, opp in enumerate(opportunities[:20], 1):
         _render_opportunity_card(i, opp, has_api=_is_api_configured())
@@ -214,11 +210,9 @@ def render_opportunities_mode() -> None:
 def _render_opportunity_card(rank: int, opp: Dict[str, Any], has_api: bool = False) -> None:
     """Renderiza una tarjeta de oportunidad con URL, score y botones de acción."""
     current = opp['current']
-    factors = opp['factors']
     keyword = opp['keyword']
     url = current.get('url', '')
 
-    # Color según tipo
     type_icons = {
         'quick_win': '🟢',
         'improvement': '🔵',
@@ -228,63 +222,63 @@ def _render_opportunity_card(rank: int, opp: Dict[str, Any], has_api: bool = Fal
     }
     icon = type_icons.get(opp['type'], '⚪')
 
-    # Score badge
     score = opp['score']
     if score >= 70:
-        score_display = f"🔥 **{score:.0f}/100**"
+        score_color = "🔥"
     elif score >= 50:
-        score_display = f"📊 **{score:.0f}/100**"
+        score_color = "📊"
     else:
-        score_display = f"📉 {score:.0f}/100"
+        score_color = "📉"
 
-    # ── Fila principal ──
+    ctr_val = current.get('ctr', 0)
+    ctr_pct = ctr_val * 100 if ctr_val < 1 else ctr_val
+
+    # URL corta
+    short_url = ""
+    if url:
+        short_url = url.replace("https://www.pccomponentes.com", "")
+        if len(short_url) > 70:
+            short_url = short_url[:67] + "..."
+
+    # ── Layout: info + métricas + acciones ──
     with st.container():
-        cols = st.columns([0.4, 4, 1.2, 1, 1, 1.4, 1.4])
+        cols = st.columns([0.3, 3.5, 2.5, 1.5])
 
         with cols[0]:
             st.markdown(f"**#{rank}**")
+
         with cols[1]:
             st.markdown(f"**{keyword}**")
-            # URL visible
-            if url:
-                short_url = url.replace("https://www.pccomponentes.com", "")
-                if len(short_url) > 60:
-                    short_url = short_url[:57] + "..."
+            if short_url:
                 st.caption(f"🔗 `{short_url}`")
-            st.caption(
-                f"{icon} {opp['type_label']} · "
-                f"Pos. {current['position']:.0f} · "
-                f"{current['impressions']} impr. · "
-                f"{current.get('clicks', 0)} clics"
-            )
+
         with cols[2]:
-            st.markdown(score_display)
+            st.caption(
+                f"{icon} {opp['type_label']} · {score_color} {score:.0f}/100  \n"
+                f"Pos. **{current['position']:.0f}** · "
+                f"{current['impressions']} impr. · "
+                f"{current.get('clicks', 0)} clics · "
+                f"CTR {ctr_pct:.1f}%"
+            )
+
         with cols[3]:
-            ctr_val = current.get('ctr', 0)
-            ctr_pct = ctr_val * 100 if ctr_val < 1 else ctr_val
-            st.caption(f"CTR: {ctr_pct:.1f}%")
-        with cols[4]:
-            st.caption(f"+{opp['potential_clicks']} clics pot.")
-        with cols[5]:
-            # Botón análisis en profundidad (solo si API disponible)
-            if has_api:
-                analysis_key = f"opp_analysis_{rank}_{keyword[:15]}"
-                if st.button("🔍 Analizar", key=analysis_key, use_container_width=True):
-                    st.session_state[f'show_analysis_{keyword}'] = True
-        with cols[6]:
             action = "Reescribir" if url else "Generar"
             btn_key = f"opp_action_{rank}_{keyword[:15]}"
             if st.button(f"✏️ {action}", key=btn_key, use_container_width=True):
                 _launch_generation(opp)
+            if has_api:
+                analysis_key = f"opp_analysis_{rank}_{keyword[:15]}"
+                if st.button("🔍 Analizar", key=analysis_key, use_container_width=True):
+                    st.session_state[f'show_analysis_{keyword}'] = True
 
-    # Recomendación
-    st.caption(f"  💡 {opp['recommendation']}")
+    # Recomendación inline
+    st.caption(f"💡 {opp['recommendation']}")
 
-    # ── Panel de análisis en profundidad (desplegable) ──
+    # Panel de análisis en profundidad
     if st.session_state.get(f'show_analysis_{keyword}'):
         _render_deep_analysis(keyword, current)
 
-    st.markdown("")  # Spacer
+    st.divider()
 
 
 # ============================================================================
