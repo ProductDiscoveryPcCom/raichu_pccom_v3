@@ -257,6 +257,7 @@ def render_content_tab(
                     publisher = get_publisher_for_config(cms_config)
                     last_config = st.session_state.get('last_config', {})
                     quality_score_data = st.session_state.get('quality_score', {})
+                    meta_seo = st.session_state.get('meta_seo', {})
                     metadata = {
                         'title': last_config.get('keyword', 'Sin título'),
                         'keyword': last_config.get('keyword', ''),
@@ -264,6 +265,10 @@ def render_content_tab(
                         'arquetipo': last_config.get('arquetipo_codigo', ''),
                         'word_count': st.session_state.get('final_word_count', 0),
                         'quality_score': quality_score_data.get('composite_score', 0),
+                        'meta_title': meta_seo.get('meta_title', ''),
+                        'meta_description': meta_seo.get('meta_description', ''),
+                        'tldr_title': meta_seo.get('tldr_title', ''),
+                        'tldr_description': meta_seo.get('tldr_description', ''),
                     }
                     result = publisher.publish_draft(html_content, metadata)
                     if result.success:

@@ -88,7 +88,13 @@ _CSS_FALLBACK = """:root{--orange-900:#FF6000;--blue-m-900:#170453;--white:#FFFF
 .callout-bf{background:linear-gradient(135deg,#FF6000,#FF8533);color:var(--white);padding:var(--space-lg);border-radius:var(--radius-md);text-align:center;margin:var(--space-lg) 0;}
 .callout-alert{background:linear-gradient(135deg,#FF6000,#FF8533);color:var(--white);padding:var(--space-lg);border-radius:var(--radius-md);text-align:center;margin:var(--space-lg) 0;border-left:6px solid #CC4D00;}
 .callout-alert p:first-of-type{font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;font-size:1.2em;}
-table{width:100%;border-collapse:collapse;margin:var(--space-lg) 0;}th,td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--gray-200);}th{background:var(--gray-100);font-weight:600;}
+table{width:100%;border-collapse:collapse;margin:var(--space-lg) 0;table-layout:fixed;font-size:15px;}
+thead th{background:var(--gray-100);font-weight:700;text-align:left;padding:12px 16px;border-bottom:2px solid var(--gray-200);}
+tbody td{padding:10px 16px;text-align:left;border-bottom:1px solid var(--gray-200);}
+tbody tr:hover{background:rgba(0,0,0,0.02);}
+.table-responsive{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:var(--space-lg) 0;}
+.table-responsive table{margin:0;}
+@media(max-width:768px){table{table-layout:auto;font-size:14px;}thead th,tbody td{padding:8px 10px;}.table-responsive{border:1px solid var(--gray-200);border-radius:var(--radius-md);}}
 .grid{display:grid;gap:16px;margin:var(--space-lg) 0;}
 .grid-layout{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--space-lg);margin-top:var(--space-lg);}
 .grid-item{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-md);padding:var(--space-md) var(--space-lg);}
@@ -98,7 +104,23 @@ table{width:100%;border-collapse:collapse;margin:var(--space-lg) 0;}th,td{paddin
 .specs-list{background-color:var(--gray-100);padding:20px 24px;border-radius:var(--radius-md);margin:28px 0;}.specs-list h4{font-weight:600;margin:0 0 14px 0;}.specs-list ul{list-style:none;margin:0;padding:0;}.specs-list ul li{padding:8px 0;border-bottom:1px solid #e0e0e0;display:flex;justify-content:space-between;font-size:15px;}.specs-list ul li:last-child{border-bottom:none;}
 .product-module{background:var(--gray-100);padding:var(--space-lg);border-radius:var(--radius-md);margin:var(--space-lg) 0;border-left:4px solid var(--orange-900);}.product-module h4{margin-top:0;margin-bottom:12px;color:var(--orange-900);}.product-module a{color:var(--orange-900);font-weight:600;}
 .video-container{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;margin:28px 0;border-radius:var(--radius-md);}.video-container iframe{position:absolute;top:0;left:0;width:100%;height:100%;border-radius:var(--radius-md);}
-.price-highlight{background:linear-gradient(90deg,#FF6000,#FF8640);color:var(--white);padding:20px 28px;border-radius:var(--radius-md);margin:28px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}.price-highlight .price{font-size:28px;font-weight:700;}.price-highlight .price-label{font-size:14px;color:rgba(255,255,255,0.9);}"""
+.price-highlight{background:linear-gradient(90deg,#FF6000,#FF8640);color:var(--white);padding:20px 28px;border-radius:var(--radius-md);margin:28px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}.price-highlight .price{font-size:28px;font-weight:700;}.price-highlight .price-label{font-size:14px;color:rgba(255,255,255,0.9);}
+.compact-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--space-md);margin:var(--space-lg) 0;}
+.compact-card{background:var(--white);border-top:3px solid var(--orange-900);padding:var(--space-md);box-shadow:0 1px 4px rgba(0,0,0,0.08);}
+.compact-card__title{font-size:15px;font-weight:700;margin:0 0 10px 0;color:var(--ink,#171717);display:flex;align-items:center;gap:10px;}
+.compact-card__icon{width:28px;height:28px;background:var(--orange-900);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.compact-card__icon svg{width:16px;height:16px;fill:var(--white);}
+.compact-card ul{font-size:14px;margin:0;padding-left:18px;color:var(--muted,#404040);line-height:1.6;}
+.compact-card ul li{margin-bottom:4px;}.compact-card ul li:last-child{margin-bottom:0;}
+.use-cases{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--space-md);margin:var(--space-lg) 0;}
+.use-case{background:var(--gray-100);border-radius:var(--radius-md);padding:var(--space-md);border-left:3px solid var(--blue-m-900);}
+.use-case__title{font-size:14px;font-weight:700;margin:0 0 8px 0;color:var(--blue-m-900);display:flex;align-items:center;gap:10px;}
+.use-case__icon{width:26px;height:26px;background:var(--blue-m-900);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.use-case__icon svg{width:14px;height:14px;fill:var(--white);}
+.use-case p{font-size:13px;margin:0 0 8px 0;color:var(--muted,#404040);line-height:1.5;}
+.use-case p:last-child{margin-bottom:0;}.use-case strong{color:var(--ink,#171717);}
+.use-case a{color:var(--orange-900);font-weight:600;}
+@media(max-width:768px){.compact-cards,.use-cases{grid-template-columns:1fr;}}"""
 
 
 def _get_css_for_prompt(
@@ -722,6 +744,8 @@ def _build_stage3_visual_instructions(visual_elements: List[str]) -> str:
         'section_divider': '<div style="background:linear-gradient(135deg,#170453 0%,#0a0220 100%);margin:60px -20px 40px -20px;padding:30px 40px;"><p style="color:#ff6000;font-size:13px;text-transform:uppercase;letter-spacing:2px;margin:0 0 5px 0;">Subtema</p><h2 style="color:#ffffff;font-size:32px;margin:0;">Título de Sección</h2></div>',
         'mod_cards': '<div class="mod-section"><h3 class="mod-section__title">Título</h3><div class="mod-grid"><article class="mod-card mod-card--horizontal">...</article></div></div>',
         'vcard_cards': '<div class="vcard-module"><h3 class="vcard-module__title">Título</h3><div class="vcard-grid"><article class="vcard vcard--hoverable">...</article></div></div>',
+        'compact_cards': '<div class="compact-cards"><div class="compact-card"><p class="compact-card__title"><span class="compact-card__icon"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>Punto clave</p><ul><li>Dato concreto con cifra</li><li>Otro dato relevante</li><li>Rango o referencia</li></ul></div></div>',
+        'use_cases': '<div class="use-cases"><div class="use-case"><p class="use-case__title"><span class="use-case__icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></span>Caso de uso</p><p>Descripción del escenario y necesidad del usuario.</p><p><strong>Recomendación:</strong> <a href="URL">Producto recomendado</a> — Razón concreta.</p></div></div>',
     }
     for elem in visual_elements:
         if elem not in templates:
@@ -750,6 +774,8 @@ def _build_stage3_visual_instructions(visual_elements: List[str]) -> str:
         'section_divider': 'Separador de Sección',
         'mod_cards': 'Cards Horizontales (Módulo CMS)',
         'vcard_cards': 'Cards Verticales (Módulo CMS)',
+        'compact_cards': 'Compact Cards (Resumen Visual Naranja)',
+        'use_cases': 'Cards de Casos de Uso (Azul)',
     }
     
     # Instrucciones de colocación
@@ -775,6 +801,8 @@ def _build_stage3_visual_instructions(visual_elements: List[str]) -> str:
         'section_divider': 'Usa separadores de sección para dividir mega-guías en bloques temáticos visuales.',
         'mod_cards': 'Inserta el módulo de cards horizontales para comparar 2-4 productos con specs detalladas.',
         'vcard_cards': 'Inserta el módulo de cards verticales para listar recomendaciones.',
+        'compact_cards': 'Inserta compact cards para resumir puntos clave (specs, criterios de compra, datos técnicos). 3-6 cards con título + icono SVG + 3-4 bullets cada una. Ideal después de la introducción o en la sección de criterios.',
+        'use_cases': 'Inserta cards de casos de uso para segmentar recomendaciones por perfil/necesidad. 2-4 cards con escenario + recomendación de producto con enlace. Ideal antes del veredicto.',
     }
     
     lines = []

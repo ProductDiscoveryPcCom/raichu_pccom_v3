@@ -1740,6 +1740,20 @@ def render_visual_elements_selector(key_prefix: str = "visual_elem") -> Dict[str
             'default': False,
             'icon': '📇',
         },
+        'compact_cards': {
+            'label': '🟠 Compact Cards (Naranja)',
+            'description': 'Cards naranjas con icono + bullets — ideal para resumir criterios, specs o puntos clave',
+            'help': 'Grid de cards con borde naranja superior, icono SVG circular y lista de bullets. Perfecto para criterios de compra, specs resumidas o puntos clave del artículo. 3-6 cards.',
+            'default': False,
+            'icon': '🟠',
+        },
+        'use_cases': {
+            'label': '🔵 Cards Casos de Uso (Azul)',
+            'description': 'Cards azules con escenario + recomendación — ideal para segmentar por perfil de usuario',
+            'help': 'Grid de cards con borde azul lateral, icono y texto descriptivo. Cada card presenta un caso de uso o perfil de comprador con recomendación de producto. 2-4 cards.',
+            'default': False,
+            'icon': '🔵',
+        },
     }
     
     # ── Renderizar sección BASE ──
@@ -1748,7 +1762,7 @@ def render_visual_elements_selector(key_prefix: str = "visual_elem") -> Dict[str
     # Dividir en 2 grupos: Estructura (primeros 7) y Contenido enriquecido (resto)
     _STRUCTURE_IDS = ['toc', 'callout', 'callout_promo', 'callout_alert', 'verdict', 'grid', 'badges', 'buttons']
     _CONTENT_IDS = ['faqs', 'intro_box', 'check_list', 'specs_list', 'product_module', 
-                    'price_highlight', 'stats_grid', 'section_divider']
+                    'price_highlight', 'stats_grid', 'section_divider', 'compact_cards', 'use_cases']
     
     structure_items = [(k, v) for k, v in BASE_ELEMENTS.items() if k in _STRUCTURE_IDS]
     content_items = [(k, v) for k, v in BASE_ELEMENTS.items() if k in _CONTENT_IDS]
@@ -2061,6 +2075,8 @@ def _get_component_template(elem_id: str, ds_available: bool) -> str:
         'comparison_table': '<table class="comparison-table">\n  <thead><tr><th>Spec</th><th>Producto A</th><th class="comparison-highlight">Producto B</th></tr></thead>\n  <tbody><tr><td>Valor</td><td>X</td><td class="comparison-highlight">Y</td></tr></tbody>\n</table>',
         'mod_cards': '<div class="mod-section">\n  <h3 class="mod-section__title">Título</h3>\n  <div class="mod-grid">\n    <article class="mod-card mod-card--horizontal">...</article>\n  </div>\n</div>',
         'vcard_cards': '<div class="vcard-module">\n  <h3 class="vcard-module__title">Título</h3>\n  <div class="vcard-grid">\n    <article class="vcard vcard--hoverable">...</article>\n  </div>\n</div>',
+        'compact_cards': '<div class="compact-cards">\n  <div class="compact-card">\n    <p class="compact-card__title"><span class="compact-card__icon"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>Punto clave</p>\n    <ul><li>Dato 1</li><li>Dato 2</li></ul>\n  </div>\n</div>',
+        'use_cases': '<div class="use-cases">\n  <div class="use-case">\n    <p class="use-case__title"><span class="use-case__icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg></span>Caso de uso</p>\n    <p>Descripción del escenario.</p>\n    <p><strong>Recomendación:</strong> <a href="URL">Producto</a></p>\n  </div>\n</div>',
     }
     return _FALLBACK_TEMPLATES.get(elem_id, '')
 

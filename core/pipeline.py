@@ -611,6 +611,24 @@ Formato tu respuesta de manera clara y accionable."""
                 with col3:
                     st.metric("Precisión", f"{100 - abs(diff_pct):.1f}%")
                 
+                # Post-generation PASO 1.5: Fix tablas (thead/tbody + responsive)
+                try:
+                    from utils.table_fixer import fix_tables
+                    fixed_html, table_stats = fix_tables(st.session_state.final_html)
+                    if table_stats['tables_found'] > 0:
+                        st.session_state.final_html = fixed_html
+                        fixes = []
+                        if table_stats['thead_added'] > 0:
+                            fixes.append(f"{table_stats['thead_added']} thead añadidos")
+                        if table_stats['responsive_wrapped'] > 0:
+                            fixes.append(f"{table_stats['responsive_wrapped']} tablas con scroll mobile")
+                        if fixes:
+                            st.caption(f"📊 Tablas: {table_stats['tables_found']} encontradas, {', '.join(fixes)}")
+                except ImportError:
+                    pass
+                except Exception as e:
+                    logger.warning(f"Table fixer error: {e}")
+                
                 st.success("✅ ¡Generación completada!")
                 
                 # Post-generation PASO 2: Quality Score multi-dimensional
@@ -812,6 +830,58 @@ Genera el HTML corregido:"""
                 
                 # Post-generation PASO 6: verificar engagement (mini-stories + CTAs)
                 _check_engagement_elements(st.session_state.final_html)
+                
+                # Post-generation PASO 7: generar meta title, meta description, TL;DR
+                try:
+                    from utils.meta_generator import generate_meta, validate_meta
+                    
+                    with st.spinner("📝 Generando meta SEO y TL;DR..."):
+                        meta_result = generate_meta(
+                            html_content=st.session_state.final_html,
+                            keyword=config.get('keyword', ''),
+                            pdp_data=config.get('pdp_data') or config.get('pdp_json_data'),
+                            secondary_keywords=config.get('keywords', []),
+                            arquetipo_name=get_arquetipo(config.get('arquetipo_codigo', '')).get('name', '') if get_arquetipo(config.get('arquetipo_codigo', '')) else '',
+                        )
+                    
+                    if meta_result:
+                        st.session_state.meta_seo = meta_result
+                        
+                        # Validar
+                        meta_issues = validate_meta(meta_result, config.get('keyword', ''))
+                        
+                        with st.expander("📋 Meta SEO & TL;DR", expanded=True):
+                            # Meta title
+                            mt = meta_result.get('meta_title', '')
+                            mt_len = len(mt)
+                            mt_color = "green" if mt_len <= 60 else "red"
+                            st.markdown(f"**Meta Title** ({mt_len}/60)")
+                            st.code(mt, language=None)
+                            
+                            # Meta description
+                            md = meta_result.get('meta_description', '')
+                            md_len = len(md)
+                            st.markdown(f"**Meta Description** ({md_len}/155)")
+                            st.code(md, language=None)
+                            
+                            st.markdown("---")
+                            
+                            # TL;DR
+                            tt = meta_result.get('tldr_title', '')
+                            st.markdown(f"**TL;DR Título** ({len(tt)}/80)")
+                            st.code(tt, language=None)
+                            
+                            td = meta_result.get('tldr_description', '')
+                            st.markdown(f"**TL;DR Descripción** ({len(td)}/200)")
+                            st.code(td, language=None)
+                            
+                            # Issues si los hay
+                            if meta_issues:
+                                st.warning("⚠️ " + " | ".join(meta_issues))
+                except ImportError:
+                    pass
+                except Exception as e:
+                    logger.warning(f"Meta generation error: {e}")
         
         # Guardar metadata
         try:
@@ -909,6 +979,8 @@ def _detect_missing_visual_elements(html_content: str, selected_elements: List[s
         'section_divider': ['linear-gradient(135deg,#170453'],
         'mod_cards': ['mod-card'],
         'vcard_cards': ['vcard'],
+        'compact_cards': ['compact-cards', 'compact-card'],
+        'use_cases': ['use-cases', 'use-case'],
     }
     
     missing = []
@@ -945,6 +1017,8 @@ def _get_visual_element_names() -> Dict[str, str]:
         'section_divider': 'Section Divider',
         'mod_cards': 'Mod Cards',
         'vcard_cards': 'VCard Cards',
+        'compact_cards': 'Compact Cards (Naranja)',
+        'use_cases': 'Cards Casos de Uso (Azul)',
     }
 
 

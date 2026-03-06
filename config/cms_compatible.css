@@ -345,6 +345,7 @@ table {
   border-collapse: collapse;
   margin: var(--space-3) 0;
   font-size: 15px;
+  table-layout: fixed;
 }
 
 table thead th {
@@ -363,6 +364,34 @@ table tbody td {
 
 table tbody tr:hover {
   background: #fafafa;
+}
+
+/* Responsive table wrapper */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: var(--space-3) 0;
+}
+
+.table-responsive table {
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  table {
+    table-layout: auto;
+    font-size: 14px;
+  }
+  
+  table thead th,
+  table tbody td {
+    padding: 8px 10px;
+  }
+
+  .table-responsive {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-6);
+  }
 }
 
 /* ============================================================================
@@ -494,6 +523,139 @@ table tbody tr:hover {
 .comparison-table td:first-child {
   width: 30%;
   font-weight: 600;
+}
+
+/* ============================================================================
+   COMPONENTES - Compact Cards (Naranjas)
+   ============================================================================ */
+
+.compact-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+
+.compact-card {
+  background: #fff;
+  border-top: 3px solid var(--accent);
+  padding: var(--space-3);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.compact-card__title {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.compact-card__icon {
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.compact-card__icon svg {
+  width: 16px;
+  height: 16px;
+  fill: #fff;
+}
+
+.compact-card ul {
+  font-size: 14px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.compact-card ul li {
+  margin-bottom: 4px;
+}
+
+.compact-card ul li:last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================================================
+   COMPONENTES - Use Cases (Cards Azules)
+   ============================================================================ */
+
+.use-cases {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+
+.use-case {
+  background: var(--gray-50);
+  border-radius: var(--radius-6);
+  padding: var(--space-3);
+  border-left: 3px solid var(--primary);
+}
+
+.use-case__title {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.use-case__icon {
+  width: 26px;
+  height: 26px;
+  background: var(--primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.use-case__icon svg {
+  width: 14px;
+  height: 14px;
+  fill: #fff;
+}
+
+.use-case p {
+  font-size: 13px;
+  margin: 0 0 8px 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.use-case p:last-child {
+  margin-bottom: 0;
+}
+
+.use-case strong {
+  color: var(--ink);
+}
+
+.use-case a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .compact-cards,
+  .use-cases {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ============================================================================
