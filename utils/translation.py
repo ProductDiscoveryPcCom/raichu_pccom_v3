@@ -7,6 +7,7 @@ Traducción contextualizada de contenido final a múltiples idiomas.
 NO traducción literal: adaptación cultural al país de destino.
 
 Idiomas soportados:
+- es: Español (España) — origen por defecto, también disponible como destino
 - en: Inglés (UK/Internacional)
 - fr: Francés (Francia)
 - pt: Portugués (Portugal)
@@ -43,6 +44,28 @@ class LanguageConfig:
 
 
 LANGUAGES: Dict[str, LanguageConfig] = {
+    'es': LanguageConfig(
+        code='es',
+        name='Español',
+        flag='🇪🇸',
+        country='España',
+        currency='EUR',
+        currency_symbol='€',
+        locale_notes=(
+            'Español de España (no latinoamericano). '
+            'Precios en EUR con formato español (1.299,99 €). '
+            'Usar "tú" informal por defecto (estilo PcComponentes). '
+            'Vocabulario técnico español: "ordenador portátil" (no "laptop"), '
+            '"ratón" (no "mouse"), "pantalla" (no "display"). '
+            'Expresiones naturales del mercado tech español.'
+        ),
+        tone_notes=(
+            'Cercano, directo y entusiasta pero informado. '
+            'Tono PcComponentes: técnicamente riguroso pero accesible. '
+            'Equilibrio entre detalle técnico y recomendación práctica. '
+            'Se permite humor sutil y referencias culturales españolas.'
+        ),
+    ),
     'en': LanguageConfig(
         code='en',
         name='English',
@@ -187,15 +210,18 @@ def build_translation_prompt(
     if not lang:
         raise ValueError(f"Idioma no soportado: {target_lang}. Disponibles: {list(LANGUAGES.keys())}")
 
+    src_lang = LANGUAGES.get(source_lang)
+    src_name = src_lang.name if src_lang else "Español"
+
     system_prompt = f"""Eres un traductor profesional especializado en contenido tecnológico y SEO.
-Tu tarea es traducir contenido de PcComponentes del español al {lang.name}.
+Tu tarea es traducir contenido de PcComponentes del {src_name} al {lang.name}.
 
 REGLAS CRÍTICAS:
 1. NO hagas traducción literal. Adapta el contenido al mercado de {lang.country}.
 2. Mantén EXACTAMENTE la misma estructura HTML (tags, clases CSS, IDs, atributos).
 3. Traduce solo el texto visible para el usuario, NO toques el código HTML/CSS.
 4. Adapta las expresiones idiomáticas al equivalente natural en {lang.name}.
-5. Si hay referencias a precios en €, mantén el formato de {lang.country}: {lang.currency_symbol}.
+5. Si hay referencias a precios, adapta al formato de {lang.country}: {lang.currency_symbol}.
 6. Si hay marcas de producto (ASUS, Samsung, etc.), NO las traduzcas.
 7. Los nombres de modelos de producto NO se traducen.
 8. Las unidades técnicas (GB, TB, MHz, etc.) NO se traducen.
@@ -221,12 +247,12 @@ INSTRUCCIONES HTML:
         kw_note = f"""
 
 KEYWORD SEO:
-- Keyword original (ES): "{keyword}"
+- Keyword original ({source_lang.upper()}): "{keyword}"
 - Adapta la keyword al {lang.name} de forma natural para SEO.
 - Usa la keyword adaptada en: título H2, primer párrafo, FAQs, meta-content.
 - NO fuerces la keyword si no suena natural en {lang.name}."""
 
-    user_prompt = f"""Traduce el siguiente contenido HTML del español al {lang.name} ({lang.country}).
+    user_prompt = f"""Traduce el siguiente contenido HTML del {src_name} al {lang.name} ({lang.country}).
 
 Recuerda: traducción CONTEXTUALIZADA, no literal. Adapta expresiones, ejemplos y tono al mercado de {lang.country}.
 {kw_note}
@@ -241,6 +267,17 @@ Devuelve SOLO el HTML traducido, sin explicaciones ni comentarios. Empieza direc
     return system_prompt, user_prompt
 
 
+def get_translation_languages() -> Dict[str, LanguageConfig]:
+    """Devuelve idiomas disponibles como destino de traducción (excluye el origen)."""
+    return {k: v for k, v in LANGUAGES.items()}
+
+
+def get_source_language_name(code: str) -> str:
+    """Devuelve el nombre del idioma origen."""
+    lang = LANGUAGES.get(code)
+    return lang.name if lang else code.upper()
+
+
 # ============================================================================
 # EXPORTS
 # ============================================================================
@@ -251,5 +288,7 @@ __all__ = [
     'LANGUAGES',
     'get_supported_languages',
     'get_language',
+    'get_translation_languages',
+    'get_source_language_name',
     'build_translation_prompt',
 ]
