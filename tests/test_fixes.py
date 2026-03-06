@@ -328,12 +328,17 @@ class TestResultsErrorHandling:
             "Exception genérica no muestra feedback al usuario"
 
     def test_import_error_before_generic(self):
-        """except ImportError debe estar ANTES de except Exception."""
+        """except ImportError debe estar ANTES de except Exception en _execute_refinement."""
         source = Path("ui/results.py").read_text()
-        idx_import = source.index("except ImportError as e:")
-        idx_generic = source.index("except Exception as e:")
+        # Buscar dentro de _execute_refinement donde el patrón ImportError→Exception es relevante
+        refine_start = source.index("def _execute_refinement(")
+        # Buscar el siguiente def para delimitar el bloque
+        next_def = source.index("\ndef ", refine_start + 10)
+        refine_block = source[refine_start:next_def]
+        idx_import = refine_block.index("except ImportError")
+        idx_generic = refine_block.index("except Exception")
         assert idx_import < idx_generic, \
-            "except ImportError debe estar antes de except Exception"
+            "except ImportError debe estar antes de except Exception en _execute_refinement"
 
 
 # ============================================================================
@@ -519,10 +524,14 @@ class TestStage3VisualElements:
 # ============================================================================
 
 class TestAppVisualElementsPropagation:
-    """Valida que app.py pasa visual_elements a las etapas 2 y 3 de forma defensiva."""
+    """Valida que el pipeline pasa visual_elements a las etapas 2 y 3 de forma defensiva.
 
-    def _get_app_source(self):
-        return Path("app.py").read_text()
+    NOTA v5.1: La lógica de stage2/stage3 kwargs se movió de app.py a core/pipeline.py.
+    Los tests ahora validan el fichero correcto.
+    """
+
+    def _get_pipeline_source(self):
+        return Path("core/pipeline.py").read_text()
 
     def _extract_block(self, source, start_marker, end_marker):
         """Extrae bloque entre dos marcadores."""
@@ -531,37 +540,35 @@ class TestAppVisualElementsPropagation:
         return source[idx_start:idx_end]
 
     def test_app_stage2_has_visual_elements_logic(self):
-        """app.py debe incluir lógica para pasar visual_elements a stage2."""
-        source = self._get_app_source()
-        # Buscar el bloque del stage2 new content
+        """pipeline.py debe incluir lógica para pasar visual_elements a stage2."""
+        source = self._get_pipeline_source()
         block = self._extract_block(source, "stage2_kwargs = dict(", "stage2_prompt = new_content")
         assert "visual_elements" in block, \
-            "app.py no tiene lógica de visual_elements para stage2"
+            "pipeline.py no tiene lógica de visual_elements para stage2"
 
     def test_app_stage3_has_visual_elements_logic(self):
-        """app.py debe incluir lógica para pasar visual_elements a stage3."""
-        source = self._get_app_source()
+        """pipeline.py debe incluir lógica para pasar visual_elements a stage3."""
+        source = self._get_pipeline_source()
         block = self._extract_block(source, "stage3_kwargs = dict(", "stage3_prompt = new_content")
         assert "visual_elements" in block, \
-            "app.py no tiene lógica de visual_elements para stage3"
+            "pipeline.py no tiene lógica de visual_elements para stage3"
 
     def test_app_gets_visual_elements_from_config(self):
         """Debe obtener visual_elements de config.get('visual_elements', [])."""
-        source = self._get_app_source()
+        source = self._get_pipeline_source()
         assert "config.get('visual_elements', [])" in source, \
-            "app.py no lee visual_elements del config"
+            "pipeline.py no lee visual_elements del config"
 
     def test_app_stage2_uses_inspect_for_safety(self):
         """stage2 debe usar inspect para verificar si el parámetro es soportado."""
-        source = self._get_app_source()
-        # Buscar el bloque stage2
+        source = self._get_pipeline_source()
         block = self._extract_block(source, "stage2_kwargs = dict(", "stage2_prompt = new_content")
         assert "inspect.signature" in block, \
             "stage2 no usa inspect para verificar parámetros"
 
     def test_app_stage3_uses_inspect_for_safety(self):
         """stage3 debe usar inspect para verificar si el parámetro es soportado."""
-        source = self._get_app_source()
+        source = self._get_pipeline_source()
         block = self._extract_block(source, "stage3_kwargs = dict(", "stage3_prompt = new_content")
         assert "inspect.signature" in block, \
             "stage3 no usa inspect para verificar parámetros"
