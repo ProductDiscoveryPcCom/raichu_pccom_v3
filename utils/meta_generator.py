@@ -39,40 +39,45 @@ def generate_meta(
     pdp_data: Optional[Dict] = None,
     secondary_keywords: Optional[list] = None,
     arquetipo_name: str = "",
+    target_lang: str = "es",
 ) -> Optional[Dict[str, str]]:
     """
     Genera meta title, meta description, título TL;DR y descripción TL;DR.
-    
+
     Usa una sola llamada a Claude con prompt estructurado.
-    
+
     Args:
         html_content: HTML final del artículo
         keyword: Keyword principal
         pdp_data: Datos de producto del scraping (title, brand, advantages, etc.)
         secondary_keywords: Keywords secundarias
         arquetipo_name: Nombre del arquetipo (guía, review, comparativa...)
-        
+        target_lang: Código de idioma destino ('es', 'en', 'fr', 'pt', 'de', 'it')
+
     Returns:
         Dict con meta_title, meta_description, tldr_title, tldr_description
         o None si falla
     """
     if not html_content or not keyword:
         return None
-    
+
+    # Obtener config de idioma
+    lang_config = _get_lang_config(target_lang)
+
     # Extraer texto del HTML para contexto
     text = _strip_html(html_content)
     # Primer párrafo (intro) y último (conclusión)
     paragraphs = [p.strip() for p in text.split('\n') if p.strip() and len(p.strip()) > 50]
     intro = paragraphs[0] if paragraphs else text[:300]
     conclusion = paragraphs[-1] if len(paragraphs) > 1 else ""
-    
+
     # Extraer H2 como estructura
     h2s = re.findall(r'<h2[^>]*>(.*?)</h2>', html_content, re.IGNORECASE | re.DOTALL)
     h2_texts = [re.sub(r'<[^>]+>', '', h).strip() for h in h2s[:5]]
-    
+
     # Construir contexto de producto si hay datos de scraping
     product_context = _build_product_context(pdp_data) if pdp_data else ""
-    
+
     # Construir prompt
     prompt = _build_meta_prompt(
         keyword=keyword,
@@ -83,6 +88,7 @@ def generate_meta(
         secondary_keywords=secondary_keywords or [],
         arquetipo_name=arquetipo_name,
         word_count=len(text.split()),
+        lang_config=lang_config,
     )
     
     # Llamar a Claude
@@ -103,14 +109,33 @@ def generate_meta(
             return _parse_meta_response(result.content)
         else:
             logger.warning(f"Meta generation failed: {result.error}")
-            return _generate_fallback(keyword, intro, h2_texts, pdp_data)
-    
+            return _generate_fallback(keyword, intro, h2_texts, pdp_data, target_lang)
+
     except ImportError:
         logger.info("Meta generation: generator not available, using fallback")
-        return _generate_fallback(keyword, intro, h2_texts, pdp_data)
+        return _generate_fallback(keyword, intro, h2_texts, pdp_data, target_lang)
     except Exception as e:
         logger.warning(f"Meta generation error: {e}")
-        return _generate_fallback(keyword, intro, h2_texts, pdp_data)
+        return _generate_fallback(keyword, intro, h2_texts, pdp_data, target_lang)
+
+
+def _get_lang_config(target_lang: str) -> Dict[str, str]:
+    """Obtiene configuración de idioma para meta generation."""
+    _LANG_META = {
+        'es': {'name': 'Español', 'instruction': 'Genera los metadatos en español de España.',
+               'cta_examples': 'descubre, compara, encuentra'},
+        'en': {'name': 'English', 'instruction': 'Generate metadata in British English.',
+               'cta_examples': 'discover, compare, find, explore'},
+        'fr': {'name': 'Français', 'instruction': 'Génère les métadonnées en français de France.',
+               'cta_examples': 'découvrez, comparez, trouvez'},
+        'pt': {'name': 'Português', 'instruction': 'Gera os metadados em português europeu (PT-PT).',
+               'cta_examples': 'descubra, compare, encontre'},
+        'de': {'name': 'Deutsch', 'instruction': 'Generiere die Metadaten auf Hochdeutsch.',
+               'cta_examples': 'entdecken, vergleichen, finden'},
+        'it': {'name': 'Italiano', 'instruction': 'Genera i metadati in italiano.',
+               'cta_examples': 'scopri, confronta, trova'},
+    }
+    return _LANG_META.get(target_lang, _LANG_META['es'])
 
 
 def _build_product_context(pdp_data: Dict) -> str:
@@ -149,13 +174,24 @@ def _build_meta_prompt(
     secondary_keywords: list,
     arquetipo_name: str,
     word_count: int,
+    lang_config: Optional[Dict[str, str]] = None,
 ) -> str:
     """Construye el prompt para generar los 4 campos meta."""
-    
+
+    if lang_config is None:
+        lang_config = _get_lang_config('es')
+
+    lang_name = lang_config['name']
+    lang_instruction = lang_config['instruction']
+    cta_examples = lang_config['cta_examples']
+
     h2_list = '\n'.join(f'- {h}' for h in h2s) if h2s else '(sin subtítulos)'
     kw_secondary = ', '.join(secondary_keywords[:5]) if secondary_keywords else '(ninguna)'
-    
+
     return f"""Genera los metadatos SEO y TL;DR para un artículo de PcComponentes.
+
+IDIOMA: {lang_instruction}
+Todos los campos DEBEN estar escritos en {lang_name}.
 
 KEYWORD PRINCIPAL: {keyword}
 KEYWORDS SECUNDARIAS: {kw_secondary}
@@ -175,17 +211,17 @@ INTRO DEL ARTÍCULO:
 GENERA exactamente estos 4 campos en formato JSON (sin markdown, sin ```):
 
 {{
-  "meta_title": "≤60 chars. Keyword al inicio. Sin marca PcComponentes. Formato: Keyword - Beneficio o Año",
-  "meta_description": "≤155 chars. Incluir keyword + cifra/dato concreto + CTA implícito (descubre, compara, encuentra). Sin clickbait.",
-  "tldr_title": "≤80 chars. Gancho directo que resume el valor del artículo. Puede ser pregunta o afirmación. No repetir meta_title.",
-  "tldr_description": "≤200 chars. Resumen ejecutivo: qué va a encontrar el lector, para quién es y qué decisión le ayuda a tomar. Tono directo."
+  "meta_title": "≤60 chars en {lang_name}. Keyword al inicio. Sin marca PcComponentes. Formato: Keyword - Beneficio o Año",
+  "meta_description": "≤155 chars en {lang_name}. Incluir keyword + cifra/dato concreto + CTA implícito ({cta_examples}). Sin clickbait.",
+  "tldr_title": "≤80 chars en {lang_name}. Gancho directo que resume el valor del artículo. Puede ser pregunta o afirmación. No repetir meta_title.",
+  "tldr_description": "≤200 chars en {lang_name}. Resumen ejecutivo: qué va a encontrar el lector, para quién es y qué decisión le ayuda a tomar. Tono directo."
 }}
 
 REGLAS:
-1. Keyword "{keyword}" DEBE aparecer en meta_title y meta_description
+1. Keyword "{keyword}" (o su adaptación natural en {lang_name}) DEBE aparecer en meta_title y meta_description
 2. Si hay datos de producto, usa precio, marca o ventaja principal en la meta_description
 3. El TL;DR es para lectores que quieren saber rápidamente si el artículo les sirve
-4. NO uses frases genéricas como "todo lo que necesitas saber" o "guía completa"
+4. NO uses frases genéricas ("todo lo que necesitas saber", "guía completa", "everything you need to know")
 5. Responde SOLO con el JSON, sin ningún texto antes o después"""
 
 
@@ -249,41 +285,52 @@ def _generate_fallback(
     intro: str,
     h2s: list,
     pdp_data: Optional[Dict] = None,
+    target_lang: str = "es",
 ) -> Dict[str, str]:
     """
     Genera meta sin API call (fallback programático).
-    Menos optimizado pero funcional.
+    Menos optimizado pero funcional. Soporta múltiples idiomas.
     """
-    # Meta title: keyword + primer H2 o año
+    _FALLBACK_TEMPLATES = {
+        'es': {'about': 'Lo que debes saber sobre {}', 'analysis': 'Análisis de {} y alternativas para elegir el mejor {}.', 'compare': 'Comparativa y recomendaciones de {} con datos reales.'},
+        'en': {'about': 'What you need to know about {}', 'analysis': 'Analysis of {} and alternatives to choose the best {}.', 'compare': 'Comparison and recommendations for {} with real data.'},
+        'fr': {'about': 'Ce qu\'il faut savoir sur {}', 'analysis': 'Analyse de {} et alternatives pour choisir le meilleur {}.', 'compare': 'Comparatif et recommandations pour {} avec données réelles.'},
+        'pt': {'about': 'O que precisa saber sobre {}', 'analysis': 'Análise de {} e alternativas para escolher o melhor {}.', 'compare': 'Comparativo e recomendações de {} com dados reais.'},
+        'de': {'about': 'Was Sie über {} wissen müssen', 'analysis': 'Analyse von {} und Alternativen zur Auswahl des besten {}.', 'compare': 'Vergleich und Empfehlungen für {} mit echten Daten.'},
+        'it': {'about': 'Cosa sapere su {}', 'analysis': 'Analisi di {} e alternative per scegliere il miglior {}.', 'compare': 'Confronto e raccomandazioni per {} con dati reali.'},
+    }
+    tpl = _FALLBACK_TEMPLATES.get(target_lang, _FALLBACK_TEMPLATES['es'])
+
+    # Meta title: keyword + año
     meta_title = keyword.strip()
     if len(meta_title) < 45:
-        meta_title += " (2025)"
+        meta_title += " (2026)"
     meta_title = meta_title[:LIMITS['meta_title']]
-    
+
     # Meta description: primer párrafo truncado
     intro_clean = re.sub(r'\s+', ' ', intro).strip()
     if len(intro_clean) > LIMITS['meta_description']:
         meta_description = intro_clean[:LIMITS['meta_description']].rsplit(' ', 1)[0] + '…'
     else:
         meta_description = intro_clean
-    
+
     # TL;DR title
     if h2s:
         tldr_title = h2s[0][:LIMITS['tldr_title']]
     else:
-        tldr_title = f"Lo que debes saber sobre {keyword}"[:LIMITS['tldr_title']]
-    
+        tldr_title = tpl['about'].format(keyword)[:LIMITS['tldr_title']]
+
     # TL;DR description
     product_name = ""
     if pdp_data:
         product_name = pdp_data.get('title', pdp_data.get('name', ''))
-    
+
     if product_name:
-        tldr_desc = f"Análisis de {product_name} y alternativas para elegir el mejor {keyword}."
+        tldr_desc = tpl['analysis'].format(product_name, keyword)
     else:
-        tldr_desc = f"Comparativa y recomendaciones de {keyword} con datos reales."
+        tldr_desc = tpl['compare'].format(keyword)
     tldr_desc = tldr_desc[:LIMITS['tldr_description']]
-    
+
     return {
         'meta_title': meta_title,
         'meta_description': meta_description,

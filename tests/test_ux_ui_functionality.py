@@ -1006,5 +1006,166 @@ class TestFullCompilation:
         assert not failures, "Archivos que no compilan:\n" + "\n".join(failures)
 
 
+# ============================================================================
+# 22. MULTILINGUAL TRANSLATION & META
+# ============================================================================
+
+class TestMultilingualTranslation:
+    """Tests de traducción multilingüe y generación de meta en idioma destino."""
+
+    def test_spanish_in_languages(self):
+        from utils.translation import LANGUAGES
+        assert 'es' in LANGUAGES
+        assert LANGUAGES['es'].name == 'Español'
+        assert LANGUAGES['es'].flag == '🇪🇸'
+
+    def test_all_six_languages_present(self):
+        from utils.translation import LANGUAGES
+        expected = {'es', 'en', 'fr', 'pt', 'de', 'it'}
+        assert set(LANGUAGES.keys()) == expected
+
+    def test_language_config_fields(self):
+        from utils.translation import LANGUAGES
+        for code, cfg in LANGUAGES.items():
+            assert cfg.code == code
+            assert cfg.name, f"{code}: name is empty"
+            assert cfg.flag, f"{code}: flag is empty"
+            assert cfg.country, f"{code}: country is empty"
+            assert cfg.currency, f"{code}: currency is empty"
+            assert cfg.locale_notes, f"{code}: locale_notes is empty"
+            assert cfg.tone_notes, f"{code}: tone_notes is empty"
+
+    def test_build_translation_prompt_bidirectional(self):
+        from utils.translation import build_translation_prompt
+        # ES → EN
+        sys_p, usr_p = build_translation_prompt("<p>Hola</p>", "en", keyword="portátiles", source_lang="es")
+        assert "Español" in sys_p
+        assert "English" in sys_p
+        assert "portátiles" in usr_p
+
+    def test_build_translation_prompt_en_to_es(self):
+        from utils.translation import build_translation_prompt
+        # EN → ES (reverse direction)
+        sys_p, usr_p = build_translation_prompt("<p>Hello</p>", "es", keyword="laptops", source_lang="en")
+        assert "English" in sys_p
+        assert "Español" in sys_p
+
+    def test_build_translation_prompt_fr_to_de(self):
+        from utils.translation import build_translation_prompt
+        # FR → DE (non-Spanish pair)
+        sys_p, usr_p = build_translation_prompt("<p>Bonjour</p>", "de", keyword="ordinateur", source_lang="fr")
+        assert "Français" in sys_p
+        assert "Deutsch" in sys_p
+
+    def test_build_translation_prompt_preserves_html_rules(self):
+        from utils.translation import build_translation_prompt
+        sys_p, _ = build_translation_prompt("<p>Test</p>", "it")
+        assert "HTML" in sys_p
+        assert "class=" in sys_p
+        assert "href=" in sys_p
+
+    def test_get_translation_languages(self):
+        from utils.translation import get_translation_languages
+        langs = get_translation_languages()
+        assert len(langs) == 6
+        assert 'es' in langs
+
+    def test_invalid_target_lang_raises(self):
+        from utils.translation import build_translation_prompt
+        import pytest as _pt
+        with _pt.raises(ValueError, match="no soportado"):
+            build_translation_prompt("<p>Test</p>", "xx")
+
+
+class TestMultilingualMetaGenerator:
+    """Tests del generador de meta con soporte multilingüe."""
+
+    def test_meta_generator_accepts_target_lang(self):
+        import inspect
+        from utils.meta_generator import generate_meta
+        sig = inspect.signature(generate_meta)
+        assert 'target_lang' in sig.parameters
+
+    def test_get_lang_config_all_languages(self):
+        from utils.meta_generator import _get_lang_config
+        for lang in ('es', 'en', 'fr', 'pt', 'de', 'it'):
+            cfg = _get_lang_config(lang)
+            assert 'name' in cfg, f"{lang}: missing name"
+            assert 'instruction' in cfg, f"{lang}: missing instruction"
+            assert 'cta_examples' in cfg, f"{lang}: missing cta_examples"
+
+    def test_get_lang_config_unknown_defaults_to_es(self):
+        from utils.meta_generator import _get_lang_config
+        cfg = _get_lang_config('xx')
+        assert cfg['name'] == 'Español'
+
+    def test_build_meta_prompt_includes_language(self):
+        from utils.meta_generator import _build_meta_prompt, _get_lang_config
+        prompt = _build_meta_prompt(
+            keyword="laptops", intro="Best laptops for gaming",
+            conclusion="", h2s=["Top picks"], product_context="",
+            secondary_keywords=[], arquetipo_name="guide", word_count=500,
+            lang_config=_get_lang_config('en'),
+        )
+        assert "English" in prompt
+        assert "Generate metadata in British English" in prompt
+
+    def test_build_meta_prompt_french(self):
+        from utils.meta_generator import _build_meta_prompt, _get_lang_config
+        prompt = _build_meta_prompt(
+            keyword="ordinateur portable", intro="Les meilleurs PC portables",
+            conclusion="", h2s=[], product_context="",
+            secondary_keywords=[], arquetipo_name="", word_count=300,
+            lang_config=_get_lang_config('fr'),
+        )
+        assert "Français" in prompt
+        assert "découvrez" in prompt
+
+    def test_fallback_templates_all_languages(self):
+        from utils.meta_generator import _generate_fallback
+        for lang in ('es', 'en', 'fr', 'pt', 'de', 'it'):
+            result = _generate_fallback(
+                keyword="test keyword", intro="Some intro text here for testing",
+                h2s=[], pdp_data=None, target_lang=lang,
+            )
+            assert 'meta_title' in result
+            assert 'tldr_title' in result
+            assert 'tldr_description' in result
+            assert len(result['meta_title']) <= 60
+            assert len(result['tldr_description']) <= 200
+
+    def test_fallback_english(self):
+        from utils.meta_generator import _generate_fallback
+        result = _generate_fallback(
+            keyword="gaming laptops", intro="The best gaming laptops",
+            h2s=[], pdp_data=None, target_lang='en',
+        )
+        assert "need to know" in result['tldr_title'].lower()
+
+    def test_fallback_german(self):
+        from utils.meta_generator import _generate_fallback
+        result = _generate_fallback(
+            keyword="Gaming-Laptop", intro="Die besten Gaming-Laptops",
+            h2s=[], pdp_data=None, target_lang='de',
+        )
+        assert "wissen" in result['tldr_title'].lower()
+
+    def test_validate_meta_still_works(self):
+        from utils.meta_generator import validate_meta
+        meta = {
+            'meta_title': 'Gaming laptops - Best picks 2026',
+            'meta_description': 'Discover the best gaming laptops with our comparison.',
+            'tldr_title': 'Which gaming laptop is right for you?',
+            'tldr_description': 'A guide to choosing the best gaming laptop for your needs.',
+        }
+        issues = validate_meta(meta, 'gaming laptops')
+        assert isinstance(issues, list)
+
+    def test_generate_meta_returns_none_for_empty(self):
+        from utils.meta_generator import generate_meta
+        assert generate_meta("", "keyword") is None
+        assert generate_meta("content", "") is None
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "--tb=short"])

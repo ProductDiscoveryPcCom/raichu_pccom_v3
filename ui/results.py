@@ -1007,6 +1007,7 @@ def _render_debug_stages(
 def _render_translation_section(html_content: str, stage_number: int) -> None:
     """
     Renderiza la UI de traducción contextualizada del contenido final.
+    Soporta traducción individual, por lotes, y generación de meta SEO en idioma destino.
     """
     try:
         from utils.translation import get_supported_languages, build_translation_prompt
@@ -1022,19 +1023,25 @@ def _render_translation_section(html_content: str, stage_number: int) -> None:
 
     languages = get_supported_languages()
 
+    # Detectar idioma origen del contenido (por defecto es)
+    source_lang = st.session_state.get('content_source_lang', 'es')
+
+    # Idiomas destino = todos excepto el origen
+    target_languages = {k: v for k, v in languages.items() if k != source_lang}
+
     # Mostrar badges de traducciones ya realizadas
     existing_translations = []
-    for code, cfg in languages.items():
+    for code, cfg in target_languages.items():
         if st.session_state.get(f'translated_html_{code}'):
             existing_translations.append(f"{cfg.flag} {cfg.name}")
 
     if existing_translations:
         st.info(f"**Traducciones disponibles:** {' · '.join(existing_translations)}")
 
-    # Selector de idioma + botón
-    lang_options = {f"{cfg.flag} {cfg.name} ({cfg.country})": code for code, cfg in languages.items()}
+    # Selector de idioma + botón traducir + botón batch
+    lang_options = {f"{cfg.flag} {cfg.name} ({cfg.country})": code for code, cfg in target_languages.items()}
 
-    col_lang, col_btn = st.columns([3, 1])
+    col_lang, col_btn, col_batch = st.columns([3, 1, 1])
 
     with col_lang:
         selected_label = st.selectbox(
@@ -1056,6 +1063,20 @@ def _render_translation_section(html_content: str, stage_number: int) -> None:
             key=f"btn_translate_{stage_number}",
         )
 
+    with col_batch:
+        # Contar cuántos faltan por traducir
+        pending_count = sum(
+            1 for code in target_languages
+            if not st.session_state.get(f'translated_html_{code}')
+        )
+        batch_clicked = st.button(
+            f"🌐 Todos ({pending_count})" if pending_count > 0 else "✅ Todos listos",
+            type="secondary",
+            use_container_width=True,
+            key=f"btn_translate_all_{stage_number}",
+            disabled=pending_count == 0,
+        )
+
     # Mostrar feedback de traducción reciente
     feedback = st.session_state.pop('_translation_feedback', None)
     if feedback:
@@ -1064,17 +1085,49 @@ def _render_translation_section(html_content: str, stage_number: int) -> None:
         else:
             st.error(f"❌ Error en traducción: {feedback['error']}")
 
-    # Ejecutar traducción
+    # Feedback de batch
+    batch_feedback = st.session_state.pop('_batch_translation_feedback', None)
+    if batch_feedback:
+        ok = batch_feedback.get('completed', [])
+        fail = batch_feedback.get('failed', [])
+        if ok:
+            st.success(f"✅ Traducciones completadas: {', '.join(ok)}")
+        if fail:
+            st.error(f"❌ Errores en: {', '.join(fail)}")
+
+    # Ejecutar traducción individual
     if translate_clicked:
-        _execute_translation(html_content, selected_code, stage_number)
+        _execute_translation(html_content, selected_code, stage_number, source_lang=source_lang)
+
+    # Ejecutar traducción por lotes
+    if batch_clicked and pending_count > 0:
+        _execute_batch_translation(html_content, target_languages, stage_number, source_lang=source_lang)
 
     # Mostrar traducción si existe para el idioma seleccionado
     translation_key = f'translated_html_{selected_code}'
     if st.session_state.get(translation_key):
-        lang_cfg = languages[selected_code]
+        lang_cfg = target_languages[selected_code]
         translated = st.session_state[translation_key]
 
         with st.expander(f"📄 {lang_cfg.flag} Traducción a {lang_cfg.name}", expanded=True):
+            # Mostrar meta SEO traducida si existe
+            meta_key = f'translated_meta_{selected_code}'
+            translated_meta = st.session_state.get(meta_key)
+            if translated_meta:
+                st.markdown("##### 🏷️ Meta SEO")
+                mc1, mc2 = st.columns(2)
+                with mc1:
+                    st.text_input("Meta title", value=translated_meta.get('meta_title', ''),
+                                  disabled=True, key=f"meta_t_{selected_code}_{stage_number}")
+                    st.text_input("TL;DR title", value=translated_meta.get('tldr_title', ''),
+                                  disabled=True, key=f"tldr_t_{selected_code}_{stage_number}")
+                with mc2:
+                    st.text_area("Meta description", value=translated_meta.get('meta_description', ''),
+                                 disabled=True, height=68, key=f"meta_d_{selected_code}_{stage_number}")
+                    st.text_area("TL;DR description", value=translated_meta.get('tldr_description', ''),
+                                 disabled=True, height=68, key=f"tldr_d_{selected_code}_{stage_number}")
+                st.markdown("---")
+
             tr_tab1, tr_tab2 = st.tabs(["🎨 Preview", "📄 HTML"])
 
             with tr_tab1:
@@ -1102,8 +1155,11 @@ def _render_translation_section(html_content: str, stage_number: int) -> None:
                 )
 
 
-def _execute_translation(html_content: str, target_lang: str, stage_number: int) -> None:
-    """Ejecuta la traducción del contenido usando Claude."""
+def _execute_translation(
+    html_content: str, target_lang: str, stage_number: int,
+    source_lang: str = "es",
+) -> None:
+    """Ejecuta la traducción del contenido usando Claude + genera meta SEO en idioma destino."""
     from utils.translation import build_translation_prompt, get_language
 
     lang = get_language(target_lang)
@@ -1129,6 +1185,7 @@ def _execute_translation(html_content: str, target_lang: str, stage_number: int)
                 html_content=html_content,
                 target_lang=target_lang,
                 keyword=keyword,
+                source_lang=source_lang,
             )
 
             result = generator.generate(user_prompt, system_prompt=system_prompt)
@@ -1144,6 +1201,9 @@ def _execute_translation(html_content: str, target_lang: str, stage_number: int)
                     return
 
                 st.session_state[f'translated_html_{target_lang}'] = translated
+
+                # Generar meta SEO en el idioma destino
+                _generate_translated_meta(translated, keyword, target_lang)
 
                 tr_words = count_words_in_html(translated)
                 st.session_state['_translation_feedback'] = {
@@ -1167,6 +1227,92 @@ def _execute_translation(html_content: str, target_lang: str, stage_number: int)
             }
 
     st.rerun()
+
+
+def _execute_batch_translation(
+    html_content: str,
+    target_languages: dict,
+    stage_number: int,
+    source_lang: str = "es",
+) -> None:
+    """Traduce el contenido a todos los idiomas pendientes secuencialmente."""
+    from utils.translation import build_translation_prompt, get_language
+
+    keyword = st.session_state.get('generation_metadata', {}).get('keyword', '')
+    completed = []
+    failed = []
+
+    pending = [code for code in target_languages if not st.session_state.get(f'translated_html_{code}')]
+    progress_bar = st.progress(0, text="Iniciando traducciones...")
+
+    for i, target_lang in enumerate(pending):
+        lang = get_language(target_lang)
+        if not lang:
+            failed.append(target_lang)
+            continue
+
+        progress_bar.progress(
+            (i) / len(pending),
+            text=f"Traduciendo a {lang.flag} {lang.name}... ({i+1}/{len(pending)})",
+        )
+
+        try:
+            from core.generator import extract_html_content
+            from config.settings import CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS
+
+            generator = _get_or_create_generator(
+                CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS, 0.3,
+            )
+
+            system_prompt, user_prompt = build_translation_prompt(
+                html_content=html_content,
+                target_lang=target_lang,
+                keyword=keyword,
+                source_lang=source_lang,
+            )
+
+            result = generator.generate(user_prompt, system_prompt=system_prompt)
+
+            if result.success and result.content:
+                translated = extract_html_content(result.content)
+                if translated and len(translated) >= 100:
+                    st.session_state[f'translated_html_{target_lang}'] = translated
+                    _generate_translated_meta(translated, keyword, target_lang)
+                    completed.append(f"{lang.flag} {lang.name}")
+                else:
+                    failed.append(f"{lang.flag} {lang.name}")
+            else:
+                failed.append(f"{lang.flag} {lang.name}")
+
+        except Exception as e:
+            logger.error(f"Batch translation error ({target_lang}): {e}")
+            failed.append(f"{lang.flag} {lang.name}")
+
+    progress_bar.progress(1.0, text="Traducciones completadas")
+
+    st.session_state['_batch_translation_feedback'] = {
+        'completed': completed,
+        'failed': failed,
+    }
+    st.rerun()
+
+
+def _generate_translated_meta(
+    translated_html: str, keyword: str, target_lang: str,
+) -> None:
+    """Genera meta SEO (title, description, TLDR) en el idioma destino."""
+    try:
+        from utils.meta_generator import generate_meta
+        meta = generate_meta(
+            html_content=translated_html,
+            keyword=keyword,
+            target_lang=target_lang,
+        )
+        if meta:
+            st.session_state[f'translated_meta_{target_lang}'] = meta
+            logger.info(f"Meta SEO generated for {target_lang}")
+    except Exception as e:
+        logger.debug(f"Could not generate meta for {target_lang}: {e}")
 
 
 def _get_basic_css() -> str:
