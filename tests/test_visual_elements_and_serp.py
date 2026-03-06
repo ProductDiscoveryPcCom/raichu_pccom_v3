@@ -240,23 +240,32 @@ class TestCSSCoverage:
 # 6. Detection Patterns in app.py
 # ============================================================================
 class TestDetectionPatterns:
-    """app.py _check_visual_elements_presence tiene patterns para cada elemento."""
+    """core/pipeline.py tiene patterns de detección para cada elemento visual.
+
+    NOTA v5.1: _check_visual_elements_presence se movió de app.py a core/pipeline.py.
+    """
 
     @pytest.fixture(scope="class")
-    def detect_block(self):
-        src = open('app.py').read()
-        idx = src.index('def _check_visual_elements_presence')
-        return src[idx:idx+4000]
+    def pipeline_src(self):
+        return open('core/pipeline.py').read()
+
+    @pytest.fixture(scope="class")
+    def detect_block(self, pipeline_src):
+        idx = pipeline_src.index('def _detect_missing_visual_elements')
+        return pipeline_src[idx:idx+4000]
+
+    @pytest.fixture(scope="class")
+    def names_block(self, pipeline_src):
+        idx = pipeline_src.index('def _get_visual_element_names')
+        return pipeline_src[idx:idx+3000]
 
     @pytest.mark.parametrize("elem", ALL_ELEMENTS)
     def test_detect_pattern_exists(self, detect_block, elem):
         assert f"'{elem}'" in detect_block, f"No hay patrón de detección para '{elem}'"
 
     @pytest.mark.parametrize("elem", ALL_ELEMENTS)
-    def test_display_name_exists(self, detect_block, elem):
-        names_idx = detect_block.index('_NAMES')
-        names = detect_block[names_idx:names_idx+3000]
-        assert f"'{elem}'" in names, f"No hay nombre legible para '{elem}' en _NAMES"
+    def test_display_name_exists(self, names_block, elem):
+        assert f"'{elem}'" in names_block, f"No hay nombre legible para '{elem}' en _get_visual_element_names"
 
 
 # ============================================================================
@@ -577,20 +586,14 @@ class TestSerpContextRichness:
 # 16. Auto-retry: _detect_missing_visual_elements
 # ============================================================================
 class TestDetectMissingElements:
-    """Verifica que _detect_missing_visual_elements funciona correctamente."""
+    """Verifica que _detect_missing_visual_elements funciona correctamente.
+
+    NOTA v5.1: Función movida de app.py a core/pipeline.py. Se importa directamente.
+    """
 
     def _import_func(self):
-        src = open("app.py").read()
-        import re as _re
-        match = _re.search(
-            r'(def _detect_missing_visual_elements\(.*?\n(?:    .*\n)*)',
-            src
-        )
-        assert match, "_detect_missing_visual_elements not found in app.py"
-        func_code = match.group(1)
-        ns = {'List': list, 'Dict': dict, 'Optional': None}
-        exec(func_code, ns)
-        return ns['_detect_missing_visual_elements']
+        from core.pipeline import _detect_missing_visual_elements
+        return _detect_missing_visual_elements
 
     def test_detects_missing_callout(self):
         func = self._import_func()
@@ -645,28 +648,31 @@ class TestDetectMissingElements:
 # 17. Auto-retry: _auto_retry_missing_elements prompt structure
 # ============================================================================
 class TestAutoRetryPrompt:
-    """Verifica que auto-retry construye un prompt correcto."""
+    """Verifica que auto-retry construye un prompt correcto.
+
+    NOTA v5.1: Funciones movidas de app.py a core/pipeline.py.
+    """
 
     def test_auto_retry_function_exists(self):
-        """_auto_retry_missing_elements debe existir en app.py."""
-        src = open("app.py").read()
+        """_auto_retry_missing_elements debe existir en core/pipeline.py."""
+        src = open("core/pipeline.py").read()
         assert 'def _auto_retry_missing_elements(' in src
 
     def test_retry_uses_visual_instructions(self):
         """El retry debe usar _build_stage3_visual_instructions para los templates."""
-        src = open("app.py").read()
+        src = open("core/pipeline.py").read()
         assert '_build_stage3_visual_instructions' in src
 
     def test_retry_has_strict_rules(self):
         """El prompt de retry debe tener reglas de no-modificación."""
-        src = open("app.py").read()
+        src = open("core/pipeline.py").read()
         idx = src.index('def _auto_retry_missing_elements')
         block = src[idx:idx + 3000]
         assert 'NO modifiques' in block or 'NO elimines' in block
 
     def test_retry_limited_to_3_elements(self):
         """_check_visual_elements_presence solo hace retry si ≤3 faltantes."""
-        src = open("app.py").read()
+        src = open("core/pipeline.py").read()
         idx = src.index('def _check_visual_elements_presence')
         block = src[idx:idx + 1000]
         assert '<= 3' in block or '≤ 3' in block
