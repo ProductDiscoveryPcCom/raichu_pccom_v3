@@ -47,7 +47,35 @@ Autor: PcComponentes - Product Discovery & Content
 
 from typing import Dict, List, Optional, Any
 
-__version__ = "4.9.3"
+__version__ = "4.9.4"
+
+# ============================================================================
+# ARQUETIPOS QUE REQUIEREN MINI-HISTORIAS (solo si hay reviews disponibles)
+# Son los arquetipos orientados a producto donde las experiencias de usuario
+# reales aportan credibilidad y engagement.
+# ============================================================================
+ARQUETIPOS_CON_MINI_STORIES = {
+    "ARQ-1",   # Artículos SEO con Enlaces Internos
+    "ARQ-4",   # Review / Análisis de Producto
+    "ARQ-5",   # Comparativa A vs B
+    "ARQ-6",   # Guía de Compra
+    "ARQ-7",   # Roundup / Mejores X
+    "ARQ-8",   # Lista de Recomendaciones
+    "ARQ-9",   # Mejores Productos por Precio
+    "ARQ-10",  # Productos para Perfil Específico
+    "ARQ-19",  # Ofertas y Promociones
+    "ARQ-20",  # Black Friday / Cyber Monday
+    "ARQ-21",  # Setup Gaming Completo
+    "ARQ-22",  # Requisitos de Videojuegos
+    "ARQ-23",  # Streaming y Creación de Contenido
+    "ARQ-24",  # Periféricos Gaming
+    "ARQ-25",  # Consolas y Gaming Portátil
+    "ARQ-26",  # Workstation Profesional
+    "ARQ-27",  # Teletrabajo y Home Office
+    "ARQ-31",  # Hogar Inteligente / Smart Home
+    "ARQ-32",  # Fotografía y Vídeo
+    "ARQ-33",  # Movilidad y Gadgets
+}
 
 # Importar constantes de tono desde prompts.brand_tone (fuente única de tono)
 try:
@@ -1251,7 +1279,33 @@ def build_new_content_prompt_stage1(
     if arquetipo_structure:
         structure_items = "\n".join(f"  {i}. {s}" for i, s in enumerate(arquetipo_structure, 1))
         arquetipo_detail += f"\n**Estructura recomendada del arquetipo:**\n{structure_items}\n"
-    
+
+    # Determinar si incluir mini-historias:
+    # Solo si (1) el arquetipo lo requiere Y (2) hay reviews/feedback de usuarios
+    arquetipo_code = arquetipo.get('code', '')
+    include_mini_stories = (
+        arquetipo_code in ARQUETIPOS_CON_MINI_STORIES
+        and has_feedback
+    )
+
+    # Construir sección de engagement condicionalmente
+    engagement_section = "## ENGAGEMENT: CTAs DISTRIBUIDOS"
+    if include_mini_stories:
+        engagement_section = """## ENGAGEMENT: MINI-HISTORIAS Y CTAs DISTRIBUIDOS
+
+### Mini-historias (INCLUIR 2-3 por artículo)
+Incluye 2-3 mini-escenarios BASADOS EN LAS REVIEWS REALES de los productos. Usa:
+- Una **persona concreta** (nombres españoles: María, Carlos, Laura, Pedro...)
+- Una **situación específica** con detalles (presupuesto, uso, problema concreto) inspirados en las opiniones reales
+- Un **resultado claro** que ilustre el punto de la sección (50-100 palabras cada una)
+
+IMPORTANTE: Las mini-historias deben reflejar experiencias de las reviews reales de los usuarios.
+No inventes escenarios genéricos; basa cada historia en ventajas, desventajas u opiniones concretas del producto.
+
+Distribución: una al inicio (enganchar), una en el medio (re-enganchar), una cerca del final (reforzar).
+
+Ejemplo: "Carlos buscaba un portátil para edición de vídeo con un presupuesto de 1.200€. Empezó con 8 GB de RAM y cada proyecto tardaba 3 horas en renderizar. Tras pasarse a 32 GB y SSD NVMe, el mismo proyecto tarda 40 minutos.\""""
+
     # Construir prompt
     prompt = f"""Eres un redactor SEO de PcComponentes, la tienda líder de tecnología en España.
 
@@ -1279,17 +1333,7 @@ Genera un BORRADOR tipo "{arquetipo_name}" para la keyword "{keyword}".
 {headings_section}
 {campos_section}
 
-## ENGAGEMENT: MINI-HISTORIAS Y CTAs DISTRIBUIDOS
-
-### Mini-historias (INCLUIR 2-3 por artículo)
-Incluye 2-3 mini-escenarios con:
-- Una **persona concreta** (nombres españoles: María, Carlos, Laura, Pedro...)
-- Una **situación específica** con detalles (presupuesto, uso, problema concreto)
-- Un **resultado claro** que ilustre el punto de la sección (50-100 palabras cada una)
-
-Distribución: una al inicio (enganchar), una en el medio (re-enganchar), una cerca del final (reforzar).
-
-Ejemplo: "Carlos buscaba un portátil para edición de vídeo con un presupuesto de 1.200€. Empezó con 8 GB de RAM y cada proyecto tardaba 3 horas en renderizar. Tras pasarse a 32 GB y SSD NVMe, el mismo proyecto tarda 40 minutos."
+{engagement_section}
 
 ### CTAs distribuidos (INCLUIR 2-3 por artículo)
 NO pongas los CTAs solo al final. Distribúyelos:
