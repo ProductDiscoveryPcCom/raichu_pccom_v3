@@ -144,6 +144,11 @@ MAX_TOKENS = _config['max_tokens']
 TEMPERATURE = _config['temperature']
 DEBUG_MODE = _config['debug_mode']
 
+# Puente st.secrets → os.environ para que core/generator.py y config/settings.py
+# encuentren la API key (importan desde os.getenv, no desde st.secrets)
+if CLAUDE_API_KEY:
+    os.environ['ANTHROPIC_API_KEY'] = CLAUDE_API_KEY
+
 # OpenAI config (corrección dual)
 OPENAI_API_KEY = ""
 OPENAI_MODEL = "gpt-4.1-2025-04-14"
