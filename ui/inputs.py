@@ -2452,44 +2452,68 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
     
     # ── SECCIÓN 1: Campos obligatorios ──────────────────────────────
     st.markdown("#### 🎯 Configuración principal")
-    
+
     # Fecha GSC (solo si hay datos)
     render_gsc_date_warning()
-    
+
     # Fila 1: Keyword (más ancha, es el campo más importante) + Arquetipo
     col_kw, col_arq = st.columns([3, 2])
     with col_kw:
         keyword, keyword_error = render_keyword_input(key="main_keyword", required=True)
         if keyword_error and keyword == "":
             errors.append(keyword_error)
-    
+
     with col_arq:
         arquetipo = render_arquetipo_selector(key="main_arquetipo")
-    
-    # Fila 2: Longitud
-    col_len, col_spacer = st.columns([2, 3])
+
+    # Fila 2: Longitud + Keywords secundarias en la misma fila
+    col_len, col_sec_kw = st.columns([2, 3])
     with col_len:
         target_length = render_length_slider(key="main_length", arquetipo_code=arquetipo)
-    
-    # Fila 3: Keywords secundarias (REC-3)
-    with st.expander("🔑 Keywords Secundarias", expanded=False):
-        st.caption("Añade keywords relacionadas para enriquecer el SEO del artículo (una por línea)")
+
+    with col_sec_kw:
+        st.caption("Keywords secundarias *(opcional — una por línea)*")
         keywords_input = st.text_area(
             "Keywords secundarias",
             key="main_secondary_keywords",
-            height=80,
-            placeholder="keyword relacionada 1\nkeyword relacionada 2\nkeyword long tail",
+            height=68,
+            placeholder="keyword relacionada 1\nkeyword relacionada 2",
             label_visibility="collapsed"
         )
         secondary_keywords = [
             k.strip() for k in keywords_input.split('\n')
             if k.strip() and k.strip() != keyword
         ] if keywords_input else []
-    
-    # ── SECCIÓN 2: Productos (opcional) ──────────────────────────────
-    st.markdown("#### 📦 Productos")
-    products = render_products_block(key_prefix="main_products")
-    
+
+    # ── BRIEFING (semi-obligatorio, mejora calidad) ──────────────────
+    # Mostrar indicador de estado ANTES del briefing para guiar al usuario
+    if st.session_state.get('main_guiding_answered'):
+        guiding_preview = st.session_state.get('main_guiding_answered', {})
+        num_preview = len(guiding_preview) if isinstance(guiding_preview, dict) else 0
+        if num_preview > 0:
+            st.caption(f"📋 Briefing: {num_preview} preguntas respondidas ✅")
+    else:
+        st.caption("📋 **Completa el briefing** para mejorar la calidad del contenido")
+
+    guiding_answers = render_guiding_questions(arquetipo, key_prefix="main_guiding")
+
+    # Actualizar indicador post-render
+    if guiding_answers:
+        num_answered = len(guiding_answers)
+        try:
+            from config.arquetipos import get_guiding_questions as _get_gq, PREGUNTAS_UNIVERSALES
+            total_q = len(_get_gq(arquetipo, include_universal=False)) + len(PREGUNTAS_UNIVERSALES)
+        except Exception:
+            total_q = num_answered + 3
+
+    # ── SECCIÓN 2: Opciones opcionales (agrupadas) ──────────────────
+    st.markdown("#### ⚙️ Opciones adicionales")
+    st.caption("*Todos estos campos son opcionales. Empieza solo con keyword + arquetipo si es tu primera vez.*")
+
+    # Productos — dentro de expander para indicar que es opcional
+    with st.expander("📦 Productos *(opcional)*", expanded=False):
+        products = render_products_block(key_prefix="main_products")
+
     # Backward compat: extraer pdp_url y pdp_json_data del primer producto principal
     pdp_url = None
     pdp_data = None
@@ -2499,28 +2523,9 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
         if first_principal:
             pdp_url = first_principal.url or None
             pdp_json_data = first_principal.json_data
-    
-    # ── BRIEFING (semi-obligatorio, mejora calidad) ──────────────────
-    # REC-5: Indicador de estado del briefing antes del expander
-    guiding_answers = render_guiding_questions(arquetipo, key_prefix="main_guiding")
-    
-    # Mostrar estado del briefing
-    if guiding_answers:
-        num_answered = len(guiding_answers)
-        try:
-            from config.arquetipos import get_guiding_questions as _get_gq, PREGUNTAS_UNIVERSALES
-            total_q = len(_get_gq(arquetipo, include_universal=False)) + len(PREGUNTAS_UNIVERSALES)
-        except Exception:
-            total_q = num_answered + 3  # estimación
-        st.caption(f"📋 Briefing: {num_answered}/{total_q} preguntas respondidas ✅")
-    else:
-        st.caption("⚡ **Completa el briefing** para mejorar significativamente la calidad del contenido")
-    
-    # ── SECCIÓN 3: Campos opcionales ────────────────────────────────
-    st.markdown("#### ⚙️ Opciones avanzadas")
-    
+
     # Enlaces internos con anchor
-    with st.expander("🔗 Enlaces Internos", expanded=False):
+    with st.expander("🔗 Enlaces Internos *(opcional)*", expanded=False):
         internal_links = render_links_with_anchors(
             key_prefix="main_internal",
             label="Enlaces Internos",
@@ -2528,24 +2533,30 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
             max_links=10,
             allow_json=False
         )
-    
+
     # Competidores (solo rewrite)
     competitor_urls = []
     if mode == "rewrite":
         with st.expander("🏆 Análisis de Competencia", expanded=True):
             competitor_urls, _ = render_competitor_urls_input(key="main_competitors")
-    
-    # Elementos visuales
-    with st.expander("🎨 Elementos Visuales", expanded=False):
+
+    # Elementos visuales + Encabezados + Instrucciones — agrupados en un expander
+    with st.expander("🎨 Visual, estructura e instrucciones *(opcional)*", expanded=False):
+        # Elementos visuales
+        st.markdown("**Elementos Visuales**")
         visual_config = render_visual_elements_selector(key_prefix="main_visual")
         visual_elements = visual_config.get('selected', []) if isinstance(visual_config, dict) else visual_config
-    
-    # Estructura de encabezados
-    with st.expander("🏷️ Estructura de Encabezados", expanded=False):
+
+        st.markdown("---")
+
+        # Estructura de encabezados
+        st.markdown("**Estructura de Encabezados**")
         headings_config = render_headings_config(key_prefix="main_headings")
-    
-    # Instrucciones adicionales
-    with st.expander("📝 Instrucciones Adicionales", expanded=False):
+
+        st.markdown("---")
+
+        # Instrucciones adicionales
+        st.markdown("**Instrucciones Adicionales**")
         additional_instructions = render_additional_instructions(key="main_instructions")
     
     # ── Validación ──────────────────────────────────────────────────
