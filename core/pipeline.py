@@ -89,7 +89,22 @@ def _get_module_flags():
         flags['count_words_in_html'] = count_words_in_html
     except ImportError:
         flags['count_words_in_html'] = lambda x: 0
-    
+
+    try:
+        from core import openai_client
+        flags['openai_client'] = openai_client
+        flags['_openai_client_available'] = True
+    except ImportError:
+        flags['openai_client'] = None
+        flags['_openai_client_available'] = False
+
+    # OpenAI model: leer de st.secrets o app.py global
+    try:
+        flags['OPENAI_MODEL'] = st.secrets.get('openai_model', 'gpt-4.1-2025-04-14')
+    except Exception:
+        import os
+        flags['OPENAI_MODEL'] = os.getenv('OPENAI_MODEL', 'gpt-4.1-2025-04-14')
+
     return flags
 
 
@@ -135,6 +150,9 @@ def execute_generation_pipeline(config: Dict[str, Any], mode: str = 'new') -> No
     get_arquetipo = _flags['get_arquetipo']
     count_words_in_html = _flags['count_words_in_html']
     extract_html_content = _extract_html_content
+    openai_client = _flags['openai_client']
+    _openai_client_available = _flags['_openai_client_available']
+    OPENAI_MODEL = _flags['OPENAI_MODEL']
     CLAUDE_API_KEY = _flags['CLAUDE_API_KEY']
     CLAUDE_MODEL = _flags['CLAUDE_MODEL']
     MAX_TOKENS = _flags['MAX_TOKENS']
