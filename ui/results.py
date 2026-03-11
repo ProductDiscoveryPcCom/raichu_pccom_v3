@@ -1910,7 +1910,7 @@ def render_image_generation_tab(html_content: str) -> None:
         from utils.image_gen import (
             is_gemini_available, extract_headings_from_html,
             ImageType, ImageRequest, generate_images, create_images_zip,
-            IMAGE_TYPE_LABELS,
+            IMAGE_TYPE_LABELS, ImageFormatVariant,
         )
         available, gemini_error = is_gemini_available()
     except ImportError:
@@ -1977,11 +1977,26 @@ def render_image_generation_tab(html_content: str) -> None:
     st.markdown("---")
     st.markdown("**Configuración por imagen:**")
     
+    # Tamaños por defecto según tipo
+    _DEFAULT_SIZES = {
+        ImageType.COVER: (1024, 576),
+        ImageType.BODY_CONTEXTUAL: (1024, 1024),
+        ImageType.BODY_USE_CASE: (1024, 1024),
+        ImageType.INFOGRAPHIC: (1024, 1792),
+        ImageType.SUMMARY: (1024, 1024),
+    }
+
+    _FORMAT_OPTIONS = {
+        "JPEG": "jpeg",
+        "WebP": "webp",
+        "PNG": "png",
+    }
+
     image_configs = []
     for i in range(n_images):
         with st.expander(f"Imagen {i+1}", expanded=(i == 0)):
             col1, col2 = st.columns([1, 1])
-            
+
             with col1:
                 img_type = st.selectbox(
                     "Tipo",
@@ -1994,9 +2009,9 @@ def render_image_generation_tab(html_content: str) -> None:
                     ],
                     format_func=lambda x: IMAGE_TYPE_LABELS.get(x, x.value),
                     key=f"img_type_{i}",
-                    index=0 if i > 0 else 1,  # Primer imagen = cover, resto = contextual
+                    index=0 if i > 0 else 1,
                 )
-            
+
             with col2:
                 heading_idx = st.selectbox(
                     "Asociar a sección",
@@ -2005,20 +2020,45 @@ def render_image_generation_tab(html_content: str) -> None:
                     key=f"img_heading_{i}",
                     index=min(i + 1, len(heading_options) - 1) if headings else 0,
                 )
-            
+
+            # Dimensiones y formatos
+            default_w, default_h = _DEFAULT_SIZES.get(img_type, (1024, 1024))
+
+            col_w, col_h, col_fmt = st.columns([1, 1, 2])
+            with col_w:
+                img_width = st.number_input(
+                    "Ancho (px)", min_value=128, max_value=4096,
+                    value=default_w, step=64, key=f"img_w_{i}",
+                )
+            with col_h:
+                img_height = st.number_input(
+                    "Alto (px)", min_value=128, max_value=4096,
+                    value=default_h, step=64, key=f"img_h_{i}",
+                )
+            with col_fmt:
+                img_formats = st.multiselect(
+                    "Formatos de salida",
+                    options=list(_FORMAT_OPTIONS.keys()),
+                    default=["JPEG", "WebP"],
+                    key=f"img_fmt_{i}",
+                )
+
             extra = st.text_input(
                 "Instrucciones adicionales (opcional)",
                 placeholder="Ej: Estilo minimalista, fondo blanco, sin personas",
                 key=f"img_extra_{i}",
             )
-            
+
             # Construir config
             selected_heading = headings[heading_idx - 1] if heading_idx > 0 and heading_idx <= len(headings) else None
-            
+
             image_configs.append({
                 'type': img_type,
                 'heading': selected_heading,
                 'extra': extra,
+                'width': img_width,
+                'height': img_height,
+                'formats': [_FORMAT_OPTIONS[f] for f in img_formats] if img_formats else ["jpeg", "webp"],
             })
     
     # ── Botón de generación ──
@@ -2054,6 +2094,9 @@ def render_image_generation_tab(html_content: str) -> None:
                 heading_content=heading['content'] if heading else '',
                 extra_instructions=cfg['extra'],
                 seed_images=seed_bytes if gen_mode == "seed" else [],
+                width=cfg.get('width', 0),
+                height=cfg.get('height', 0),
+                output_formats=cfg.get('formats', ['jpeg', 'webp']),
             )
             img_requests.append(req)
         
@@ -2083,33 +2126,54 @@ def render_image_generation_tab(html_content: str) -> None:
         for i, img in enumerate(result.images):
             with st.container():
                 col_img, col_info = st.columns([2, 1])
-                
+
                 with col_img:
                     st.image(
                         img.image_bytes,
                         caption=f"{IMAGE_TYPE_LABELS.get(img.image_type, img.image_type.value)} — {img.heading_ref}",
                         use_container_width=True,
                     )
-                
+
                 with col_info:
                     st.markdown(f"**Tipo:** {IMAGE_TYPE_LABELS.get(img.image_type, img.image_type.value)}")
                     st.markdown(f"**Sección:** {img.heading_ref}")
-                    st.markdown(f"**Tamaño:** {img.size_kb:.0f} KB")
+
+                    # Mostrar dimensiones si hay variantes
+                    variants = getattr(img, 'format_variants', [])
+                    if variants and variants[0].width:
+                        st.markdown(f"**Dimensiones:** {variants[0].width}x{variants[0].height} px")
+
                     st.markdown(f"**Alt text:** _{img.alt_text}_")
-                    
-                    # Descarga individual
+
+                    # Descargas por formato
+                    st.caption("Descargar:")
+                    base_name = img.get_filename()
+
+                    # Original
+                    orig_ext = base_name.rsplit('.', 1)[-1].upper() if '.' in base_name else 'PNG'
                     st.download_button(
-                        f"⬇️ Descargar",
+                        f"⬇️ Original ({orig_ext} · {img.size_kb:.0f} KB)",
                         data=img.image_bytes,
-                        file_name=img.get_filename(),
+                        file_name=base_name,
                         mime=img.mime_type,
-                        key=f"dl_img_{i}",
+                        key=f"dl_img_orig_{i}",
                     )
-                    
+
+                    # Variantes de formato (JPEG, WebP, etc.)
+                    for vi, variant in enumerate(variants):
+                        vname = variant.get_filename(base_name)
+                        st.download_button(
+                            f"⬇️ {variant.format_label.upper()} ({variant.size_kb:.0f} KB)",
+                            data=variant.image_bytes,
+                            file_name=vname,
+                            mime=variant.mime_type,
+                            key=f"dl_img_{i}_v{vi}",
+                        )
+
                     # Prompt usado (colapsable)
                     with st.expander("Ver prompt", expanded=False):
                         st.code(img.prompt_used, language="text")
-                
+
                 st.markdown("---")
         
         # Descarga ZIP de todas
