@@ -199,8 +199,9 @@ def render_opportunities_mode() -> None:
         f"⚡ {qw} Quick Wins · 📈 {imp} Mejoras · 🔧 {underp} Necesitan atención"
     )
 
+    has_api = _is_api_configured()
     for i, opp in enumerate(opportunities[:20], 1):
-        _render_opportunity_card(i, opp, has_api=_is_api_configured())
+        _render_opportunity_card(i, opp, has_api=has_api)
 
 
 # ============================================================================
@@ -263,12 +264,11 @@ def _render_opportunity_card(rank: int, opp: Dict[str, Any], has_api: bool = Fal
 
         with cols[3]:
             action = "Reescribir" if url else "Generar"
-            btn_key = f"opp_action_{rank}_{keyword[:15]}"
-            if st.button(f"✏️ {action}", key=btn_key, use_container_width=True):
+            kw_id = hash(keyword) & 0xFFFFFF
+            if st.button(f"✏️ {action}", key=f"opp_act_{rank}_{kw_id}", use_container_width=True):
                 _launch_generation(opp)
             if has_api:
-                analysis_key = f"opp_analysis_{rank}_{keyword[:15]}"
-                if st.button("🔍 Analizar", key=analysis_key, use_container_width=True):
+                if st.button("🔍 Analizar", key=f"opp_ana_{rank}_{kw_id}", use_container_width=True):
                     st.session_state[f'show_analysis_{keyword}'] = True
 
     # Recomendación inline
@@ -464,7 +464,7 @@ def _render_deep_analysis(keyword: str, current: Dict[str, Any]) -> None:
         # ── Botón reescribir con todo el contexto enriquecido ──
         top_url = periods.get("7d", {}).get("top_url", "") or current.get("url", "")
         if top_url:
-            rewrite_key = f"opp_rewrite_enriched_{keyword[:15]}"
+            rewrite_key = f"opp_rewrite_enriched_{hash(keyword) & 0xFFFFFF}"
             if st.button(
                 "✏️ Reescribir con contexto enriquecido",
                 key=rewrite_key, type="primary", use_container_width=False,
@@ -552,18 +552,19 @@ def _launch_generation(opp: Dict[str, Any]) -> None:
 # ============================================================================
 
 def _filter_blog_records(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Filtra registros GSC para quedarse solo con URLs del blog."""
+    """Filtra registros GSC para quedarse solo con URLs del blog.
+    Devuelve lista vacía si no se puede verificar contra el sitemap."""
     try:
         from utils.blog_sitemap import filter_blog_opportunities
         blog_records = filter_blog_opportunities(records)
         logger.info(f"Blog filter: {len(records)} → {len(blog_records)} registros")
         return blog_records
     except ImportError:
-        logger.warning("blog_sitemap no disponible")
-        return records
+        logger.error("blog_sitemap no disponible — no se puede filtrar por blog")
+        return []
     except Exception as e:
-        logger.warning(f"Error filtrando blog: {e}")
-        return records
+        logger.error(f"Error filtrando blog: {e}")
+        return []
 
 
 # ============================================================================
@@ -896,14 +897,15 @@ def _render_csv_upload() -> None:
     st.markdown("#### 📤 Subir CSV de Google Search Console")
     st.markdown(
         "Exporta tus datos desde [Google Search Console](https://search.google.com/search-console) "
-        "→ Rendimiento → Exportar (CSV). El archivo debe tener columnas: `query`, `clicks`, "
-        "`impressions`, `ctr`, `position`."
+        "→ Rendimiento → **Páginas** (activa la pestaña) → Exportar (CSV).  \n"
+        "Columnas necesarias: `page`, `query`, `clicks`, `impressions`, `ctr`, `position`.  \n"
+        "**Importante:** La columna `page` (URL) es obligatoria para filtrar por blog."
     )
 
     uploaded = st.file_uploader(
         "CSV de GSC", type=['csv', 'tsv'],
         key='opp_csv_upload',
-        help="Formato: query, clicks, impressions, ctr, position"
+        help="Formato: page, query, clicks, impressions, ctr, position"
     )
 
     if uploaded:
@@ -915,6 +917,16 @@ def _render_csv_upload() -> None:
             import io
             df = pd.read_csv(io.StringIO(content), sep=sep)
             df.columns = df.columns.str.lower().str.strip()
+
+            # Normalizar: GSC exporta "page" pero internamente usamos "url"
+            if 'page' in df.columns and 'url' not in df.columns:
+                df['url'] = df['page']
+
+            if 'url' not in df.columns and 'page' not in df.columns:
+                st.warning(
+                    "⚠️ El CSV no tiene columna `page` o `url`. "
+                    "Sin URLs no se podrán filtrar las oportunidades del blog."
+                )
 
             csv_path = "gsc_keywords.csv"
             df.to_csv(csv_path, index=False)
