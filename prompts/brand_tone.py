@@ -84,7 +84,7 @@ INSTRUCCIONES_ANTI_IA = """
 - Variar la estructura de los párrafos
 - Añadir detalles específicos, no generalidades
 - Si algo tiene un "pero", decirlo (genera confianza)
-- El veredicto debe aportar valor real, no repetir lo anterior
+- El veredicto debe ser un párrafo redaccional con opinión propia, no un resumen con viñetas. Escríbelo conversacional, como si le dijeras a un amigo tu opinión sincera
 """
 
 # ============================================================================
@@ -308,9 +308,10 @@ ANTI_IA_CHECKLIST_STAGE2 = """
 - [ ] ¿Evita "Ofrece una experiencia...", "Brinda la posibilidad...", "Esto se traduce en..."?
 - [ ] ¿Evita adjetivos vacíos (increíble, revolucionario, impresionante, excepcional)?
 - [ ] ¿Varía la estructura de los párrafos (NO empiezan todos igual)?
-- [ ] ¿El veredicto aporta valor nuevo o solo resume lo anterior?
+- [ ] ¿El veredicto es un párrafo redaccional con opinión propia (NO un resumen con viñetas)?
 - [ ] ¿Suena a persona real o a texto generado por IA?
 - [ ] ¿No contiene emojis?
+- [ ] ¿Evita años concretos en títulos/encabezados (salvo que la keyword lo requiera)?
 """
 
 # ============================================================================
@@ -323,9 +324,10 @@ REGLAS_CRITICAS_COMUNES = """
 - "Cabe mencionar que..." / "Es fundamental..." / "A la hora de..."
 - "Ofrece una experiencia..." / "Brinda la posibilidad..." / "Esto se traduce en..."
 - Adjetivos vacíos: increíble, revolucionario, impresionante, excepcional
-- El veredicto NO debe repetir lo ya dicho — debe aportar perspectiva nueva
+- El veredicto NO debe repetir lo ya dicho — escríbelo como opinión redaccional en prosa, nunca como resumen con bullets
 - Estructuras repetitivas párrafo tras párrafo
 - No usar emojis en el contenido generado.
+- No usar años concretos (2024, 2025, 2026) en títulos/encabezados salvo que la keyword ya lo incluya
 
 ##  RECORDATORIO DE TONO PCCOMPONENTES
 - **Expertos sin pedantes:** Explica sin tecnicismos innecesarios

@@ -264,7 +264,7 @@ COMPONENT_REGISTRY: Dict[str, CSSComponent] = {
         description='Caja de veredicto/conclusión final',
         css_file='base',
         base_class='verdict-box',
-        html_template='<article class="contentGenerator__verdict"><div class="verdict-box"><h2>Veredicto</h2><p>Conclusión</p></div></article>',
+        html_template='<article class="contentGenerator__verdict"><div class="verdict-box"><h2>Nuestro veredicto</h2><p>Opinión editorial en prosa...</p></div></article>',
     ),
     
     # ── FAQs ──
