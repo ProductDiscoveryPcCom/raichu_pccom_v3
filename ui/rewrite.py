@@ -261,16 +261,12 @@ def render_rewrite_section() -> Tuple[bool, Dict]:
         Tuple[bool, Dict]: (debe_generar, config_dict)
     """
     
-    st.markdown("#### 🎯 Configuración de reescritura")
-    
     # Determinar método de obtención de competidores
     semrush_available = SEMRUSH_MODULE_AVAILABLE and is_semrush_available()
-    
-    # Indicador compacto de estado SEMrush
-    if semrush_available:
-        st.caption("✅ SEMrush API conectada — competidores se analizarán automáticamente")
-    else:
-        st.caption("📝 Modo manual — introduce URLs de competidores en el paso 5")
+
+    # Indicador compacto de estado
+    _semrush_label = "SEMrush conectada" if semrush_available else "Competidores manuales"
+    st.caption(f"{'✅' if semrush_available else '📝'} {_semrush_label}")
     
     # Inicializar estado si no existe
     _initialize_rewrite_state()
@@ -281,8 +277,7 @@ def render_rewrite_section() -> Tuple[bool, Dict]:
     # =========================================================================
     # PASO 1: Keyword y verificación GSC
     # =========================================================================
-    st.markdown("---")
-    st.markdown("### 🎯 Paso 1: Keyword Principal")
+    st.markdown("##### 1. Keyword Principal")
     
     keyword, should_search = render_keyword_input()
     
@@ -389,12 +384,10 @@ def render_rewrite_section() -> Tuple[bool, Dict]:
                 """)
     
     # =========================================================================
-    # PASO 2: Configuración del Contenido (MOVIDO: antes era Paso 6)
-    # Ahora se define ANTES de las instrucciones para que el usuario sepa
-    # qué arquetipo/estructura seguirá el contenido
+    # PASO 2: Configuración del Contenido
     # =========================================================================
     st.markdown("---")
-    st.markdown("### ⚙️ Paso 2: Configuración del Contenido")
+    st.markdown("##### 2. Configuración del Contenido")
     
     rewrite_config = render_rewrite_configuration(keyword, RewriteMode.SINGLE)
     
@@ -402,7 +395,7 @@ def render_rewrite_section() -> Tuple[bool, Dict]:
     # PASO 3: Contenido HTML a Reescribir
     # =========================================================================
     st.markdown("---")
-    st.markdown("### 📄 Paso 3: Contenido a Reescribir")
+    st.markdown("##### 3. Contenido a Reescribir")
     
     rewrite_mode, html_contents, disambiguation_config = render_html_content_section()
     
@@ -410,10 +403,10 @@ def render_rewrite_section() -> Tuple[bool, Dict]:
     # (render_rewrite_configuration usó SINGLE como default, pero aquí tenemos el modo real)
     
     # =========================================================================
-    # PASO 4: Instrucciones de Reescritura (SIMPLIFICADO: 3 campos)
+    # PASO 4: Instrucciones de Reescritura
     # =========================================================================
     st.markdown("---")
-    st.markdown("### ✏️ Paso 4: Instrucciones de Reescritura")
+    st.markdown("##### 4. Instrucciones de Reescritura")
     
     rewrite_instructions = render_rewrite_instructions_section(rewrite_mode)
     
@@ -421,7 +414,7 @@ def render_rewrite_section() -> Tuple[bool, Dict]:
     # PASO 5: Obtener competidores
     # =========================================================================
     st.markdown("---")
-    st.markdown("### 🏆 Paso 5: Análisis de Competidores")
+    st.markdown("##### 5. Competidores")
     
     if semrush_available:
         # Modo SEMrush automático
@@ -436,10 +429,10 @@ def render_rewrite_section() -> Tuple[bool, Dict]:
         render_competitors_summary(st.session_state.rewrite_competitors_data)
     
     # =========================================================================
-    # PASO 6: Productos + Enlaces Editoriales (FUSIONADO)
+    # PASO 6: Productos + Enlaces Editoriales
     # =========================================================================
     st.markdown("---")
-    st.markdown("### 📦 Paso 6: Productos y Enlaces")
+    st.markdown("##### 6. Productos y Enlaces *(opcional)*")
     
     # Productos
     try:
@@ -641,21 +634,9 @@ def render_single_article_input() -> List[Dict[str, Any]]:
         Lista con un solo dict {url, html, title, word_count}
     """
     
-    st.markdown("""
-    Pega el código HTML del artículo que quieres mejorar.
-    """)
-    
-    # Checkbox para activar
-    use_existing = st.checkbox(
-        "Tengo un artículo existente para reescribir",
-        value=bool(st.session_state.get('html_to_rewrite', '')),
-        help="Activa esta opción si quieres mejorar un artículo existente"
-    )
-    
-    if not use_existing:
-        st.caption("💡 Si no tienes contenido existente, se generará contenido nuevo basado en el análisis competitivo.")
-        return []
-    
+    st.caption("Pega el código HTML del artículo que quieres mejorar. "
+               "Si lo dejas vacío, se generará contenido nuevo basado en competidores.")
+
     # URL del artículo original
     article_url = st.text_input(
         "URL del artículo original",
@@ -2055,9 +2036,7 @@ def render_rewrite_configuration(keyword: str, rewrite_mode: str) -> Dict:
     
     config = {}
     
-    # ── 1. Arquetipo (PRIMERO: define estructura y tono) ──────────────
-    st.markdown("#### 📚 Arquetipo de Contenido")
-    
+    # ── 1. Arquetipo ──────────────
     use_arquetipo = st.checkbox(
         "Usar arquetipo como guía estructural",
         value=True,
@@ -2115,8 +2094,7 @@ def render_rewrite_configuration(keyword: str, rewrite_mode: str) -> Dict:
         min_len, max_len = 800, 3000
         default_len = 1600
     
-    # ── 3. Objetivo y contexto (REC-7: fusionados) ──────────────────
-    st.markdown("#### 📝 Objetivo y Contexto")
+    # ── 3. Objetivo y contexto ──────────────────
     
     config['objetivo'] = st.text_area(
         "Objetivo y contexto del contenido",
@@ -2131,7 +2109,6 @@ def render_rewrite_configuration(keyword: str, rewrite_mode: str) -> Dict:
     config['context'] = ''  # Ya no necesitamos campo separado
     
     # ── 4. Longitud ─────────────────────────────────────────────────
-    st.markdown("#### 📏 Longitud del Contenido")
     
     col1, col2 = st.columns(2)
     
@@ -2186,7 +2163,6 @@ def render_rewrite_configuration(keyword: str, rewrite_mode: str) -> Dict:
             config['visual_config'] = {'selected': visual_config or [], 'variants': {}, 'components_css': []}
     
     # Estructura de encabezados
-    st.markdown("#### 🏷️ Estructura de Encabezados (opcional)")
     
     try:
         from ui.inputs import render_headings_config
@@ -2283,11 +2259,9 @@ def render_generation_summary(
 ) -> None:
     """Muestra un resumen de la configuración antes de generar."""
     
-    st.markdown("### 📋 Resumen de Generación")
-    
-    # Modo de reescritura
+    # Resumen compacto antes de generar
     mode_info = REWRITE_MODE_OPTIONS.get(rewrite_mode, {})
-    st.markdown(f"**Modo:** {mode_info.get('name', rewrite_mode)}")
+    st.markdown(f"**Resumen** — {mode_info.get('name', rewrite_mode)}")
     
     with st.container():
         col1, col2 = st.columns(2)
@@ -2339,13 +2313,7 @@ def render_generation_summary(
                 with_context = sum(1 for l in posts_plps_links if l.get('html_content') or l.get('top_text'))
                 st.markdown(f"- 📝 Enlaces editoriales: `{len(posts_plps_links)}` ({with_context} con contexto)")
     
-    st.info("""
-    ✅ Todo listo para generar. El proceso incluirá:
-    1. Análisis del contenido existente
-    2. Aplicación de instrucciones de reescritura
-    3. Generación del borrador mejorado
-    4. Análisis crítico y versión final
-    """)
+    st.caption("✅ Todo listo — el pipeline generará borrador → análisis crítico → versión final.")
 
 
 # ============================================================================

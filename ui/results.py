@@ -90,12 +90,22 @@ def render_results_section(
     # Si aún no hay final, mostrar estado parcial durante generación
     if not final_html:
         st.markdown("---")
-        st.subheader("⏳ Generación en curso...")
-        if draft_html:
-            st.success("✅ Etapa 1: Borrador completado")
-        if analysis_json:
-            st.success("✅ Etapa 2: Análisis completado")
-        st.info("⏳ Esperando versión final...")
+        st.subheader("Generando contenido...")
+        col_s1, col_s2, col_s3 = st.columns(3)
+        with col_s1:
+            if draft_html:
+                st.success("✅ Borrador listo")
+            else:
+                st.info("⏳ Generando borrador...")
+        with col_s2:
+            if analysis_json:
+                st.success("✅ Análisis listo")
+            elif draft_html:
+                st.info("⏳ Analizando...")
+            else:
+                st.caption("Pendiente")
+        with col_s3:
+            st.caption("Pendiente")
         return
     
     # ================================================================
@@ -202,10 +212,14 @@ def render_content_tab(
     action_cols = st.columns(2)
     
     with action_cols[0]:
+        # Nombre descriptivo: keyword + fecha
+        _dl_keyword = st.session_state.get('last_config', {}).get('keyword', '')
+        _dl_keyword_slug = re.sub(r'[^a-zA-Z0-9]+', '-', _dl_keyword)[:40].strip('-') if _dl_keyword else 'contenido'
+        _dl_date = st.session_state.get('timestamp', datetime.now().strftime("%Y%m%d"))
         st.download_button(
             label="📥 Descargar HTML",
             data=html_content,
-            file_name=f"content_stage{stage_number}_{st.session_state.get('timestamp', 'export')}.html",
+            file_name=f"{_dl_keyword_slug}_{_dl_date}.html",
             mime="text/html",
             use_container_width=True,
         )
@@ -309,7 +323,7 @@ def _render_seo_summary(html_content: str, target_length: int) -> None:
     
     with col1:
         emoji = "✅" if abs(diff_pct) <= 5 else ("⚠️" if abs(diff_pct) <= 10 else "❌")
-        st.metric(f"{emoji} Palabras", f"{word_count:,}", f"{diff_pct:+.1f}% vs {target_length}")
+        st.metric(f"{emoji} Palabras", f"{word_count:,}", f"{diff_pct:+.0f}% vs objetivo ({target_length})")
     
     with col2:
         heading_str = f"H2×{h2_count} H3×{h3_count}"
@@ -434,7 +448,8 @@ def _render_refinement_section() -> None:
     
     st.markdown("---")
     st.markdown("#### ✨ Refinamiento")
-    
+    st.caption("Pide cambios puntuales al contenido generado sin regenerarlo desde cero.")
+
     # Mostrar feedback del último refinamiento (persiste tras rerun)
     feedback = st.session_state.pop('_refinement_feedback', None)
     if feedback and feedback.get('success'):
@@ -688,15 +703,16 @@ def _render_undo_button() -> None:
 def _render_multimedia_section(html_content: str) -> None:
     """Sección de multimedia: imágenes Gemini + YouTube embed + editor de enlaces."""
     st.markdown("---")
-    st.markdown("#### 🎬 Multimedia")
-    
-    with st.expander("🔗 Editar imágenes y enlaces del contenido", expanded=False):
+    st.markdown("#### 🎬 Multimedia e Imágenes")
+    st.caption("Edita imágenes, genera nuevas con IA o inserta vídeos de YouTube.")
+
+    with st.expander("🔗 Editar imágenes y enlaces", expanded=False):
         _render_image_link_editor(html_content)
-    
-    with st.expander("🖼️ Generar Imágenes", expanded=False):
+
+    with st.expander("🖼️ Generar imágenes con IA", expanded=False):
         render_image_generation_tab(html_content)
-    
-    with st.expander("📹 Insertar Video YouTube", expanded=False):
+
+    with st.expander("📹 Insertar vídeo YouTube", expanded=False):
         _render_youtube_embed(html_content)
 
 

@@ -444,25 +444,26 @@ def render_app_header() -> str:
     
     st.markdown("---")
     
-    # Selector de modo
-    col1, col2, col3 = st.columns([3, 1, 1])
-    
-    with col1:
+    # Selector de modo + botón limpiar en una fila compacta
+    col_mode, col_clear = st.columns([5, 1])
+
+    with col_mode:
         mode = st.radio(
             "Modo",
             options=['new', 'rewrite', 'verify', 'opportunities', 'assistant'],
             format_func=lambda x: {
-                'new': '📝 Nuevo Contenido',
-                'rewrite': '🔄 Reescritura Competitiva',
-                'verify': '🔍 Verificar Keyword',
+                'new': '📝 Nuevo',
+                'rewrite': '🔄 Reescritura',
+                'verify': '🔍 Verificar',
                 'opportunities': '📊 Oportunidades',
                 'assistant': '💬 Asistente',
             }.get(x, x),
             horizontal=True,
-            key='mode_selector_main'
+            key='mode_selector_main',
+            label_visibility="collapsed"
         )
-    
-    with col3:
+
+    with col_clear:
         if st.button("🗑️ Limpiar", use_container_width=True, key="btn_clear_all"):
             clear_session_state()
             st.rerun()
@@ -646,9 +647,10 @@ def render_new_content_mode() -> None:
         st.error("❌ El módulo de inputs no está disponible")
         return
     
-    # Manual de uso (colapsado por defecto, recordado en session_state)
-    _render_usage_guide()
-    
+    # Manual de uso — solo visible si el usuario no ha generado antes
+    if not st.session_state.get('_has_generated_new'):
+        _render_usage_guide()
+
     # Renderizar inputs y obtener configuración
     is_valid, config = render_content_inputs()
     
@@ -657,20 +659,20 @@ def render_new_content_mode() -> None:
     
     # Botón de generación
     st.markdown("---")
-    
-    # Opción de investigación SERP
-    serp_enabled = st.checkbox(
-        "🔍 Investigar SERPs antes de generar",
-        value=True,
-        help="Busca qué contenido posiciona para tu keyword y analiza la competencia. "
-             "Añade ~5-8 segundos pero mejora la calidad del contenido generado.",
-        key="cb_serp_research_new",
-    )
-    config['serp_research'] = serp_enabled
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    
-    with col2:
+
+    col_serp, col_btn = st.columns([2, 3])
+
+    with col_serp:
+        serp_enabled = st.checkbox(
+            "🔍 Investigar SERPs",
+            value=True,
+            help="Analiza la competencia en Google antes de generar. "
+                 "Mejora la calidad (~5-8s extra).",
+            key="cb_serp_research_new",
+        )
+        config['serp_research'] = serp_enabled
+
+    with col_btn:
         generate_clicked = st.button(
             "🚀 Generar Contenido",
             type="primary",
@@ -678,7 +680,7 @@ def render_new_content_mode() -> None:
             disabled=st.session_state.get('generation_in_progress', False),
             key="btn_generate_new"
         )
-    
+
     if generate_clicked:
         execute_generation_pipeline(config, mode='new')
 
@@ -728,9 +730,10 @@ def render_rewrite_mode() -> None:
         st.error("❌ El módulo prompts.rewrite no está disponible")
         return
     
-    # Guía de uso
-    _render_rewrite_guide()
-    
+    # Guía de uso — solo visible si el usuario no ha generado reescritura antes
+    if not st.session_state.get('_has_generated_rewrite'):
+        _render_rewrite_guide()
+
     # Renderizar sección de reescritura
     is_valid, config = render_rewrite_section()
     
@@ -739,18 +742,15 @@ def render_rewrite_mode() -> None:
     
     # Botón de generación
     st.markdown("---")
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    
-    with col2:
-        generate_clicked = st.button(
-            "🚀 Generar Reescritura",
-            type="primary",
-            use_container_width=True,
-            disabled=st.session_state.get('generation_in_progress', False),
-            key="btn_generate_rewrite"
-        )
-    
+
+    generate_clicked = st.button(
+        "🚀 Generar Reescritura",
+        type="primary",
+        use_container_width=True,
+        disabled=st.session_state.get('generation_in_progress', False),
+        key="btn_generate_rewrite"
+    )
+
     if generate_clicked:
         execute_generation_pipeline(config, mode='rewrite')
 
@@ -1312,6 +1312,12 @@ def execute_generation_pipeline(config: Dict[str, Any], mode: str = 'new') -> No
     Ejecuta el pipeline completo de generación en 3 etapas.
     Delegado a core.pipeline para mantener app.py manejable.
     """
+    # Recordar que el usuario ya ha generado en este modo (oculta guía)
+    if mode == 'new':
+        st.session_state['_has_generated_new'] = True
+    elif mode == 'rewrite':
+        st.session_state['_has_generated_rewrite'] = True
+
     from core.pipeline import execute_generation_pipeline as _execute
     _execute(config, mode)
 
