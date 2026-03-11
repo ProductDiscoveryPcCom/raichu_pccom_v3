@@ -902,6 +902,8 @@ def _build_stage3_checklist(visual_elements: Optional[List[str]]) -> str:
         'buttons': '[ ] Botones → `<div class="btns">`',
         'mod_cards': '[ ] Mod Cards → `<div class="mod-section">` con `<div class="mod-grid">`',
         'vcard_cards': '[ ] VCard Cards → `<div class="vcard-module">`',
+        'compact_cards': '[ ] Compact Cards → `<div class="compact-cards">`',
+        'use_cases': '[ ] Casos de Uso → `<div class="use-cases">`',
     }
     
     lines = []
@@ -956,6 +958,8 @@ def _stage3_structure_hints(visual_elements: Optional[List[str]]) -> str:
         'buttons': (7, '    <div class="btns"><!-- Botones CTA obligatorios --></div>'),
         'mod_cards': (8, '    <div class="mod-section"><!-- Cards horizontales obligatorias --></div>'),
         'vcard_cards': (8, '    <div class="vcard-module"><!-- Cards verticales obligatorias --></div>'),
+        'compact_cards': (6, '    <div class="compact-cards"><!-- Compact cards obligatorias --></div>'),
+        'use_cases': (7, '    <div class="use-cases"><!-- Cards casos de uso obligatorias --></div>'),
     }
     
     ordered = []
@@ -1067,6 +1071,8 @@ def _format_visual_elements_instructions(visual_elements: Optional[List[str]]) -
         'section_divider': "Franja a ancho completo con degradado azul para dividir mega-guías en bloques temáticos.",
         'mod_cards': "Para comparativas detalladas de 2-4 productos con specs, imagen y CTA. Incluye chip de etiqueta, lista de características, imagen con caption y botón.",
         'vcard_cards': "Para listados/recomendaciones de 3-4 productos. Cada card tiene chip, título, lista, beneficio y CTA.",
+        'compact_cards': "Para resumir puntos clave con icono SVG + bullets. Ideal tras la intro o en criterios de compra. 3-6 cards.",
+        'use_cases': "Para segmentar recomendaciones por perfil/necesidad. 2-4 cards con escenario + recomendación + enlace.",
     }
     
     for elem_id in visual_elements:
@@ -1103,6 +1109,8 @@ def _format_visual_elements_instructions(visual_elements: Optional[List[str]]) -
                 'section_divider': '<div style="background:linear-gradient(135deg,#170453,#0a0220);padding:30px 40px;margin:60px 0 40px;">\n  <p style="color:#ff6000;font-size:13px;text-transform:uppercase;letter-spacing:2px;margin:0 0 5px;">Subtema</p>\n  <h2 style="color:#fff;font-size:32px;margin:0;">Título</h2>\n</div>',
                 'mod_cards': '<div class="mod-section">\n  <h3 class="mod-section__title">Título</h3>\n  <div class="mod-grid">\n    <article class="mod-card mod-card--horizontal">...</article>\n  </div>\n</div>',
                 'vcard_cards': '<div class="vcard-module">\n  <h3 class="vcard-module__title">Título</h3>\n  <div class="vcard-grid">\n    <article class="vcard vcard--hoverable">...</article>\n  </div>\n</div>',
+                'compact_cards': '<div class="compact-cards">\n  <div class="compact-card">\n    <p class="compact-card__title"><span class="compact-card__icon"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>Punto clave</p>\n    <ul><li>Dato 1</li><li>Dato 2</li></ul>\n  </div>\n</div>',
+                'use_cases': '<div class="use-cases">\n  <div class="use-case">\n    <p class="use-case__title"><span class="use-case__icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg></span>Caso de uso</p>\n    <p>Descripción del escenario.</p>\n    <p><strong>Recomendación:</strong> <a href="URL">Producto</a></p>\n  </div>\n</div>',
             }
             template = _FALLBACK.get(elem_id, '')
         

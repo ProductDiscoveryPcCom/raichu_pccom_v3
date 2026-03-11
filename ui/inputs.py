@@ -1761,8 +1761,8 @@ def render_visual_elements_selector(key_prefix: str = "visual_elem") -> Dict[str
     
     # Dividir en 2 grupos: Estructura (primeros 7) y Contenido enriquecido (resto)
     _STRUCTURE_IDS = ['toc', 'callout', 'callout_promo', 'callout_alert', 'verdict', 'grid', 'badges', 'buttons']
-    _CONTENT_IDS = ['faqs', 'intro_box', 'check_list', 'specs_list', 'product_module', 
-                    'price_highlight', 'stats_grid', 'section_divider', 'compact_cards', 'use_cases']
+    _CONTENT_IDS = ['faqs', 'intro_box', 'check_list', 'specs_list', 'product_module',
+                    'price_highlight', 'stats_grid', 'section_divider']
     
     structure_items = [(k, v) for k, v in BASE_ELEMENTS.items() if k in _STRUCTURE_IDS]
     content_items = [(k, v) for k, v in BASE_ELEMENTS.items() if k in _CONTENT_IDS]
@@ -1781,7 +1781,9 @@ def render_visual_elements_selector(key_prefix: str = "visual_elem") -> Dict[str
             )
             if is_selected:
                 selected_elements.append(elem_id)
-    
+                if _ds_available and elem_id in COMPONENT_REGISTRY:
+                    components_css.add(COMPONENT_REGISTRY[elem_id].css_file)
+
     # -- Bloque Contenido enriquecido --
     st.caption("Contenido enriquecido")
     col3, col4 = st.columns(2)
@@ -1796,6 +1798,8 @@ def render_visual_elements_selector(key_prefix: str = "visual_elem") -> Dict[str
             )
             if is_selected:
                 selected_elements.append(elem_id)
+                if _ds_available and elem_id in COMPONENT_REGISTRY:
+                    components_css.add(COMPONENT_REGISTRY[elem_id].css_file)
     
     # ── Renderizar sección TABLAS ──
     st.markdown("##### Tablas")
