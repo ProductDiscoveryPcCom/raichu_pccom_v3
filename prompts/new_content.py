@@ -758,7 +758,7 @@ def _build_stage3_visual_instructions(visual_elements: List[str]) -> str:
         'callout': '<div class="callout"><p><strong>Consejo:</strong> Información destacada.</p></div>',
         'callout_promo': '<div class="callout-bf"><p><strong>OFERTA</strong></p><p>Texto <a href="#">enlace</a></p></div>',
         'callout_alert': '<div class="callout-alert"><p>Aviso importante</p><p>Texto de la alerta con <strong>fecha límite</strong> o dato urgente.</p></div>',
-        'verdict': '<article class="contentGenerator__verdict"><div class="verdict-box"><h2>Veredicto Final</h2><p>Conclusión honesta...</p></div></article>',
+        'verdict': '<article class="contentGenerator__verdict"><div class="verdict-box"><h2>Nuestro veredicto</h2><p>Conclusión honesta...</p></div></article>',
         'grid': '<div class="grid cols-2"><div class="card"><h4>Item 1</h4><p>Descripción</p></div><div class="card"><h4>Item 2</h4><p>Descripción</p></div></div>',
         'badges': '<div class="badges"><span class="badge">Tag 1</span><span class="badge">Tag 2</span></div>',
         'buttons': '<div class="btns"><a href="#" class="btn primary">Ver producto</a></div>',
@@ -1053,7 +1053,7 @@ def _format_visual_elements_instructions(visual_elements: Optional[List[str]]) -
         'callout': "Usa callouts para tips, advertencias o información clave. 1-3 por artículo.",
         'callout_promo': "Para destacar ofertas especiales, promociones o campañas. Máximo 1 por artículo.",
         'callout_alert': "Para avisos urgentes, fechas límite o alertas críticas. Máximo 1 por artículo. Fondo naranja con borde oscuro.",
-        'verdict': "OBLIGATORIO al final del artículo. Conclusión honesta que APORTE valor, no que resuma.",
+        'verdict': "OBLIGATORIO al final del artículo. Escríbelo como un párrafo redaccional con opinión propia, no como un resumen con viñetas. Usa un tono conversacional: como si le dijeras a un amigo 'mira, la verdad es que...'. Evita listas, bullets o estructuras rígidas dentro del veredicto. El H2 puede ser 'Nuestro veredicto', 'Entonces, ¿merece la pena?' o similar — no siempre 'Nuestro veredicto'.",
         'grid': "Para mostrar múltiples productos o características en rejilla de 2-3 columnas.",
         'badges': "Para tags de categorías, filtros o etiquetas inline dentro de secciones.",
         'buttons': "Para CTAs de producto — usar dentro de grids, cards o al final de secciones.",
@@ -1089,7 +1089,7 @@ def _format_visual_elements_instructions(visual_elements: Optional[List[str]]) -
                 'callout': '<div class="callout">\n  <p><strong>Consejo:</strong> Información destacada.</p>\n</div>',
                 'callout_promo': '<div class="callout-bf">\n  <p><strong>OFERTA</strong></p>\n  <p>Texto <a href="#">enlace</a></p>\n</div>',
                 'callout_alert': '<div class="callout-alert">\n  <p>Aviso importante</p>\n  <p>Texto de la alerta con <strong>dato urgente</strong>.</p>\n</div>',
-                'verdict': '<article class="contentGenerator__verdict">\n  <div class="verdict-box">\n    <h2>Veredicto Final</h2>\n    <p>Conclusión...</p>\n  </div>\n</article>',
+                'verdict': '<article class="contentGenerator__verdict">\n  <div class="verdict-box">\n    <h2>Nuestro veredicto</h2>\n    <p>Conclusión...</p>\n  </div>\n</article>',
                 'grid': '<div class="grid cols-2">\n  <div class="card"><h4>Item</h4><p>...</p></div>\n</div>',
                 'badges': '<div class="badges"><span class="badge">Tag 1</span></div>',
                 'buttons': '<div class="btns"><a href="#" class="btn primary">Ver producto</a></div>',
@@ -1320,6 +1320,15 @@ Genera un BORRADOR tipo "{arquetipo_name}" para la keyword "{keyword}".
 - **Tipo de contenido:** {arquetipo_name}
 {arquetipo_detail}
 
+## 🔑 OPTIMIZACIÓN DE KEYWORD (OBLIGATORIO)
+
+La keyword "{keyword}" DEBE aparecer de forma natural en el contenido:
+- **Densidad objetivo:** 1-2% (aprox. {max(3, target_length // 200)}-{max(6, target_length // 100)} veces en {target_length} palabras)
+- **Primeras 100 palabras:** La keyword DEBE aparecer en las primeras 100 palabras del artículo
+- **Al menos 1 H2:** La keyword (o variación natural) DEBE aparecer en al menos un encabezado H2
+- **Distribución:** Repartida entre inicio, medio y final del artículo (no concentrada en un solo bloque)
+- **Natural:** Integrada en frases reales, nunca forzada ni repetitiva
+
 {product_section}
 
 {tone_instructions}
@@ -1381,7 +1390,7 @@ El HTML debe empezar DIRECTAMENTE con <style>:
 
 <article class="contentGenerator__verdict">
     <div class="verdict-box">
-        <h2>Veredicto Final</h2>
+        <h2>Nuestro veredicto</h2>
         <p>Conclusión honesta que APORTE valor real, no un resumen...</p>
     </div>
 </article>
@@ -1405,6 +1414,7 @@ El HTML debe empezar DIRECTAMENTE con <style>:
 8. El veredicto debe APORTAR, no solo resumir
 9. Incluye TODOS los enlaces proporcionados con su anchor text exacto
 10. **EMOJIS:** No usar emojis en el contenido generado.
+11. **FECHAS:** NO incluyas años concretos (2024, 2025, 2026) en títulos ni encabezados salvo que la keyword del usuario ya incluya un año.
 11. **ELEMENTOS VISUALES:** Si arriba se listaron elementos visuales (tablas, callouts, FAQs, grid, etc.), TODOS deben aparecer en el HTML generado. Un elemento solicitado pero ausente es un error grave.
 
 **Genera el HTML ahora:**
@@ -1516,8 +1526,12 @@ def build_new_content_correction_prompt_stage2(
 - [ ] ¿Tiene contentGenerator__faqs con keyword en título?
 - [ ] ¿Tiene contentGenerator__verdict con verdict-box?
 
-## 4. SEO Y CONTENIDO
-- [ ] ¿La keyword aparece de forma natural?
+## 4. SEO Y KEYWORD (CRÍTICO)
+- [ ] ¿La keyword "{keyword}" aparece en las primeras 100 palabras?
+- [ ] ¿La keyword aparece en al menos un H2?
+- [ ] ¿La densidad de keyword es 1-2%? (contar apariciones y calcular)
+- [ ] ¿La keyword está distribuida en inicio, medio y final?
+- [ ] ¿La keyword aparece de forma natural, no forzada?
 - [ ] ¿TODOS los enlaces proporcionados están incluidos?
 - [ ] ¿Se mencionan los datos de los productos enlazados?
 - [ ] ¿La longitud es aproximada al objetivo?
@@ -1540,7 +1554,17 @@ def build_new_content_correction_prompt_stage2(
     "longitud_actual": 0,
     "longitud_objetivo": {target_length},
     "necesita_ajuste_longitud": false,
-    
+
+    "keyword_seo": {{
+        "keyword": "{keyword}",
+        "apariciones_total": 0,
+        "densidad_porcentaje": 0.0,
+        "en_primeras_100_palabras": false,
+        "en_algun_h2": false,
+        "distribucion": "buena/concentrada/ausente",
+        "correcciones_keyword": []
+    }},
+
     "estructura": {{
         "tiene_style": false,
         "tiene_main": false,
@@ -1737,7 +1761,7 @@ def build_final_prompt_stage3(
 
 <article class="contentGenerator__verdict">
     <div class="verdict-box">
-        <h2>Veredicto Final</h2>
+        <h2>Nuestro veredicto</h2>
         <p>Conclusión que APORTE valor real...</p>
     </div>
 </article>
@@ -1824,8 +1848,8 @@ def get_element_template(name: str) -> str:
         'callout': '<div class="callout"><p><strong> Dato:</strong> [Contenido]</p></div>',
         'callout_promo': '<div class="callout-bf"><p><strong>OFERTA</strong></p><p>[Contenido]</p></div>',
         'callout_bf': '<div class="callout-bf"><p><strong>OFERTA</strong></p><p>[Contenido]</p></div>',
-        'verdict': '<article class="contentGenerator__verdict"><div class="verdict-box"><h2>Veredicto Final</h2><p>[Conclusión]</p></div></article>',
-        'verdict_box': '<article class="contentGenerator__verdict"><div class="verdict-box"><h2>Veredicto Final</h2><p>[Conclusión]</p></div></article>',
+        'verdict': '<article class="contentGenerator__verdict"><div class="verdict-box"><h2>Nuestro veredicto</h2><p>[Conclusión]</p></div></article>',
+        'verdict_box': '<article class="contentGenerator__verdict"><div class="verdict-box"><h2>Nuestro veredicto</h2><p>[Conclusión]</p></div></article>',
         'table': '<table><thead><tr><th>Spec</th><th>Valor</th></tr></thead><tbody><tr><td>...</td><td>...</td></tr></tbody></table>',
         'grid': '<div class="grid cols-2"><div class="card">...</div></div>',
     }

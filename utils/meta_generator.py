@@ -211,7 +211,7 @@ INTRO DEL ARTÍCULO:
 GENERA exactamente estos 4 campos en formato JSON (sin markdown, sin ```):
 
 {{
-  "meta_title": "≤60 chars en {lang_name}. Keyword al inicio. Sin marca PcComponentes. Formato: Keyword - Beneficio o Año",
+  "meta_title": "≤60 chars en {lang_name}. Keyword al inicio. Sin marca PcComponentes. Formato: Keyword - Beneficio concreto. NO incluyas años salvo que el contenido sea genuinamente temporal (ej. 'mejores portátiles 2026'). Si el tema es atemporal, NO pongas año.",
   "meta_description": "≤155 chars en {lang_name}. Incluir keyword + cifra/dato concreto + CTA implícito ({cta_examples}). Sin clickbait.",
   "tldr_title": "≤80 chars en {lang_name}. Gancho directo que resume el valor del artículo. Puede ser pregunta o afirmación. No repetir meta_title.",
   "tldr_description": "≤200 chars en {lang_name}. Resumen ejecutivo: qué va a encontrar el lector, para quién es y qué decisión le ayuda a tomar. Tono directo."
@@ -222,7 +222,8 @@ REGLAS:
 2. Si hay datos de producto, usa precio, marca o ventaja principal en la meta_description
 3. El TL;DR es para lectores que quieren saber rápidamente si el artículo les sirve
 4. NO uses frases genéricas ("todo lo que necesitas saber", "guía completa", "everything you need to know")
-5. Responde SOLO con el JSON, sin ningún texto antes o después"""
+5. NO incluyas años (2024, 2025, 2026...) salvo que la keyword del usuario ya incluya un año o el contenido sea genuinamente temporal. Los años en títulos envejecen rápido y requieren mantenimiento.
+6. Responde SOLO con el JSON, sin ningún texto antes o después"""
 
 
 def _parse_meta_response(response: str) -> Optional[Dict[str, str]]:
@@ -301,10 +302,8 @@ def _generate_fallback(
     }
     tpl = _FALLBACK_TEMPLATES.get(target_lang, _FALLBACK_TEMPLATES['es'])
 
-    # Meta title: keyword + año
+    # Meta title: keyword (sin año automático — envejece rápido)
     meta_title = keyword.strip()
-    if len(meta_title) < 45:
-        meta_title += " (2026)"
     meta_title = meta_title[:LIMITS['meta_title']]
 
     # Meta description: primer párrafo truncado

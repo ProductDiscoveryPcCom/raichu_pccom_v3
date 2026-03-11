@@ -115,7 +115,7 @@ El contenido DEBE seguir esta estructura exacta de 3 articles:
 <!-- ARTICLE 3: VEREDICTO -->
 <article class="contentGenerator__verdict">
     <div class="verdict-box">
-        <h2>Veredicto Final</h2>
+        <h2>Nuestro veredicto</h2>
         <p>Conclusión...</p>
     </div>
 </article>
@@ -756,6 +756,16 @@ def build_rewrite_prompt_stage1(
 **Keyword principal:** {keyword}
 **Longitud objetivo:** {target_length} palabras (rango: {min_length}-{max_length})
 **Objetivo:** {objetivo if objetivo else 'Crear contenido superior a la competencia'}
+
+## 🔑 OPTIMIZACIÓN DE KEYWORD (OBLIGATORIO)
+
+La keyword "{keyword}" DEBE aparecer de forma natural en el contenido:
+- **Densidad objetivo:** 1-2% (aprox. {max(3, target_length // 200)}-{max(6, target_length // 100)} veces en {target_length} palabras)
+- **Primeras 100 palabras:** La keyword DEBE aparecer en las primeras 100 palabras del artículo
+- **Al menos 1 H2:** La keyword (o variación natural) DEBE aparecer en al menos un encabezado H2
+- **Distribución:** Repartida entre inicio, medio y final del artículo (no concentrada en un solo bloque)
+- **Natural:** Integrada en frases reales, nunca forzada ni repetitiva
+- **FAQs:** El H2 de FAQs debe incluir la keyword: "Preguntas frecuentes sobre {keyword}"
 """]
     
     if context:
@@ -874,16 +884,18 @@ def build_rewrite_prompt_stage1(
 ## Prioridades de esta etapa:
 
 1. **APLICAR INSTRUCCIONES DEL USUARIO** - Las instrucciones son OBLIGATORIAS
-2. **USAR EL TONO DE MARCA** - PcComponentes: experto, cercano, nunca negativo
-3. **SUPERAR A LA COMPETENCIA** - Mejor contenido que todos los competidores
-4. **INCLUIR TODOS LOS ENLACES** - Cada enlace proporcionado debe aparecer
-5. **INTEGRAR PRODUCTOS** - Usar datos de producto principal y alternativos
-6. **LONGITUD CORRECTA** - Entre {min_length} y {max_length} palabras
-7. **EVITAR frases de IA:** "En el mundo actual...", "Sin lugar a dudas...", "Es importante destacar...", "Cabe mencionar que...", "Ofrece una experiencia..."
-8. **EVITAR adjetivos vacíos:** increíble, revolucionario, impresionante, excepcional
-9. **VARIAR** la estructura de cada párrafo (NO empezar todos igual)
-10. **EMOJIS:** No usar emojis en el contenido generado.
-11. **VEREDICTO** que aporte perspectiva nueva, no solo resuma
+2. **KEYWORD "{keyword}"** - Densidad 1-2%, en primeras 100 palabras, en al menos 1 H2, distribuida inicio/medio/final
+3. **USAR EL TONO DE MARCA** - PcComponentes: experto, cercano, nunca negativo
+4. **SUPERAR A LA COMPETENCIA** - Mejor contenido que todos los competidores
+5. **INCLUIR TODOS LOS ENLACES** - Cada enlace proporcionado debe aparecer
+6. **INTEGRAR PRODUCTOS** - Usar datos de producto principal y alternativos
+7. **LONGITUD CORRECTA** - Entre {min_length} y {max_length} palabras
+8. **EVITAR frases de IA:** "En el mundo actual...", "Sin lugar a dudas...", "Es importante destacar...", "Cabe mencionar que...", "Ofrece una experiencia..."
+9. **EVITAR adjetivos vacíos:** increíble, revolucionario, impresionante, excepcional
+10. **VARIAR** la estructura de cada párrafo (NO empezar todos igual)
+11. **EMOJIS:** No usar emojis en el contenido generado.
+12. **VEREDICTO** que aporte perspectiva nueva, no solo resuma
+13. **FECHAS:** NO incluyas años concretos (2024, 2025, 2026) en títulos ni encabezados salvo que la keyword del usuario ya incluya un año. Los años envejecen el contenido.
 
 ## Checklist antes de generar:
 
@@ -1045,6 +1057,16 @@ Genera un JSON con esta estructura:
     "longitud_objetivo": {target_length},
     "dentro_de_rango": true/false,
     "ajuste_necesario": "ninguno/aumentar/reducir"
+  }},
+
+  "keyword_seo": {{
+    "keyword": "{keyword}",
+    "apariciones_total": número,
+    "densidad_porcentaje": número,
+    "en_primeras_100_palabras": true/false,
+    "en_algun_h2": true/false,
+    "distribucion": "buena/concentrada/ausente",
+    "correcciones_keyword": ["lista de ajustes necesarios"]
   }},
   
   "cumplimiento_instrucciones": {{
@@ -1261,12 +1283,13 @@ Esta es la ETAPA FINAL. Genera la versión DEFINITIVA aplicando TODAS las correc
 ## Requisitos de Contenido:
 
 7. **APLICAR todas las correcciones**
-8. **INCLUIR todos los enlaces** (editoriales, productos, alternativos)
-9. **TONO PcComponentes** - Experto, cercano, nunca negativo
-10. **SUPERAR a la competencia**
-11. **VARIAR** la estructura de cada párrafo
-12. **VEREDICTO** que aporte perspectiva nueva, no solo resuma
-13. **EMOJIS:** No usar emojis en el contenido generado
+8. **KEYWORD "{keyword}"** - Densidad 1-2%, en primeras 100 palabras, en al menos 1 H2, distribuida en inicio/medio/final
+9. **INCLUIR todos los enlaces** (editoriales, productos, alternativos)
+10. **TONO PcComponentes** - Experto, cercano, nunca negativo
+11. **SUPERAR a la competencia**
+12. **VARIAR** la estructura de cada párrafo
+13. **VEREDICTO** que aporte perspectiva nueva, no solo resuma
+14. **EMOJIS:** No usar emojis en el contenido generado
 {checklist_section}
 ---
 
