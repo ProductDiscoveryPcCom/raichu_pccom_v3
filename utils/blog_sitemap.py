@@ -164,13 +164,13 @@ def filter_blog_opportunities(
         blog_urls = get_blog_url_set()
 
     if not blog_urls:
-        return gsc_records  # Sin sitemap, devolver todos
+        logger.warning("Blog sitemap vacío o no disponible — no se puede filtrar")
+        return []
 
     filtered = []
     for record in gsc_records:
         url = record.get('url', '') or record.get('page', '')
-        if _normalize_url(url) in blog_urls:
-            record['is_blog'] = True
-            filtered.append(record)
+        if url and _normalize_url(url) in blog_urls:
+            filtered.append({**record, 'is_blog': True})
 
     return filtered

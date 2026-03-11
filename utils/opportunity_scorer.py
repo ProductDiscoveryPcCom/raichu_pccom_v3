@@ -231,7 +231,10 @@ class OpportunityScorer:
                 return 80
             elif position <= 18:
                 return 60
-            return 40
+            elif position <= 20:
+                return 40
+            # Positions > 20: still rankeable but harder to push to page 1
+            return max(10, 40 - int((position - 20) * 2))
         elif opp_type == OpportunityType.IMPROVEMENT:
             if position <= 3:
                 return 50  # Ya está bien, menos urgente
@@ -337,6 +340,9 @@ class OpportunityScorer:
             if ctr < expected * 0.5:
                 return OpportunityType.UNDERPERFORMER
             return OpportunityType.IMPROVEMENT
+        # Position > 20: still ranking but far from page 1
+        if position > 20:
+            return OpportunityType.QUICK_WIN
         return OpportunityType.NEW_CONTENT
 
     def _type_label(self, opp_type: OpportunityType) -> str:
