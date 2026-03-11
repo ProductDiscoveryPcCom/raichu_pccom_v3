@@ -88,6 +88,9 @@ class ImageRequest:
     heading_content: str = ""
     extra_instructions: str = ""
     seed_images: List[bytes] = field(default_factory=list)
+    width: int = 0   # 0 = usar tamaño por defecto del tipo
+    height: int = 0   # 0 = usar tamaño por defecto del tipo
+    output_formats: List[str] = field(default_factory=lambda: ["jpeg", "webp"])  # formatos de salida
 
 
 @dataclass
@@ -100,6 +103,7 @@ class GeneratedImage:
     mime_type: str = "image/png"
     heading_ref: str = ""
     filename: str = ""
+    format_variants: List['ImageFormatVariant'] = field(default_factory=list)
 
     @property
     def base64_data(self) -> str:
@@ -116,8 +120,29 @@ class GeneratedImage:
     def get_filename(self) -> str:
         if self.filename:
             return self.filename
+        ext = _mime_to_ext(self.mime_type)
         safe_ref = re.sub(r'[^a-zA-Z0-9_-]', '_', self.heading_ref or 'img')[:30]
-        return f"{self.image_type.value}_{safe_ref}.png"
+        return f"{self.image_type.value}_{safe_ref}.{ext}"
+
+
+@dataclass
+class ImageFormatVariant:
+    """Una variante de formato de una imagen generada."""
+    image_bytes: bytes
+    mime_type: str
+    format_label: str  # "jpeg", "webp", "png"
+    width: int = 0
+    height: int = 0
+
+    @property
+    def size_kb(self) -> float:
+        return len(self.image_bytes) / 1024
+
+    def get_filename(self, base_name: str) -> str:
+        ext = _mime_to_ext(self.mime_type)
+        name = base_name.rsplit('.', 1)[0] if '.' in base_name else base_name
+        suffix = f"_{self.width}x{self.height}" if self.width and self.height else ""
+        return f"{name}{suffix}.{ext}"
 
 
 @dataclass
@@ -163,6 +188,140 @@ def is_gemini_available() -> Tuple[bool, str]:
     """Verifica disponibilidad de Gemini."""
     client, error = _get_gemini_client()
     return (client is not None), error
+
+
+# ============================================================================
+# CONVERSIÓN DE FORMATO Y REDIMENSIONADO
+# ============================================================================
+
+def _mime_to_ext(mime_type: str) -> str:
+    """Convierte mime type a extensión de archivo."""
+    return {
+        "image/png": "png",
+        "image/jpeg": "jpg",
+        "image/webp": "webp",
+    }.get(mime_type, "png")
+
+
+def _ext_to_mime(ext: str) -> str:
+    """Convierte extensión a mime type."""
+    return {
+        "png": "image/png",
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "webp": "image/webp",
+    }.get(ext.lower(), "image/png")
+
+
+def _resize_and_convert(
+    image_bytes: bytes,
+    width: int = 0,
+    height: int = 0,
+    output_format: str = "png",
+    jpeg_quality: int = 85,
+    webp_quality: int = 82,
+) -> Optional[bytes]:
+    """
+    Redimensiona y/o convierte una imagen a otro formato.
+
+    Args:
+        image_bytes: Bytes de la imagen original
+        width: Ancho deseado (0 = mantener proporcional o original)
+        height: Alto deseado (0 = mantener proporcional o original)
+        output_format: "png", "jpeg" o "webp"
+        jpeg_quality: Calidad JPEG (1-95)
+        webp_quality: Calidad WebP (1-100)
+
+    Returns:
+        Bytes de la imagen convertida o None si falla
+    """
+    try:
+        from PIL import Image
+
+        img = Image.open(io.BytesIO(image_bytes))
+
+        # Redimensionar si se especificó tamaño
+        if width > 0 and height > 0:
+            img = img.resize((width, height), Image.LANCZOS)
+        elif width > 0:
+            ratio = width / img.width
+            img = img.resize((width, int(img.height * ratio)), Image.LANCZOS)
+        elif height > 0:
+            ratio = height / img.height
+            img = img.resize((int(img.width * ratio), height), Image.LANCZOS)
+
+        # Convertir formato
+        buf = io.BytesIO()
+        fmt = output_format.upper()
+        if fmt == "JPEG" or fmt == "JPG":
+            # JPEG no soporta alpha — convertir a RGB
+            if img.mode in ("RGBA", "LA", "P"):
+                background = Image.new("RGB", img.size, (255, 255, 255))
+                if img.mode == "P":
+                    img = img.convert("RGBA")
+                background.paste(img, mask=img.split()[-1] if img.mode == "RGBA" else None)
+                img = background
+            img.save(buf, format="JPEG", quality=jpeg_quality, optimize=True)
+        elif fmt == "WEBP":
+            img.save(buf, format="WEBP", quality=webp_quality, method=4)
+        else:
+            img.save(buf, format="PNG", optimize=True)
+
+        buf.seek(0)
+        return buf.getvalue()
+
+    except ImportError:
+        logger.warning("Pillow no disponible para conversión de formato. pip install Pillow")
+        return None
+    except Exception as e:
+        logger.error(f"Error redimensionando/convirtiendo imagen: {e}")
+        return None
+
+
+def convert_image_formats(
+    image_bytes: bytes,
+    width: int = 0,
+    height: int = 0,
+    formats: Optional[List[str]] = None,
+) -> List['ImageFormatVariant']:
+    """
+    Genera variantes de una imagen en múltiples formatos y tamaño.
+
+    Args:
+        image_bytes: Bytes de la imagen original
+        width: Ancho deseado
+        height: Alto deseado
+        formats: Lista de formatos ("jpeg", "webp", "png")
+
+    Returns:
+        Lista de ImageFormatVariant
+    """
+    if formats is None:
+        formats = ["jpeg", "webp"]
+
+    variants = []
+    for fmt in formats:
+        converted = _resize_and_convert(image_bytes, width, height, fmt)
+        if converted:
+            # Obtener dimensiones reales
+            try:
+                from PIL import Image
+                img = Image.open(io.BytesIO(converted))
+                w, h = img.size
+            except Exception:
+                w, h = width, height
+
+            variants.append(ImageFormatVariant(
+                image_bytes=converted,
+                mime_type=_ext_to_mime(fmt),
+                format_label=fmt.lower(),
+                width=w,
+                height=h,
+            ))
+        else:
+            logger.warning(f"No se pudo convertir a {fmt}")
+
+    return variants
 
 
 # ============================================================================
@@ -416,9 +575,23 @@ def generate_images(
         )
 
         if img_bytes:
+            # Redimensionar si se pidieron dimensiones custom
+            if req.width > 0 or req.height > 0:
+                resized = _resize_and_convert(img_bytes, req.width, req.height, "png")
+                if resized:
+                    img_bytes = resized
+
             alt = _build_alt_text(req)
             safe_kw = re.sub(r'[^a-zA-Z0-9]', '_', req.keyword)[:20]
-            fname = f"{req.image_type.value}_{safe_kw}_{i+1}.png"
+            ext = _mime_to_ext(mime or "image/png")
+            fname = f"{req.image_type.value}_{safe_kw}_{i+1}.{ext}"
+
+            # Generar variantes de formato (JPEG, WebP, etc.)
+            format_variants = []
+            if req.output_formats:
+                format_variants = convert_image_formats(
+                    img_bytes, req.width, req.height, req.output_formats
+                )
 
             gen_img = GeneratedImage(
                 image_bytes=img_bytes,
@@ -428,6 +601,7 @@ def generate_images(
                 mime_type=mime or "image/png",
                 heading_ref=req.heading_text or req.keyword,
                 filename=fname,
+                format_variants=format_variants,
             )
             result.images.append(gen_img)
             logger.info(f"Imagen {i+1}/{len(requests)} generada: {req.image_type.value}")
@@ -464,11 +638,18 @@ def _build_alt_text(req: ImageRequest) -> str:
 # ============================================================================
 
 def create_images_zip(images: List[GeneratedImage]) -> bytes:
-    """Crea ZIP con todas las imagenes."""
+    """Crea ZIP con todas las imagenes, incluyendo variantes de formato."""
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
         for img in images:
+            # Imagen original
             zf.writestr(img.get_filename(), img.image_bytes)
+            # Variantes de formato (JPEG, WebP, etc.)
+            base_name = img.get_filename()
+            for variant in img.format_variants:
+                vname = variant.get_filename(base_name)
+                if vname != base_name:  # evitar duplicar si mismo formato
+                    zf.writestr(vname, variant.image_bytes)
     buffer.seek(0)
     return buffer.getvalue()
 
