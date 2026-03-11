@@ -91,6 +91,12 @@ def _get_module_flags():
         flags['count_words_in_html'] = lambda x: 0
 
     try:
+        from utils.content_scrubber import scrub_html
+        flags['scrub_html'] = scrub_html
+    except ImportError:
+        flags['scrub_html'] = None
+
+    try:
         from core import openai_client
         flags['openai_client'] = openai_client
         flags['_openai_client_available'] = True
@@ -149,6 +155,7 @@ def execute_generation_pipeline(config: Dict[str, Any], mode: str = 'new') -> No
     DEBUG_MODE = _flags['DEBUG_MODE']
     get_arquetipo = _flags['get_arquetipo']
     count_words_in_html = _flags['count_words_in_html']
+    scrub_html = _flags['scrub_html']
     extract_html_content = _extract_html_content
     openai_client = _flags['openai_client']
     _openai_client_available = _flags['_openai_client_available']
@@ -609,21 +616,19 @@ Formato tu respuesta de manera clara y accionable."""
                 st.session_state.final_html = extract_html_content(final_html)
                 
                 # Post-generation PASO 1: Content Scrubber (limpiar watermarks Unicode)
-                try:
-                    from utils.content_scrubber import scrub_html
-                    cleaned_html, scrub_stats = scrub_html(st.session_state.final_html)
-                    st.session_state.final_html = cleaned_html
-                    total_scrubbed = sum(scrub_stats.values())
-                    if total_scrubbed > 0:
-                        st.caption(
-                            f"🧹 Limpieza automática: {scrub_stats['unicode_removed']} watermarks, "
-                            f"{scrub_stats['emdashes_replaced']} em-dashes, "
-                            f"{scrub_stats['format_control_removed']} chars de control"
-                        )
-                except ImportError:
-                    pass
-                except Exception as e:
-                    logger.warning(f"Content scrubber error: {e}")
+                if scrub_html:
+                    try:
+                        cleaned_html, scrub_stats = scrub_html(st.session_state.final_html)
+                        st.session_state.final_html = cleaned_html
+                        total_scrubbed = sum(scrub_stats.values())
+                        if total_scrubbed > 0:
+                            st.caption(
+                                f"🧹 Limpieza automática: {scrub_stats['unicode_removed']} watermarks, "
+                                f"{scrub_stats['emdashes_replaced']} em-dashes, "
+                                f"{scrub_stats['format_control_removed']} chars de control"
+                            )
+                    except Exception as e:
+                        logger.warning(f"Content scrubber error: {e}")
                 
                 # Mostrar métricas finales
                 final_word_count = count_words_in_html(st.session_state.final_html)
@@ -765,10 +770,11 @@ Genera el HTML corregido:"""
                                             
                                             if new_composite > composite:
                                                 # Aplicar scrubber al contenido revisado también
-                                                try:
-                                                    revised_html, _ = scrub_html(revised_html)
-                                                except Exception:
-                                                    pass
+                                                if scrub_html:
+                                                    try:
+                                                        revised_html, _ = scrub_html(revised_html)
+                                                    except Exception:
+                                                        pass
                                                 
                                                 st.session_state.final_html = revised_html
                                                 st.session_state.quality_score = new_quality
