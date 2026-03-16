@@ -116,7 +116,14 @@ def render_results_section(
     
     # Resumen SEO compacto
     _render_seo_summary(final_html, target_length)
-    
+
+    # Quality Score (persistido desde pipeline)
+    quality_data = st.session_state.get('quality_score')
+    if quality_data and isinstance(quality_data, dict):
+        composite = quality_data.get('composite_score', 0)
+        emoji = "✅" if composite >= 70 else "⚠️"
+        st.markdown(f"**{emoji} Quality Score: {composite}/100**")
+
     # Preview y HTML (tabs internos solo para formato de visualización)
     render_content_tab(
         html_content=final_html,
@@ -199,10 +206,11 @@ def render_content_tab(
     
     with preview_tab2:
         st.text_area(
-            "HTML completo — selecciona todo y copia (Ctrl+A, Ctrl+C)",
+            "HTML completo (solo lectura) — usa el botón 'Copiar HTML' de abajo",
             value=html_content,
             height=400,
             key=f"html_textarea_{stage_number}",
+            disabled=True,
         )
     
     with preview_tab3:
@@ -233,7 +241,7 @@ def render_content_tab(
             navigator.clipboard.writeText(document.getElementById('{_copy_id}_data').textContent)
             .then(() => {{
                 this.innerText = '✅ Copiado!';
-                setTimeout(() => {{ this.innerText = '📋 Copiar HTML'; }}, 2000);
+                setTimeout(() => {{ this.innerText = '📋 Copiar HTML'; }}, 3000);
             }})
             .catch(() => {{
                 const ta = document.createElement('textarea');
@@ -243,7 +251,7 @@ def render_content_tab(
                 document.execCommand('copy');
                 document.body.removeChild(ta);
                 this.innerText = '✅ Copiado!';
-                setTimeout(() => {{ this.innerText = '📋 Copiar HTML'; }}, 2000);
+                setTimeout(() => {{ this.innerText = '📋 Copiar HTML'; }}, 3000);
             }});
         " style="width:100%;padding:0.5rem 1rem;background:#FF6000;color:white;border:none;
         border-radius:6px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;">
@@ -275,7 +283,7 @@ def render_content_tab(
                     metadata = {
                         'title': last_config.get('keyword', 'Sin título'),
                         'keyword': last_config.get('keyword', ''),
-                        'slug': '',
+                        'slug': re.sub(r'[^a-z0-9]+', '-', last_config.get('keyword', '').lower()).strip('-'),
                         'arquetipo': last_config.get('arquetipo_codigo', ''),
                         'word_count': st.session_state.get('final_word_count', 0),
                         'quality_score': quality_score_data.get('composite_score', 0),
@@ -338,13 +346,15 @@ def _render_seo_summary(html_content: str, target_length: int) -> None:
         n_detected = len(detected_elements)
         st.metric("🎨 Elementos", f"{n_detected}")
         if detected_elements:
-            st.caption(", ".join(detected_elements[:4]) + ("..." if n_detected > 4 else ""))
+            st.caption(", ".join(detected_elements[:4]) + (f" (+{n_detected - 4} más)" if n_detected > 4 else ""))
     
     # Detección de frases IA
     ai_phrases = detect_ai_phrases(html_content)
     if ai_phrases:
         n_ai = len(ai_phrases)
         phrases_display = " · ".join(f'"{p["phrase"]}"' for p in ai_phrases[:5])
+        if n_ai > 5:
+            phrases_display += f" (+{n_ai - 5} más)"
         if n_ai > 2:
             st.warning(
                 f"**🤖 {n_ai} expresiones IA detectadas:** {phrases_display}"
@@ -417,15 +427,15 @@ def _render_cms_validation(html_content: str) -> None:
     
     with validation_cols[0]:
         st.markdown("**Estructura HTML:**")
-        render_validation_check("Tiene <article>", basic_validation.get('has_article', False))
-        render_validation_check("CSS con :root", basic_validation.get('css_has_root', False))
-        render_validation_check("Sin Markdown", basic_validation.get('no_markdown', False))
+        render_validation_check("Tiene <article> (wrapper CMS)", basic_validation.get('has_article', False))
+        render_validation_check("CSS con :root (variables)", basic_validation.get('css_has_root', False))
+        render_validation_check("Sin Markdown (HTML puro)", basic_validation.get('no_markdown', False))
     
     with validation_cols[1]:
         st.markdown("**Elementos clave:**")
-        render_validation_check("Kicker con span", basic_validation.get('kicker_uses_span', False))
-        render_validation_check("Callout BF", basic_validation.get('has_bf_callout', False))
-        render_validation_check("Verdict Box", basic_validation.get('has_verdict_box', False))
+        render_validation_check("Kicker con <span> (etiqueta)", basic_validation.get('kicker_uses_span', False))
+        render_validation_check("Callout BF (promo)", basic_validation.get('has_bf_callout', False))
+        render_validation_check("Verdict Box (conclusión)", basic_validation.get('has_verdict_box', False))
     
     with validation_cols[2]:
         st.markdown("**Enlaces:**")
@@ -700,8 +710,9 @@ def _render_undo_button() -> None:
     if not history:
         st.button("↩️ Deshacer", disabled=True, use_container_width=True, key="btn_undo_disabled")
         return
-    
-    if st.button("↩️ Deshacer", use_container_width=True, key="btn_undo_active"):
+
+    n_history = len(history)
+    if st.button(f"↩️ Deshacer ({n_history})", use_container_width=True, key="btn_undo_active", help=f"{n_history} versión{'es' if n_history > 1 else ''} en historial"):
         last_version = history.pop()
         st.session_state.final_html = last_version['content']
         st.success("✅ Versión anterior restaurada")
@@ -1143,17 +1154,15 @@ def _render_translation_section(html_content: str, stage_number: int) -> None:
             translated_meta = st.session_state.get(meta_key)
             if translated_meta:
                 st.markdown("##### 🏷️ Meta SEO")
-                mc1, mc2 = st.columns(2)
-                with mc1:
-                    st.text_input("Meta title", value=translated_meta.get('meta_title', ''),
-                                  disabled=True, key=f"meta_t_{selected_code}_{stage_number}")
-                    st.text_input("TL;DR title", value=translated_meta.get('tldr_title', ''),
-                                  disabled=True, key=f"tldr_t_{selected_code}_{stage_number}")
-                with mc2:
-                    st.text_area("Meta description", value=translated_meta.get('meta_description', ''),
-                                 disabled=True, height=68, key=f"meta_d_{selected_code}_{stage_number}")
-                    st.text_area("TL;DR description", value=translated_meta.get('tldr_description', ''),
-                                 disabled=True, height=68, key=f"tldr_d_{selected_code}_{stage_number}")
+                _tm = translated_meta
+                st.markdown(f"**Meta title** ({len(_tm.get('meta_title', ''))} chars)")
+                st.code(_tm.get('meta_title', ''), language=None)
+                st.markdown(f"**Meta description** ({len(_tm.get('meta_description', ''))} chars)")
+                st.code(_tm.get('meta_description', ''), language=None)
+                st.markdown(f"**TL;DR title** ({len(_tm.get('tldr_title', ''))} chars)")
+                st.code(_tm.get('tldr_title', ''), language=None)
+                st.markdown(f"**TL;DR description** ({len(_tm.get('tldr_description', ''))} chars)")
+                st.code(_tm.get('tldr_description', ''), language=None)
                 st.markdown("---")
 
             tr_tab1, tr_tab2 = st.tabs(["🎨 Preview", "📄 HTML"])
@@ -2021,7 +2030,7 @@ def render_image_generation_tab(html_content: str) -> None:
                     ],
                     format_func=lambda x: IMAGE_TYPE_LABELS.get(x, x.value),
                     key=f"img_type_{i}",
-                    index=0 if i > 0 else 1,
+                    index=1 if i == 0 else 0,
                 )
 
             with col2:
@@ -2113,7 +2122,7 @@ def render_image_generation_tab(html_content: str) -> None:
             img_requests.append(req)
         
         # Generar
-        with st.spinner(f"Generando {n_images} imagen{'es' if n_images > 1 else ''} con Gemini..."):
+        with st.spinner(f"🎨 Generando {n_images} imagen{'es' if n_images > 1 else ''} con Gemini (puede tardar 10-30s por imagen)..."):
             t0 = time_mod.time()
             result = generate_images(img_requests, html_content=html_content)
             elapsed = time_mod.time() - t0

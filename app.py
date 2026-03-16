@@ -453,7 +453,7 @@ def render_app_header() -> str:
             options=['new', 'rewrite', 'verify', 'opportunities', 'assistant'],
             format_func=lambda x: {
                 'new': '📝 Nuevo',
-                'rewrite': '🔄 Reescritura',
+                'rewrite': '🔄 Reescritura Competitiva',
                 'verify': '🔍 Verificar',
                 'opportunities': '📊 Oportunidades',
                 'assistant': '💬 Asistente',
@@ -465,8 +465,21 @@ def render_app_header() -> str:
 
     with col_clear:
         if st.button("🗑️ Limpiar", use_container_width=True, key="btn_clear_all"):
-            clear_session_state()
+            st.session_state['_confirm_clear'] = True
             st.rerun()
+
+    if st.session_state.get('_confirm_clear'):
+        st.warning("⚠️ ¿Seguro que quieres limpiar todos los datos? Se perderá el contenido generado.")
+        col_yes, col_no = st.columns(2)
+        with col_yes:
+            if st.button("✅ Sí, limpiar todo", type="primary", key="btn_confirm_clear"):
+                st.session_state.pop('_confirm_clear', None)
+                clear_session_state()
+                st.rerun()
+        with col_no:
+            if st.button("❌ Cancelar", key="btn_cancel_clear"):
+                st.session_state.pop('_confirm_clear', None)
+                st.rerun()
     
     # Detectar cambio de modo y aislar estados entre modos
     previous_mode = st.session_state.get('mode', '')
@@ -1517,7 +1530,7 @@ def main():
         page_title=APP_TITLE,
         page_icon="🚀",
         layout="wide",
-        initial_sidebar_state="collapsed"
+        initial_sidebar_state="expanded"
     )
     
     # Autenticación

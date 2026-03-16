@@ -227,7 +227,7 @@ def execute_generation_pipeline(config: Dict[str, Any], mode: str = 'new') -> No
             temperature=TEMPERATURE
         )
     except Exception as e:
-        st.error(f"❌ Error al crear generador: {e}")
+        st.error(f"❌ Error al crear generador: {e}. Verifica tu API key en la configuración.")
         st.session_state.generation_in_progress = False
         return
     
@@ -336,7 +336,7 @@ Usa este contenido como base, mejóralo y amplíalo según el análisis competit
 
             if not st.session_state.get('rewrite_analysis'):
                 with progress_container:
-                    st.markdown("### 🔍 Análisis Competitivo")
+                    st.markdown("### 🔍 Etapa 0/3: Análisis Competitivo")
                     
                     with st.spinner("Analizando contenido de competidores..."):
                         # Verificar que tenemos los datos necesarios
@@ -452,7 +452,7 @@ Formato tu respuesta de manera clara y accionable."""
                 result = generator.generate(stage1_prompt, system_prompt=system_prompt)
                 
                 if not result.success:
-                    st.error(f"❌ Error en Etapa 1: {result.error}")
+                    st.error(f"❌ Error en Etapa 1: {result.error}. Pulsa de nuevo 'Generar' para reintentar.")
                     st.session_state.generation_in_progress = False
                     return
                 
@@ -460,7 +460,7 @@ Formato tu respuesta de manera clara y accionable."""
                 
                 # Validar que obtuvimos contenido
                 if not draft_html or len(draft_html) < 100:
-                    st.error("❌ El borrador generado está vacío o es muy corto")
+                    st.error("❌ El borrador generado está vacío o es muy corto. Pulsa de nuevo 'Generar' para reintentar.")
                     st.session_state.generation_in_progress = False
                     return
                 
@@ -519,7 +519,7 @@ Formato tu respuesta de manera clara y accionable."""
                 
                 if not result.success:
                     st.warning(f"⚠️ Análisis Claude parcial: {result.error}")
-                    claude_analysis = "{}"
+                    claude_analysis = '{"problemas_encontrados": [], "correcciones": [], "nota": "Análisis no disponible — Stage 2 parcial"}'
                 else:
                     claude_analysis = result.content
                     st.success("✅ Análisis Claude completado")
@@ -600,7 +600,7 @@ Formato tu respuesta de manera clara y accionable."""
                 result = generator.generate(stage3_prompt, system_prompt=system_prompt)
                 
                 if not result.success:
-                    st.error(f"❌ Error en Etapa 3: {result.error}")
+                    st.error(f"❌ Error en Etapa 3: {result.error}. Pulsa de nuevo 'Generar' para reintentar.")
                     st.session_state.generation_in_progress = False
                     return
                 
@@ -608,7 +608,7 @@ Formato tu respuesta de manera clara y accionable."""
                 
                 # Validar contenido final
                 if not final_html or len(final_html) < 100:
-                    st.error("❌ El contenido final está vacío o es muy corto")
+                    st.error("❌ El contenido final está vacío o es muy corto. Pulsa de nuevo 'Generar' para reintentar.")
                     st.session_state.generation_in_progress = False
                     return
                 
@@ -622,11 +622,13 @@ Formato tu respuesta de manera clara y accionable."""
                         st.session_state.final_html = cleaned_html
                         total_scrubbed = sum(scrub_stats.values())
                         if total_scrubbed > 0:
-                            st.caption(
+                            st.info(
                                 f"🧹 Limpieza automática: {scrub_stats['unicode_removed']} watermarks, "
                                 f"{scrub_stats['emdashes_replaced']} em-dashes, "
                                 f"{scrub_stats['format_control_removed']} chars de control"
                             )
+                            st.session_state.setdefault('_post_gen_checks', []).append(
+                                {'name': 'Limpieza', 'ok': True, 'detail': f'{total_scrubbed} correcciones'})
                     except Exception as e:
                         logger.warning(f"Content scrubber error: {e}")
                 
@@ -655,14 +657,19 @@ Formato tu respuesta de manera clara y accionable."""
                         if table_stats['responsive_wrapped'] > 0:
                             fixes.append(f"{table_stats['responsive_wrapped']} tablas con scroll mobile")
                         if fixes:
-                            st.caption(f"📊 Tablas: {table_stats['tables_found']} encontradas, {', '.join(fixes)}")
+                            st.info(f"📊 Tablas: {table_stats['tables_found']} encontradas, {', '.join(fixes)}")
+                            st.session_state.setdefault('_post_gen_checks', []).append(
+                                {'name': 'Tablas', 'ok': True, 'detail': f"{table_stats['tables_found']} tablas"})
                 except ImportError:
                     pass
                 except Exception as e:
                     logger.warning(f"Table fixer error: {e}")
                 
                 st.success("✅ ¡Generación completada!")
-                
+
+                # Resumen post-generación: recopilar checks pasados
+                st.session_state['_post_gen_checks'] = []
+
                 # Post-generation PASO 2: Quality Score multi-dimensional
                 quality_result = None
                 try:
@@ -683,7 +690,8 @@ Formato tu respuesta de manera clara y accionable."""
                     
                     # Mostrar dimensiones en expander
                     with st.expander("📊 Desglose de calidad", expanded=composite < 70):
-                        dim_cols = st.columns(5)
+                        st.caption("Cada dimensión evalúa un aspecto: Contenido (texto), SEO (keyword/estructura), Engagement (interactividad), Estructura (HTML/CMS), Legibilidad (comprensión)")
+                        dim_cols = st.columns(min(5, len(quality_result['dimensions'])))
                         for i, (dim_key, dim_data) in enumerate(quality_result['dimensions'].items()):
                             with dim_cols[i]:
                                 st.metric(
@@ -700,7 +708,7 @@ Formato tu respuesta de manera clara y accionable."""
                     
                     # ============================================================
                     # QUALITY LOOP: auto-revisión si score < 70
-                    # Máximo 1 iteración para no acumular costes API
+                    # Máximo 2 iteraciones para mejorar calidad
                     # ============================================================
                     if composite < 70 and quality_result['priority_fixes']:
                         try:
@@ -853,6 +861,8 @@ Genera el HTML corregido:"""
                     logger.warning(f"Keyword analyzer error: {e}")
                 
                 # Post-generation PASO 4: verificar elementos visuales seleccionados
+                if config.get('visual_elements'):
+                    st.caption("🎨 Verificación de elementos visuales")
                 _check_visual_elements_presence(
                     st.session_state.final_html,
                     config.get('visual_elements', [])
@@ -880,6 +890,10 @@ Genera el HTML corregido:"""
 
                 from prompts.new_content import ARQUETIPOS_CON_MINI_STORIES
                 _check_mini_stories = (_arq_code in ARQUETIPOS_CON_MINI_STORIES and _has_reviews)
+                if _check_mini_stories:
+                    st.caption("📖 Verificación de engagement: mini-historias + CTAs (activo por arquetipo con reviews)")
+                else:
+                    st.caption("📖 Verificación de engagement: CTAs")
                 _check_engagement_elements(st.session_state.final_html, check_mini_stories=_check_mini_stories)
                 
                 # Post-generation PASO 7: generar meta title, meta description, TL;DR
@@ -897,10 +911,11 @@ Genera el HTML corregido:"""
                     
                     if meta_result:
                         st.session_state.meta_seo = meta_result
-                        
+                        st.success(f"✅ Meta SEO generado: title ({len(meta_result.get('meta_title', ''))} chars), description ({len(meta_result.get('meta_description', ''))} chars)")
+
                         # Validar
                         meta_issues = validate_meta(meta_result, config.get('keyword', ''))
-                        
+
                         with st.expander("📋 Meta SEO & TL;DR", expanded=True):
                             # Meta title
                             mt = meta_result.get('meta_title', '')
@@ -934,6 +949,16 @@ Genera el HTML corregido:"""
                 except Exception as e:
                     logger.warning(f"Meta generation error: {e}")
         
+        # ── Resumen de checks post-generación ──
+        checks = st.session_state.get('_post_gen_checks', [])
+        if checks:
+            n_pass = sum(1 for c in checks if c['ok'])
+            n_total = len(checks)
+            with st.expander(f"📋 Resumen post-generación: {n_pass}/{n_total} checks OK", expanded=n_pass < n_total):
+                for c in checks:
+                    icon = "✅" if c['ok'] else "⚠️"
+                    st.markdown(f"{icon} **{c['name']}** — {c['detail']}")
+
         # Guardar metadata
         try:
             from utils.state_manager import save_generation_to_state
@@ -943,7 +968,7 @@ Genera el HTML corregido:"""
         
     except Exception as e:
         logger.error(f"Error en pipeline: {e}\n{traceback.format_exc()}")
-        st.error(f"❌ Error durante la generación: {str(e)}")
+        st.error(f"❌ Error durante la generación: {str(e)}. Pulsa de nuevo 'Generar' para reintentar.")
         
         with st.expander("Ver detalles del error"):
             st.code(traceback.format_exc())
@@ -1190,21 +1215,27 @@ def _check_ai_phrases(html_content: str) -> None:
     ai_phrases = detect_ai_phrases(html_content)
     
     if not ai_phrases:
+        st.success("✅ **Tono:** No se detectaron expresiones típicas de IA.")
         return
-    
+
     n = len(ai_phrases)
     phrase_list = ", ".join(f'"{p["phrase"]}"' for p in ai_phrases[:5])
-    
+    extra = f" (+{n - 5} más)" if n > 5 else ""
+
     if n <= 2:
         st.info(
-            f"💡 **Tono:** Se detectaron {n} expresiones que suenan a IA: {phrase_list}. "
-            f"Puedes corregirlas con el refinamiento."
+            f"💡 **Tono:** {n} expresión{'es' if n > 1 else ''} detectada{'s' if n > 1 else ''}: {phrase_list}{extra}. "
+            f"Nivel aceptable — puedes corregirlas con el refinamiento si lo deseas."
+        )
+    elif n <= 5:
+        st.warning(
+            f"⚠️ **Tono IA moderado:** {n} expresiones detectadas: {phrase_list}{extra}. "
+            f"Usa el refinamiento con instrucciones como 'reescribe las frases que suenan a IA'."
         )
     else:
         st.warning(
-            f"⚠️ **Tono IA detectado:** {n} expresiones típicas de escritura con IA: {phrase_list}. "
-            f"Usa el refinamiento con instrucciones como 'reescribe las frases que suenan a IA' "
-            f"para mejorar el tono."
+            f"🚨 **Tono IA elevado:** {n} expresiones detectadas: {phrase_list}{extra}. "
+            f"Recomendado: usa el refinamiento con 'reescribe TODAS las frases que suenan a IA con tono natural y directo'."
         )
 
 
