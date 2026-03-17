@@ -880,7 +880,8 @@ def _render_api_connect() -> None:
                         "Ejecuta: `pip install google-api-python-client google-auth`"
                     )
                 except Exception as e:
-                    st.error(f"❌ Error conectando con GSC: {e}")
+                    logger.error(f"Error conectando con GSC: {e}")
+                    st.error("❌ Error conectando con GSC. Verifica la configuración.")
 
     with col2:
         st.caption(
@@ -933,4 +934,5 @@ def _render_csv_upload() -> None:
             st.success(f"✅ {len(df)} keywords cargadas. Recarga la página para ver oportunidades.")
             st.rerun()
         except Exception as e:
-            st.error(f"❌ Error procesando CSV: {e}")
+            logger.error(f"Error procesando CSV: {e}")
+            st.error("❌ Error procesando el archivo CSV. Verifica el formato.")

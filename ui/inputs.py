@@ -27,6 +27,7 @@ Autor: PcComponentes - Product Discovery & Content
 """
 
 import re
+import html
 import logging
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass, field
@@ -583,9 +584,10 @@ def render_product_url_with_fetch(
             st.error(f"❌ Error al leer JSON: {str(e)}")
             st.session_state[state_key_json] = None
         except Exception as e:
-            st.error(f"❌ Error inesperado: {str(e)}")
+            logger.error(f"Error inesperado procesando JSON: {e}")
+            st.error("❌ Error inesperado al procesar el JSON.")
             st.session_state[state_key_json] = None
-    
+
     # ========================================================================
     # MÉTODO SECUNDARIO: Webhook n8n (colapsado, solo si está configurado)
     # ========================================================================
@@ -1264,12 +1266,14 @@ def _render_gsc_api_results(keyword: str, check: dict) -> None:
         score = u.get('match_score', 0)
         score_label = '🎯' if score >= 80 else '🔹'
         
+        safe_url = html.escape(url, quote=True)
+        safe_query = html.escape(query)
         html_parts.append(
             f'<div style="margin:6px 0 2px 0;">'
-            f'{score_label} <a href="{url}" target="_blank" rel="noopener" '
-            f'style="color:#1a73e8;word-break:break-all;">{url}</a><br>'
+            f'{score_label} <a href="{safe_url}" target="_blank" rel="noopener" '
+            f'style="color:#1a73e8;word-break:break-all;">{safe_url}</a><br>'
             f'<small style="margin-left:20px;">'
-            f'Query: <em>{query}</em> · '
+            f'Query: <em>{safe_query}</em> · '
             f'{clicks} clicks · {impressions} imp · '
             f'Pos. {position:.1f}</small>'
             f'</div>'
@@ -1320,11 +1324,11 @@ def _render_csv_coverage_results(keyword: str, summary: dict) -> None:
     ]
     
     if exact:
-        url = exact.get('url', '')
+        url = html.escape(exact.get('url', ''), quote=True)
         clicks = exact.get('clicks', 0)
         impressions = exact.get('impressions', 0)
         position = exact.get('position', 0)
-        kw = exact.get('keyword', '')
+        kw = html.escape(exact.get('keyword', ''))
         html_parts.append(
             f'<div style="margin:8px 0 4px 0;">'
             f'🎯 <strong>Coincidencia exacta:</strong><br>'
@@ -1335,11 +1339,11 @@ def _render_csv_coverage_results(keyword: str, summary: dict) -> None:
             f'Pos. {position:.1f}</small>'
             f'</div>'
         )
-    
+
     for url_data in partial:
-        url = url_data.get('url', '')
+        url = html.escape(url_data.get('url', ''), quote=True)
         clicks = url_data.get('clicks', 0)
-        kw = url_data.get('keyword', '')
+        kw = html.escape(url_data.get('keyword', ''))
         position = url_data.get('position', 0)
         html_parts.append(
             f'<div style="margin:4px 0 4px 8px;">'
@@ -1492,7 +1496,8 @@ def render_alternative_product_input(
             st.error(f"❌ Error JSON: {str(e)}")
             st.session_state[json_state_key] = None
         except Exception as e:
-            st.error(f"❌ Error: {str(e)}")
+            logger.error(f"Error procesando JSON de PDP: {e}")
+            st.error("❌ Error al procesar el JSON.")
             st.session_state[json_state_key] = None
     
     # Recuperar JSON si ya estaba cargado
@@ -2106,7 +2111,7 @@ def render_validation_errors(errors: List[str]) -> None:
     error_html += "<span style='color:#721c24;font-weight:bold;font-size:14px;'>⚠️ Corrige los siguientes errores:</span><ul style='margin:5px 0;padding-left:20px;color:#721c24;font-size:13px;'>"
     
     for e in errors:
-        error_html += f"<li>{e}</li>"
+        error_html += f"<li>{html.escape(str(e))}</li>"
     
     error_html += "</ul></div>"
     
@@ -2319,7 +2324,8 @@ def _render_single_product_entry(
             st.error(f"❌ JSON inválido: {str(e)}")
             st.session_state[json_state_key] = None
         except Exception as e:
-            st.error(f"❌ Error: {str(e)}")
+            logger.error(f"Error procesando JSON alternativo: {e}")
+            st.error("❌ Error al procesar el JSON.")
             st.session_state[json_state_key] = None
     
     # Recuperar JSON previamente cargado

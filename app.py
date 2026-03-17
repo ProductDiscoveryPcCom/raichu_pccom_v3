@@ -38,6 +38,7 @@ import os
 import re
 import hmac
 import html
+import hashlib
 import logging
 import traceback
 from typing import Dict, List, Optional, Any, Tuple
@@ -870,8 +871,8 @@ def render_verify_mode() -> None:
                     render_verify_results(keyword, matches, summary)
                     
                 except Exception as e:
-                    st.error(f"❌ Error al verificar: {e}")
                     logger.error(f"Error en verificación GSC: {e}")
+                    st.error("❌ Error al verificar contenido existente. Revisa los logs para más detalles.")
         
         else:
             st.error("""
@@ -918,7 +919,9 @@ def _get_cached_generator() -> 'ContentGenerator':
     Evita recrear el cliente de Anthropic (y su connection pool) en cada
     mensaje del asistente. Se invalida si cambian las credenciales.
     """
-    cache_key = f"{CLAUDE_API_KEY}:{CLAUDE_MODEL}:{MAX_TOKENS}:{TEMPERATURE}"
+    # Use hash of API key to avoid storing plaintext credentials in session state
+    _key_hash = hashlib.sha256(CLAUDE_API_KEY.encode()).hexdigest()[:16] if CLAUDE_API_KEY else ''
+    cache_key = f"{_key_hash}:{CLAUDE_MODEL}:{MAX_TOKENS}:{TEMPERATURE}"
     cached = st.session_state.get('_cached_generator')
     cached_key = st.session_state.get('_cached_generator_key')
 
@@ -1051,7 +1054,7 @@ def render_assistant_mode() -> None:
                 
             except Exception as e:
                 logger.error(f"Error en asistente: {e}")
-                st.error(f"❌ Error del asistente: {str(e)}")
+                st.error("❌ Error del asistente. Por favor, inténtalo de nuevo.")
 
 
 def _handle_assistant_generation(params: Dict[str, str]) -> None:
@@ -1568,7 +1571,8 @@ def main():
             from ui.opportunities import render_opportunities_mode
             render_opportunities_mode()
         except ImportError as e:
-            st.error(f"❌ Módulo de oportunidades no disponible: {e}")
+            logger.error(f"Módulo de oportunidades no disponible: {e}")
+            st.error("❌ Módulo de oportunidades no disponible. Verifica la instalación.")
     elif mode == 'assistant':
         render_assistant_mode()
     

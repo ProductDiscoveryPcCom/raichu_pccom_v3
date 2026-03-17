@@ -227,7 +227,8 @@ def execute_generation_pipeline(config: Dict[str, Any], mode: str = 'new') -> No
             temperature=TEMPERATURE
         )
     except Exception as e:
-        st.error(f"❌ Error al crear generador: {e}. Verifica tu API key en la configuración.")
+        logger.error(f"Error al crear generador: {e}")
+        st.error("❌ Error al crear generador. Verifica tu API key en la configuración.")
         st.session_state.generation_in_progress = False
         return
     
@@ -968,10 +969,16 @@ Genera el HTML corregido:"""
         
     except Exception as e:
         logger.error(f"Error en pipeline: {e}\n{traceback.format_exc()}")
-        st.error(f"❌ Error durante la generación: {str(e)}. Pulsa de nuevo 'Generar' para reintentar.")
-        
-        with st.expander("Ver detalles del error"):
-            st.code(traceback.format_exc())
+        # Show generic message to user; full traceback only in logs
+        _safe_msg = str(e)
+        # Strip internal paths and sensitive info from user-facing message
+        if '/' in _safe_msg or '\\' in _safe_msg:
+            _safe_msg = "Error interno del servidor"
+        st.error(f"❌ Error durante la generación: {_safe_msg}. Pulsa de nuevo 'Generar' para reintentar.")
+
+        if st.session_state.get('debug_mode', False):
+            with st.expander("Ver detalles del error (modo debug)"):
+                st.code(traceback.format_exc())
     
     finally:
         st.session_state.generation_in_progress = False

@@ -187,7 +187,10 @@ def render_content_tab(
             clean_html = re.sub(r'^```html\s*\n?', '', clean_html.strip(), flags=re.IGNORECASE)
             clean_html = re.sub(r'^```\s*\n?', '', clean_html.strip())
             clean_html = re.sub(r'\n?```\s*$', '', clean_html.strip())
-        
+
+        # Defense-in-depth: strip <script> tags from generated content
+        clean_html = re.sub(r'<script[^>]*>.*?</script>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
+
         if '<style>' not in clean_html.lower():
             clean_html = _get_basic_css() + clean_html
         
@@ -298,7 +301,8 @@ def render_content_tab(
                     else:
                         st.error(f"❌ Error al publicar: {result.error}")
                 except Exception as e:
-                    st.error(f"❌ Error de publicación: {e}")
+                    logger.error(f"Error de publicación: {e}")
+                    st.error("❌ Error de publicación. Revisa la configuración del CMS.")
     except Exception:
         pass  # No hay config de CMS, no mostrar botón
 
@@ -517,7 +521,8 @@ def _execute_refinement(refine_prompt: str) -> None:
         from core.generator import ContentGenerator
         from config.settings import CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS, TEMPERATURE
     except ImportError as e:
-        st.error(f"❌ Módulos no disponibles: {e}")
+        logger.error(f"Módulos no disponibles: {e}")
+        st.error("❌ Módulos de generación no disponibles. Verifica la instalación.")
         return
     
     try:
@@ -700,7 +705,7 @@ IMPORTANTE:
             
         except Exception as e:
             logger.error(f"Error en refinamiento: {e}")
-            st.error(f"❌ Error: {str(e)}")
+            st.error("❌ Error durante el refinamiento. Inténtalo de nuevo.")
 
 
 def _render_undo_button() -> None:
@@ -1599,7 +1604,8 @@ def render_structure_analysis(html_content: str) -> None:
     try:
         structure = extract_content_structure(html_content)
     except Exception as e:
-        st.error(f"❌ Error al extraer estructura: {str(e)}")
+        logger.error(f"Error al extraer estructura: {e}")
+        st.error("❌ Error al extraer la estructura del contenido.")
         return
     
     if not structure.get('structure_valid', True):
