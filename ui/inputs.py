@@ -400,7 +400,7 @@ def render_keyword_input(
         label=label,
         value=saved_value,
         key=key,
-        placeholder="Ej: mejores monitores gaming 2024"
+        placeholder="Ej: mejores monitores gaming 2025"
     )
     
     if keyword:
@@ -1101,7 +1101,7 @@ def render_guiding_questions(arquetipo_code: str, key_prefix: str = "guiding") -
     arq = get_arquetipo(arquetipo_code)
     arq_name = arq.get('name', arquetipo_code) if arq else arquetipo_code
     
-    with st.expander(f"💡 Briefing: {arq_name}", expanded=False):
+    with st.expander(f"💡 Briefing: {arq_name} — Responder mejora la calidad del contenido", expanded=False):
         answers = {}
         
         # 1. Preguntas específicas del arquetipo PRIMERO (más relevantes)
@@ -1843,6 +1843,14 @@ def render_visual_elements_selector(key_prefix: str = "visual_elem") -> Dict[str
                 selected_variants, _ds_available
             )
     
+    # Advertencia si se seleccionan demasiados elementos
+    if len(selected_elements) > 8:
+        st.warning(
+            f"⚠️ Has seleccionado {len(selected_elements)} elementos visuales. "
+            f"Más de 8 puede saturar el prompt y reducir la calidad. "
+            f"Recomendado: 4-8 elementos."
+        )
+
     # ── Preview de elementos seleccionados ──
     if selected_elements:
         with st.expander("👁️ Preview HTML de componentes seleccionados", expanded=False):
@@ -2486,8 +2494,11 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
         )
         secondary_keywords = [
             k.strip() for k in keywords_input.split('\n')
-            if k.strip() and k.strip() != keyword
+            if k.strip() and k.strip() != keyword and len(k.strip()) >= 2
         ] if keywords_input else []
+        if secondary_keywords and len(secondary_keywords) > 15:
+            st.warning("⚠️ Demasiadas keywords secundarias. Recomendado: 5-10 máximo.")
+            secondary_keywords = secondary_keywords[:15]
 
     # ── BRIEFING (semi-obligatorio, mejora calidad) ──────────────────
     # Mostrar indicador de estado ANTES del briefing para guiar al usuario
@@ -2515,7 +2526,7 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
     st.caption("*Todos estos campos son opcionales. Empieza solo con keyword + arquetipo si es tu primera vez.*")
 
     # Productos — dentro de expander para indicar que es opcional
-    with st.expander("📦 Productos *(opcional)*", expanded=False):
+    with st.expander("📦 Productos *(opcional — añade URLs de PcComponentes para enriquecer el contenido)*", expanded=False):
         products = render_products_block(key_prefix="main_products")
 
     # Backward compat: extraer pdp_url y pdp_json_data del primer producto principal
@@ -2550,6 +2561,16 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
         st.markdown("**Elementos Visuales**")
         visual_config = render_visual_elements_selector(key_prefix="main_visual")
         visual_elements = visual_config.get('selected', []) if isinstance(visual_config, dict) else visual_config
+
+        # Cross-validation: elementos visuales vs productos
+        if visual_elements and isinstance(visual_elements, list):
+            _needs_products = {'mod_cards', 'vcard_cards', 'comparison_table', 'product_module', 'price_highlight'}
+            _selected_needing = _needs_products & set(visual_elements)
+            if _selected_needing and not products:
+                st.info(
+                    f"💡 Has seleccionado {', '.join(_selected_needing)} pero no has añadido productos. "
+                    f"Estos elementos funcionan mejor con datos de producto."
+                )
 
         st.markdown("---")
 
