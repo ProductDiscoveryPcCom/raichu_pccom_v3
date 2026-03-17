@@ -1201,7 +1201,8 @@ def render_main_product_section() -> Optional[Dict[str, Any]]:
             st.error(f"❌ Error JSON: {str(e)}")
             st.session_state.rewrite_main_product_json = None
         except Exception as e:
-            st.error(f"❌ Error inesperado: {str(e)}")
+            logger.error(f"Error inesperado procesando JSON de producto: {e}")
+            st.error("❌ Error inesperado al procesar el JSON.")
             st.session_state.rewrite_main_product_json = None
     
     # Recuperar JSON si ya estaba cargado
@@ -1826,7 +1827,8 @@ def _fetch_competitors_semrush(keyword: str, gsc_analysis: Optional[Dict]) -> No
                 st.session_state['show_manual_fallback'] = True
         
         except Exception as e:
-            st.error(f"❌ **Error inesperado**: {str(e)}")
+            logger.error(f"Error inesperado en SEMrush: {e}")
+            st.error("❌ **Error inesperado** al buscar competidores. Usa el modo manual.")
             st.session_state['show_manual_fallback'] = True
         
         st.rerun()
@@ -2234,7 +2236,7 @@ def validate_rewrite_inputs(
         error_html += "<span style='color:#856404;font-weight:bold;'>⚠️ Campos pendientes:</span>"
         error_html += "<ul style='margin:5px 0;padding-left:20px;color:#856404;'>"
         for m in missing:
-            error_html += f"<li>{m}</li>"
+            error_html += f"<li>{html_module.escape(str(m))}</li>"
         error_html += "</ul></div>"
         st.markdown(error_html, unsafe_allow_html=True)
         return False
