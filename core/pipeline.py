@@ -886,11 +886,17 @@ Genera el HTML corregido:"""
                         for p in _products
                     )
                 else:
-                    from prompts.new_content import _merge_product_data
-                    _merged = _merge_product_data(config.get('pdp_data'), config.get('pdp_json_data'))
-                    _has_reviews = bool(_merged and _merged.get('has_user_feedback'))
+                    try:
+                        from prompts.new_content import _merge_product_data
+                        _merged = _merge_product_data(config.get('pdp_data'), config.get('pdp_json_data'))
+                        _has_reviews = bool(_merged and _merged.get('has_user_feedback'))
+                    except ImportError:
+                        _has_reviews = False
 
-                from prompts.new_content import ARQUETIPOS_CON_MINI_STORIES
+                try:
+                    from prompts.new_content import ARQUETIPOS_CON_MINI_STORIES
+                except ImportError:
+                    ARQUETIPOS_CON_MINI_STORIES = set()
                 _check_mini_stories = (_arq_code in ARQUETIPOS_CON_MINI_STORIES and _has_reviews)
                 if _check_mini_stories:
                     st.caption("📖 Verificación de engagement: mini-historias + CTAs (activo por arquetipo con reviews)")
