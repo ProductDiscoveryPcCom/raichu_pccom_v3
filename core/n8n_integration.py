@@ -193,7 +193,7 @@ def fetch_product_via_n8n_webhook(
                     if isinstance(data, list) and len(data) > 0:
                         data = data[0]
 
-                    if data.get('error') is True:
+                    if data.get('error'):
                         last_error = data.get('message', 'Error en el webhook')
                         continue
 

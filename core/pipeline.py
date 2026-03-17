@@ -668,8 +668,9 @@ Formato tu respuesta de manera clara y accionable."""
                 
                 st.success("✅ ¡Generación completada!")
 
-                # Resumen post-generación: recopilar checks pasados
-                st.session_state['_post_gen_checks'] = []
+                # Resumen post-generación: preservar checks ya añadidos (scrubber, tablas)
+                if '_post_gen_checks' not in st.session_state:
+                    st.session_state['_post_gen_checks'] = []
 
                 # Post-generation PASO 2: Quality Score multi-dimensional
                 quality_result = None
@@ -864,10 +865,10 @@ Genera el HTML corregido:"""
                 # Post-generation PASO 4: verificar elementos visuales seleccionados
                 if config.get('visual_elements'):
                     st.caption("🎨 Verificación de elementos visuales")
-                _check_visual_elements_presence(
-                    st.session_state.final_html,
-                    config.get('visual_elements', [])
-                )
+                    _check_visual_elements_presence(
+                        st.session_state.final_html,
+                        config.get('visual_elements', [])
+                    )
                 
                 # Post-generation PASO 5: detectar frases IA en el contenido final
                 _check_ai_phrases(st.session_state.final_html)
@@ -907,7 +908,7 @@ Genera el HTML corregido:"""
                             keyword=config.get('keyword', ''),
                             pdp_data=config.get('pdp_data') or config.get('pdp_json_data'),
                             secondary_keywords=config.get('keywords', []),
-                            arquetipo_name=get_arquetipo(config.get('arquetipo_codigo', '')).get('name', '') if get_arquetipo(config.get('arquetipo_codigo', '')) else '',
+                            arquetipo_name=(get_arquetipo(config.get('arquetipo_codigo', '')) or {}).get('name', ''),
                         )
                     
                     if meta_result:

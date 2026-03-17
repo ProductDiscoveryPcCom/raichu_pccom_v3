@@ -384,17 +384,19 @@ class WebScraper:
         try:
             response = self._make_request(validated_url, request_timeout)
             
-            # Verificar tamaño de respuesta
+            # Verificar tamaño de respuesta (header y cuerpo real)
             content_length = int(response.headers.get('content-length', 0))
-            if content_length > self._config.max_response_size:
+            actual_size = len(response.content) if response.content else 0
+            effective_size = max(content_length, actual_size)
+            if effective_size > self._config.max_response_size:
                 return ScrapeResult(
                     success=False,
                     url=validated_url,
                     status_code=response.status_code,
-                    error=f"Respuesta demasiado grande: {content_length} bytes",
+                    error=f"Respuesta demasiado grande: {effective_size} bytes",
                     response_time=time.time() - start_time
                 )
-            
+
             # Verificar código de estado
             if not response.ok:
                 return ScrapeResult(

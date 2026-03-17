@@ -14,6 +14,7 @@ Autor: PcComponentes - Product Discovery & Content
 """
 
 import ipaddress
+import json
 import logging
 import os
 import re
@@ -220,8 +221,12 @@ def _search_serpapi(
             error_body = resp.text[:200]
             logger.error(f"SerpAPI HTTP {resp.status_code}: {error_body}")
             resp.raise_for_status()
-        
-        data = resp.json()
+
+        try:
+            data = resp.json()
+        except (ValueError, json.JSONDecodeError):
+            logger.error(f"SerpAPI respuesta no es JSON válido: {resp.text[:200]}")
+            return [], []
         
         # Verificar si SerpAPI devolvió error en el JSON
         if 'error' in data:

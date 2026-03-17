@@ -309,6 +309,11 @@ def parse_product_json(json_data: str) -> Optional[ProductData]:
             markdown_data = parse_markdown_content(markdown) if markdown else {}
             product_dict = _normalize_n8n_product(raw, markdown_data)
 
+            # Validate product_id after normalization
+            if not product_dict.get('product_id'):
+                logger.error("JSON n8n: product_id vacío después de normalización")
+                return None
+
         else:
             # Formato legacy (plano)
             if isinstance(data, list) and len(data) > 0:

@@ -450,13 +450,19 @@ def query_search_analytics(
         for row in rows:
             keys = row.get("keys", [])
             if len(keys) >= 2:
+                try:
+                    ctr_val = float(row.get("ctr", 0) or 0)
+                    pos_val = float(row.get("position", 0) or 0)
+                except (TypeError, ValueError):
+                    ctr_val = 0.0
+                    pos_val = 0.0
                 results.append({
                     "query": keys[0],
                     "page": keys[1],
                     "clicks": row.get("clicks", 0),
                     "impressions": row.get("impressions", 0),
-                    "ctr": round(row.get("ctr", 0) * 100, 2),
-                    "position": round(row.get("position", 0), 1)
+                    "ctr": round(ctr_val * 100, 2),
+                    "position": round(pos_val, 1)
                 })
         
         logger.info(
@@ -1080,14 +1086,20 @@ def fetch_all_keywords(
                     impressions = row.get("impressions", 0)
                     if impressions >= min_impressions:
                         clicks = row.get("clicks", 0)
+                        try:
+                            ctr_val = float(row.get("ctr", 0) or 0)
+                            pos_val = float(row.get("position", 0) or 0)
+                        except (TypeError, ValueError):
+                            ctr_val = 0.0
+                            pos_val = 0.0
                         all_rows.append({
                             "query": keys[0],
                             "page": keys[1],
                             "url": keys[1],
                             "clicks": clicks,
                             "impressions": impressions,
-                            "ctr": round(row.get("ctr", 0), 4),
-                            "position": round(row.get("position", 0), 1),
+                            "ctr": round(ctr_val, 4),
+                            "position": round(pos_val, 1),
                         })
 
             start_row += len(rows)
