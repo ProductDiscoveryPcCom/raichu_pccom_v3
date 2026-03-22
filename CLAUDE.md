@@ -67,7 +67,9 @@ Prioridad de carga (app.py L72-214):
 2. `config.settings` — importa `CLAUDE_API_KEY`, `CLAUDE_MODEL`, etc.
 3. `os.getenv()` — fallback: `ANTHROPIC_API_KEY`, `CLAUDE_API_KEY`, etc.
 
-**Bridge pattern:** app.py copia valores de `st.secrets` a `os.environ` (L150-214) para que modulos downstream los lean via `os.getenv()`.
+**Bridge pattern:** `core/config.py` copia modelo y parametros de generacion a `os.environ` para modulos downstream. Las keys de OpenAI, Gemini, SEMrush y SerpAPI tambien se copian a `os.environ` por ahora.
+
+**Excepcion — ANTHROPIC_API_KEY:** NO se copia a `os.environ`. Se inyecta directamente via el parametro `api_key` de `ContentGenerator`. Ver F7 en `docs/audit-2026-03.md`.
 
 ## Pipeline de 3 etapas
 

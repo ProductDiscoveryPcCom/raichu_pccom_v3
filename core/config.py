@@ -98,10 +98,9 @@ MAX_TOKENS = _config['max_tokens']
 TEMPERATURE = _config['temperature']
 DEBUG_MODE = _config['debug_mode']
 
-# Puente st.secrets → os.environ para que core/generator.py y config/settings.py
-# encuentren los valores (importan desde os.getenv, no desde st.secrets)
-if CLAUDE_API_KEY:
-    os.environ['ANTHROPIC_API_KEY'] = CLAUDE_API_KEY
+# Puente st.secrets → os.environ para modelo y parámetros de generación.
+# NOTA: ANTHROPIC_API_KEY ya NO se copia al entorno — se inyecta directamente
+# vía el parámetro api_key de ContentGenerator (ver F7 en docs/audit-2026-03.md).
 if CLAUDE_MODEL:
     os.environ['CLAUDE_MODEL'] = CLAUDE_MODEL
 os.environ['MAX_TOKENS'] = str(MAX_TOKENS)
