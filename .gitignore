@@ -6,3 +6,7 @@ __pycache__/
 .env
 .streamlit/secrets.toml
 credentials.json
+
+.coverage
+coverage.xml
+.coverage.*
