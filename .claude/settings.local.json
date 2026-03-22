@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(wc -l prompts/new_content.py prompts/rewrite.py ui/inputs.py ui/results.py ui/rewrite.py ui/assistant.py utils/*.py)"
+      "Bash(wc -l prompts/new_content.py prompts/rewrite.py ui/inputs.py ui/results.py ui/rewrite.py ui/assistant.py utils/*.py)",
+      "Bash(python -m pytest tests/test_modular.py tests/test_html_utils.py tests/test_arquetipos.py tests/test_prompts_new.py tests/test_prompts_rewrite.py tests/test_generator.py -v)"
     ]
   }
 }
