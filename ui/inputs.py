@@ -1546,16 +1546,19 @@ def render_additional_instructions(key: str = "additional_instructions") -> str:
     return instructions.strip() if instructions else ""
 
 
-def render_visual_elements_selector(key_prefix: str = "visual_elem") -> Dict[str, Any]:
+def render_visual_elements_selector(key_prefix: str = "visual_elem", arquetipo_code: Optional[str] = None) -> Dict[str, Any]:
     """
     Renderiza selector de elementos visuales alimentado por design_system.py.
-    
+
     Lee los componentes disponibles del COMPONENT_REGISTRY centralizado,
     divididos en componentes base (artículo) y módulos CMS avanzados.
-    
+
     Args:
         key_prefix: Prefijo para las keys de los checkboxes
-        
+        arquetipo_code: Codigo de arquetipo (ej: "ARQ-5") para auto-seleccionar
+                        los elementos visuales recomendados por el arquetipo.
+                        Si None, usa los defaults hardcoded.
+
     Returns:
         Dict con:
           - 'selected': lista de IDs de componentes seleccionados
@@ -1572,9 +1575,21 @@ def render_visual_elements_selector(key_prefix: str = "visual_elem") -> Dict[str
         _ds_available = True
     except ImportError:
         _ds_available = False
-    
+
+    # Obtener elementos recomendados del arquetipo (si se especifica)
+    _archetype_visual = set()
+    if arquetipo_code:
+        try:
+            from config.arquetipos import get_visual_elements as _get_ve
+            _archetype_visual = set(_get_ve(arquetipo_code))
+        except ImportError:
+            pass
+
     st.markdown("**Selecciona los elementos visuales a incluir:**")
-    st.caption("Componentes del Design System PcComponentes — CSS cargado desde archivos externos")
+    if _archetype_visual:
+        st.caption(f"Pre-seleccionados del arquetipo: {', '.join(_archetype_visual)}")
+    else:
+        st.caption("Componentes del Design System PcComponentes — CSS cargado desde archivos externos")
     
     # Enlace a la biblioteca visual (servida como archivo estático por Streamlit)
     st.link_button(
@@ -1778,9 +1793,10 @@ def render_visual_elements_selector(key_prefix: str = "visual_elem") -> Dict[str
     for i, (elem_id, elem_cfg) in enumerate(structure_items):
         target_col = col1 if i % 2 == 0 else col2
         with target_col:
+            _default = (elem_id in _archetype_visual) if _archetype_visual else elem_cfg['default']
             is_selected = st.checkbox(
                 elem_cfg['label'],
-                value=elem_cfg['default'],
+                value=_default,
                 key=f"{key_prefix}_{elem_id}",
                 help=elem_cfg.get('help', elem_cfg['description']),
             )
@@ -1795,9 +1811,10 @@ def render_visual_elements_selector(key_prefix: str = "visual_elem") -> Dict[str
     for i, (elem_id, elem_cfg) in enumerate(content_items):
         target_col = col3 if i % 2 == 0 else col4
         with target_col:
+            _default = (elem_id in _archetype_visual) if _archetype_visual else elem_cfg['default']
             is_selected = st.checkbox(
                 elem_cfg['label'],
-                value=elem_cfg['default'],
+                value=_default,
                 key=f"{key_prefix}_{elem_id}",
                 help=elem_cfg.get('help', elem_cfg['description']),
             )
@@ -1814,9 +1831,10 @@ def render_visual_elements_selector(key_prefix: str = "visual_elem") -> Dict[str
     
     for i, (elem_id, elem_cfg) in enumerate(TABLE_ELEMENTS.items()):
         with table_cols[i]:
+            _default = (elem_id in _archetype_visual) if _archetype_visual else elem_cfg['default']
             is_selected = st.checkbox(
                 elem_cfg['label'],
-                value=elem_cfg['default'],
+                value=_default,
                 key=f"{key_prefix}_{elem_id}",
                 help=elem_cfg.get('help', elem_cfg['description']),
             )
@@ -1831,9 +1849,10 @@ def render_visual_elements_selector(key_prefix: str = "visual_elem") -> Dict[str
     st.caption("Componentes ricos del CMS con variantes de estilo configurables")
     
     for elem_id, elem_cfg in CMS_MODULES.items():
+        _default = (elem_id in _archetype_visual) if _archetype_visual else elem_cfg['default']
         is_selected = st.checkbox(
             elem_cfg['label'],
-            value=elem_cfg['default'],
+            value=_default,
             key=f"{key_prefix}_{elem_id}",
             help=elem_cfg.get('help', elem_cfg['description']),
         )
@@ -2484,27 +2503,8 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
     with col_arq:
         arquetipo = render_arquetipo_selector(key="main_arquetipo")
 
-    # Fila 2: Longitud + Keywords secundarias en la misma fila
-    col_len, col_sec_kw = st.columns([2, 3])
-    with col_len:
-        target_length = render_length_slider(key="main_length", arquetipo_code=arquetipo)
-
-    with col_sec_kw:
-        st.caption("Keywords secundarias *(opcional — una por línea)*")
-        keywords_input = st.text_area(
-            "Keywords secundarias",
-            key="main_secondary_keywords",
-            height=68,
-            placeholder="keyword relacionada 1\nkeyword relacionada 2",
-            label_visibility="collapsed"
-        )
-        secondary_keywords = [
-            k.strip() for k in keywords_input.split('\n')
-            if k.strip() and k.strip() != keyword and len(k.strip()) >= 2
-        ] if keywords_input else []
-        if secondary_keywords and len(secondary_keywords) > 15:
-            st.warning("⚠️ Demasiadas keywords secundarias. Recomendado: 5-10 máximo.")
-            secondary_keywords = secondary_keywords[:15]
+    # Fila 2: Longitud objetivo
+    target_length = render_length_slider(key="main_length", arquetipo_code=arquetipo)
 
     # ── BRIEFING (semi-obligatorio, mejora calidad) ──────────────────
     # Mostrar indicador de estado ANTES del briefing para guiar al usuario
@@ -2531,8 +2531,20 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
     st.markdown("#### ⚙️ Opciones adicionales")
     st.caption("*Todos estos campos son opcionales. Empieza solo con keyword + arquetipo si es tu primera vez.*")
 
-    # Productos — dentro de expander para indicar que es opcional
-    with st.expander("📦 Productos *(opcional — añade URLs de PcComponentes para enriquecer el contenido)*", expanded=False):
+    # Productos — dentro de expander, con hint contextual por arquetipo
+    _PRODUCT_CENTRIC_ARCHETYPES = {
+        'ARQ-4', 'ARQ-5', 'ARQ-6', 'ARQ-7', 'ARQ-8', 'ARQ-9', 'ARQ-10',
+        'ARQ-16', 'ARQ-19', 'ARQ-20', 'ARQ-21',
+    }
+    _products_recommended = arquetipo in _PRODUCT_CENTRIC_ARCHETYPES
+    _products_label = (
+        "📦 Productos *(recomendado para este arquetipo)*"
+        if _products_recommended
+        else "📦 Productos *(opcional — añade URLs de PcComponentes para enriquecer el contenido)*"
+    )
+    with st.expander(_products_label, expanded=False):
+        if _products_recommended:
+            st.info("💡 Este tipo de contenido se beneficia de datos de producto. Añade al menos uno.")
         products = render_products_block(key_prefix="main_products")
 
     # Backward compat: extraer pdp_url y pdp_json_data del primer producto principal
@@ -2565,7 +2577,7 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
     with st.expander("🎨 Visual, estructura e instrucciones *(opcional)*", expanded=False):
         # Elementos visuales
         st.markdown("**Elementos Visuales**")
-        visual_config = render_visual_elements_selector(key_prefix="main_visual")
+        visual_config = render_visual_elements_selector(key_prefix="main_visual", arquetipo_code=arquetipo)
         visual_elements = visual_config.get('selected', []) if isinstance(visual_config, dict) else visual_config
 
         # Cross-validation: elementos visuales vs productos
@@ -2589,7 +2601,27 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
         # Instrucciones adicionales
         st.markdown("**Instrucciones Adicionales**")
         additional_instructions = render_additional_instructions(key="main_instructions")
-    
+
+        st.markdown("---")
+
+        # Keywords secundarias (movidas aquí desde la sección principal)
+        st.markdown("**Keywords Secundarias**")
+        st.caption("Una por línea — se añaden al prompt para enriquecer el contenido")
+        keywords_input = st.text_area(
+            "Keywords secundarias",
+            key="main_secondary_keywords",
+            height=68,
+            placeholder="keyword relacionada 1\nkeyword relacionada 2",
+            label_visibility="collapsed"
+        )
+        secondary_keywords = [
+            k.strip() for k in keywords_input.split('\n')
+            if k.strip() and k.strip() != keyword and len(k.strip()) >= 2
+        ] if keywords_input else []
+        if secondary_keywords and len(secondary_keywords) > 15:
+            st.warning("⚠️ Demasiadas keywords secundarias. Recomendado: 5-10 máximo.")
+            secondary_keywords = secondary_keywords[:15]
+
     # ── Validación ──────────────────────────────────────────────────
     if errors:
         render_validation_errors(errors)
