@@ -1,6 +1,6 @@
 # ============================================================================
 # PcComponentes Content Generator - Requirements
-# Versión 1.2.0
+# Versión 5.1.0
 # ============================================================================
 
 # Framework Principal
@@ -36,10 +36,6 @@ google-auth>=2.23.0,<3.0.0
 # SerpAPI (búsqueda SERP — usada en investigación y oportunidades)
 google-search-results>=2.4.0
 
-# Gestión de Configuración (para futura externalización de prompts)
-PyYAML>=6.0.0,<7.0.0
-Jinja2>=3.1.0,<4.0.0
-
 # Utilidades de Fecha y Tiempo
 python-dateutil>=2.8.0,<3.0.0
 
@@ -55,12 +51,6 @@ typing-extensions>=4.5.0
 
 # Para procesamiento avanzado de HTML
 html5lib>=1.1
-
-# Para manejo de archivos Excel (si se usa para categorías)
-openpyxl>=3.1.0,<4.0.0
-
-# Para procesamiento de documentos Word (si se necesita)
-python-docx>=0.8.11,<1.0.0
 
 # Para rate limiting y retry logic
 tenacity>=8.2.0,<9.0.0
@@ -92,7 +82,7 @@ loguru>=0.7.0,<1.0.0
 #   pip install -r requirements.txt
 
 # Para instalar solo las dependencias principales (sin opcionales):
-#   pip install streamlit anthropic requests beautifulsoup4 lxml pandas python-dotenv PyYAML Jinja2
+#   pip install streamlit anthropic requests beautifulsoup4 lxml pandas python-dotenv
 
 # Para actualizar todas las dependencias:
 #   pip install -r requirements.txt --upgrade

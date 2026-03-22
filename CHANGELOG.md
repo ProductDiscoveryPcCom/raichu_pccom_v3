@@ -5,6 +5,16 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [5.1.0] - 2026-03-22
+
+### 🔧 Modificado
+- Unificada versión a 5.1.0 (source of truth: archivo VERSION)
+- Eliminados `__version__` obsoletos de config/settings.py y config/arquetipos.py
+- Limpiado docstring de app.py (changelog embebido movido a este archivo)
+- Eliminadas dependencias no usadas de requirements.txt (PyYAML, Jinja2, openpyxl, python-docx)
+- Añadida infraestructura .claude/ (CLAUDE.md, rules, agents) para contexto persistente
+- Creado informe de auditoría en docs/audit-2026-03.md
+
 ## [1.2.0] - 2026-02-10
 
 ### 🐛 Corregido

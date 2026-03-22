@@ -1,6 +1,5 @@
 """
 Configuración - PcComponentes Content Generator
-Versión 1.2.0 - 2026-02-10
 
 Autor: PcComponentes - Product Discovery & Content
 """
@@ -9,8 +8,6 @@ import os
 import logging
 
 logger = logging.getLogger(__name__)
-
-__version__ = "1.2.0"
 
 
 def _safe_int(env_var: str, default: int) -> int:

@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l prompts/new_content.py prompts/rewrite.py ui/inputs.py ui/results.py ui/rewrite.py ui/assistant.py utils/*.py)"
+    ]
+  }
+}

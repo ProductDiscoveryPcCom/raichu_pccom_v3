@@ -1,33 +1,8 @@
 """
 PcComponentes Content Generator - App Principal
-Versión 1.2.0
 
 Aplicación Streamlit para generación de contenido SEO.
 Flujo de 3 etapas: Borrador → Análisis → Final
-
-CAMBIOS v4.9.2:
-- FIX: Import de count_words_in_html separado de extract_html_content (html_utils no exporta extract_html_content)
-- FIX: extract_html_content ahora se importa de core.generator con fallback local
-- FIX: Modo rewrite stages 1, 2 y 3 ahora pasan config dict correctamente (antes pasaban kwargs sueltos que no coincidían con la firma de las funciones)
-- FIX: rewrite_config se construye una sola vez antes de las 3 etapas para garantizar consistencia
-
-CAMBIOS v4.9.1:
-- FIX: Enlaces de canibalización ahora son hipervínculos completos clickeables
-- Compatibilidad con new_content.py v4.9.2
-
-CAMBIOS v4.9.0:
-- Nuevo parámetro pdp_json_data en build_new_content_prompt_stage1()
-- Integración completa de JSON de productos (principal, enlaces PDP, alternativo)
-- Los datos JSON ahora enriquecen los prompts con ventajas/desventajas/opiniones
-- Compatibilidad total con new_content.py v4.9.0
-
-CORRECCIONES PREVIAS v4.5.0:
-- Nombres de funciones correctos (build_new_content_prompt_stage1, etc.)
-- Parámetros correctos (secondary_keywords, guiding_context, links_data)
-- GenerationResult.content en lugar de asignar GenerationResult a str
-- Análisis competitivo inline (build_competitor_analysis_prompt no existe)
-- Validaciones de entrada en execute_generation_pipeline()
-- Safe access a config['keyword'] en modo rewrite
 
 Autor: PcComponentes - Product Discovery & Content
 """

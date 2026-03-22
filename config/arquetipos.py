@@ -1,30 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 Arquetipos de Contenido - PcComponentes Content Generator
-Versión 1.3.0 - 2026-02-12
 
 Define los 34 arquetipos de contenido SEO disponibles para la generación.
 Cada arquetipo incluye: estructura, tono, keywords, preguntas guía,
 rangos de longitud y campos específicos.
-
-CAMBIOS v1.3.0:
-- Nueva pregunta universal: ángulo diferencial de PcComponentes
-- Pregunta universal de productos: clarificación sobre campos del formulario
-- ARQ-4 (Review): fuente de datos en lugar de asumir prueba real
-- ARQ-5 (Comparativa): evaluación abierta en lugar de binaria
-- ARQ-7 (Roundup): pregunta más accionable sobre exclusiones
-- ARQ-17 (Tendencias): timing por perfil en lugar de esperar/comprar
-- ARQ-22 (Requisitos): fuentes de benchmarks explícitas
-
-CAMBIOS v4.6.0:
-- Preguntas guía completamente revisadas y mejoradas
-- Añadidas preguntas universales (público, intención, productos PcC)
-- Preguntas más específicas y accionables
-- Promedio de 6-8 preguntas por arquetipo (antes: 4)
-- Nuevo campo "preguntas_universales" para contexto común
-- Nueva función get_universal_questions()
-- get_guiding_questions() ahora acepta include_universal=True
-- Nueva función get_question_stats() para estadísticas
 
 Autor: PcComponentes - Product Discovery & Content
 """
@@ -34,8 +14,6 @@ from dataclasses import dataclass
 import logging
 
 logger = logging.getLogger(__name__)
-
-__version__ = "1.3.0"
 
 
 # ============================================================================
