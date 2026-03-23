@@ -270,6 +270,8 @@ Usa este contenido como base, mejóralo y amplíalo según el análisis competit
                 'html_contents': config.get('html_contents', []),
                 'disambiguation': config.get('disambiguation'),
                 'main_product': config.get('main_product'),
+                'visual_elements': config.get('visual_elements', []),
+                'products': config.get('products', []),
             }
         
         # ====================================================================
@@ -495,12 +497,17 @@ Formato tu respuesta de manera clara y accionable."""
                     alternative_product=config.get('producto_alternativo', config.get('alternative_product')),
                     products=config.get('products', []),  # v5.0
                 )
-                # visual_elements: pasar solo si la función lo soporta
+                # Pasar parámetros opcionales solo si la función los soporta
                 try:
                     import inspect
                     _s2_sig = inspect.signature(new_content.build_new_content_correction_prompt_stage2)
                     if 'visual_elements' in _s2_sig.parameters:
                         stage2_kwargs['visual_elements'] = config.get('visual_elements', [])
+                    if 'arquetipo_code' in _s2_sig.parameters:
+                        stage2_kwargs['arquetipo_code'] = config.get('arquetipo_codigo', '')
+                    if 'arquetipo_structure' in _s2_sig.parameters:
+                        from config.arquetipos import get_structure
+                        stage2_kwargs['arquetipo_structure'] = get_structure(config.get('arquetipo_codigo', ''))
                 except Exception:
                     pass
                 stage2_prompt = new_content.build_correction_prompt_stage2(**stage2_kwargs)

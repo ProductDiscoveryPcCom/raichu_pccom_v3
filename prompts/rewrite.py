@@ -33,6 +33,8 @@ try:
         _get_css_for_prompt,
         _build_stage3_visual_instructions,
         _build_stage3_checklist,
+        _build_archetype_checklist_stage2,
+        _build_visual_elements_minimum_check,
     )
 except ImportError:
     _format_products_for_prompt = None
@@ -41,6 +43,8 @@ except ImportError:
     _get_css_for_prompt = None
     _build_stage3_visual_instructions = None
     _build_stage3_checklist = None
+    _build_archetype_checklist_stage2 = None
+    _build_visual_elements_minimum_check = None
 
 # Importar tono de marca centralizado
 try:
@@ -942,7 +946,24 @@ def build_rewrite_correction_prompt_stage2(
     product_links = config.get('product_links', [])
     alternative_products = config.get('alternative_products', [])
     products = config.get('products', [])  # v5.0
-    
+    arquetipo_code = config.get('arquetipo_codigo', '')
+    visual_elements = config.get('visual_elements', [])
+
+    # QW-1: Checklist específico del arquetipo
+    archetype_checklist = ""
+    visual_minimum_check = ""
+    if _build_archetype_checklist_stage2 and arquetipo_code:
+        try:
+            from config.arquetipos import get_structure
+            archetype_checklist = _build_archetype_checklist_stage2(
+                arquetipo_code, get_structure(arquetipo_code),
+            )
+        except ImportError:
+            pass
+    # QW-2: Elementos visuales mínimos del arquetipo
+    if _build_visual_elements_minimum_check and arquetipo_code:
+        visual_minimum_check = _build_visual_elements_minimum_check(arquetipo_code, visual_elements)
+
     min_length = int(target_length * 0.95)
     max_length = int(target_length * 1.05)
     
@@ -1041,6 +1062,8 @@ Eres un editor SEO senior de PcComponentes. Analiza el borrador y genera un info
 - [ ] ¿El veredicto aporta valor nuevo?
 - [ ] ¿No contiene emojis?
 '''}
+{visual_minimum_check}
+{archetype_checklist}
 
 ---
 
@@ -1107,6 +1130,19 @@ Genera un JSON con esta estructura:
     "diferenciacion": "descripción"
   }},
   
+  "elementos_visuales": {{
+    "solicitados": [],
+    "presentes": [],
+    "faltantes": [],
+    "minimos_arquetipo": [],
+    "minimos_faltantes": []
+  }},
+
+  "arquetipo": {{
+    "code": "{arquetipo_code}",
+    "cumplimiento_estructura": []
+  }},
+
   "correcciones_prioritarias": [
     {{
       "tipo": "tecnico/contenido/enlace/tono/anti-ia",
@@ -1115,7 +1151,7 @@ Genera un JSON con esta estructura:
       "prioridad": "alta/media/baja"
     }}
   ],
-  
+
   "puntuacion_general": {{
     "tecnica": 0-100,
     "instrucciones": 0-100,

@@ -1434,6 +1434,168 @@ El HTML debe empezar DIRECTAMENTE con <style>:
 # ETAPA 2: ANÁLISIS Y CORRECCIONES
 # ============================================================================
 
+# --- Archetype groups for Stage 2 conditional checklist (QW-1) ---
+_ARCHETYPE_STAGE2_GROUPS = {
+    'product_verdict': {
+        'ARQ-1', 'ARQ-4', 'ARQ-5', 'ARQ-6', 'ARQ-7',
+        'ARQ-20', 'ARQ-25', 'ARQ-33',
+    },
+    'step_by_step': {'ARQ-2', 'ARQ-11', 'ARQ-13'},
+    'educational': {
+        'ARQ-3', 'ARQ-9', 'ARQ-12', 'ARQ-14', 'ARQ-15', 'ARQ-16',
+        'ARQ-22', 'ARQ-24', 'ARQ-26', 'ARQ-28', 'ARQ-29', 'ARQ-30',
+        'ARQ-32', 'ARQ-34',
+    },
+    'grid_recommendations': {
+        'ARQ-8', 'ARQ-10', 'ARQ-18', 'ARQ-23', 'ARQ-27', 'ARQ-31',
+    },
+    'promo': {'ARQ-19'},
+    'gaming_multicomponent': {'ARQ-21'},
+    'trends': {'ARQ-17'},
+    'external_text': {'ARQ-35', 'ARQ-36', 'ARQ-37'},
+}
+
+_GROUP_CHECKLISTS_STAGE2 = {
+    'product_verdict': [
+        "¿El veredicto aporta una opinión ORIGINAL y no es un simple resumen del artículo?",
+        "¿La tabla comparativa usa datos reales (specs, precios, características concretas)?",
+        "¿Se mencionan pros Y contras de forma honesta (no solo ventajas)?",
+        "¿Los datos de producto proporcionados se usan de forma sustantiva en el texto?",
+        "¿El CTA final es específico y orientado a la acción?",
+    ],
+    'step_by_step': [
+        "¿Los pasos están numerados en una lista ordenada (<ol>) o con numeración explícita?",
+        "¿Cada paso es autocontenido y accionable?",
+        "¿Existe una sección de requisitos previos separada de los pasos?",
+        "¿Hay guidance para errores comunes o problemas durante el proceso?",
+    ],
+    'educational': [
+        "¿Las definiciones son claras y evitan jerga innecesaria?",
+        "¿Incluye ejemplos prácticos o casos de uso concretos?",
+        "¿Las tablas se usan para datos estructurados (specs, comparaciones, calendarios)?",
+        "¿Los callouts destacan información clave o advertencias?",
+    ],
+    'grid_recommendations': [
+        "¿Las recomendaciones están segmentadas por perfil, presupuesto o nivel?",
+        "¿Cada ítem recomendado tiene nombre, descripción breve y contexto de uso?",
+        "¿Hay al menos 3 recomendaciones para justificar el formato grid?",
+    ],
+    'promo': [
+        "¿Se mencionan fechas/plazos concretos de la promoción?",
+        "¿El tono de urgencia es natural y no agresivo?",
+        "¿Los precios mencionados son actuales y específicos?",
+        "¿Se indica claramente cómo aprovechar la oferta?",
+    ],
+    'gaming_multicomponent': [
+        "¿Cubre componentes, periféricos Y configuración de software?",
+        "¿Ofrece opciones por rangos de presupuesto?",
+        "¿La sección de upgrades futuros es práctica y no genérica?",
+        "¿Las recomendaciones son específicas (modelos concretos, no solo categorías)?",
+    ],
+    'trends': [
+        "¿El contenido usa lenguaje orientado al futuro con base en datos?",
+        "¿Las predicciones se apoyan en evidencia o fuentes?",
+        "¿Evita añadir tablas/grids innecesarios solo para rellenar?",
+    ],
+    'external_text': [
+        "¿El tono es apropiado para publicación externa (no promocional)?",
+        "¿La estructura CMS de 3 articles se mantiene aunque el contenido sea externo?",
+        "¿Las menciones a PcComponentes son naturales e integradas?",
+    ],
+}
+
+
+def _get_archetype_group(arquetipo_code: str) -> Optional[str]:
+    """Devuelve el grupo de Stage 2 al que pertenece el arquetipo, o None."""
+    if not arquetipo_code:
+        return None
+    for group, codes in _ARCHETYPE_STAGE2_GROUPS.items():
+        if arquetipo_code in codes:
+            return group
+    return None
+
+
+def _build_archetype_checklist_stage2(
+    arquetipo_code: str,
+    arquetipo_structure: Optional[List[str]] = None,
+) -> str:
+    """
+    Genera el bloque de checklist específico del arquetipo para Stage 2.
+    Retorna string vacío si no hay arquetipo o no se reconoce.
+    """
+    if not arquetipo_code:
+        return ""
+
+    group = _get_archetype_group(arquetipo_code)
+    if not group:
+        return ""
+
+    # Nombre del arquetipo
+    arq_name = arquetipo_code
+    try:
+        from config.arquetipos import get_arquetipo
+        arq = get_arquetipo(arquetipo_code)
+        if arq:
+            arq_name = arq.get('name', arquetipo_code)
+    except ImportError:
+        pass
+
+    items = _GROUP_CHECKLISTS_STAGE2.get(group, [])
+    if not items:
+        return ""
+
+    lines = [f"\n## 7. CHECKLIST DEL ARQUETIPO ({arq_name})"]
+    for item in items:
+        lines.append(f"- [ ] {item}")
+
+    # Estructura esperada del arquetipo
+    if arquetipo_structure:
+        lines.append("\n### Estructura esperada del arquetipo:")
+        for section in arquetipo_structure:
+            lines.append(f"- [ ] ¿Incluye sección: \"{section}\"?")
+        lines.append("")
+        lines.append("Si falta alguna sección estructural del arquetipo, repórtalo como problema de severidad ALTO.")
+
+    return "\n".join(lines)
+
+
+def _build_visual_elements_minimum_check(
+    arquetipo_code: str,
+    user_visual_elements: Optional[List[str]] = None,
+) -> str:
+    """
+    Genera bloque de verificación de elementos visuales mínimos del arquetipo.
+    Retorna string vacío si no hay arquetipo, no se reconoce, o no faltan elementos.
+    """
+    if not arquetipo_code:
+        return ""
+
+    try:
+        from config.arquetipos import get_visual_elements
+    except ImportError:
+        return ""
+
+    archetype_elements = get_visual_elements(arquetipo_code)
+    if not archetype_elements:
+        return ""
+
+    user_set = set(user_visual_elements or [])
+    missing = [e for e in archetype_elements if e not in user_set]
+
+    if not missing:
+        return ""
+
+    lines = ["\n### ELEMENTOS VISUALES MÍNIMOS DEL ARQUETIPO"]
+    lines.append(f"El arquetipo {arquetipo_code} requiere como mínimo estos elementos visuales:")
+    for elem in archetype_elements:
+        status = "✓ incluido" if elem in user_set else "⚠️ FALTANTE"
+        lines.append(f"- {elem}: {status}")
+    lines.append("")
+    lines.append("Si faltan elementos mínimos del arquetipo, repórtalo como problema de severidad ALTO.")
+
+    return "\n".join(lines)
+
+
 def build_new_content_correction_prompt_stage2(
     draft_content: str,
     target_length: int = 1500,
@@ -1442,6 +1604,8 @@ def build_new_content_correction_prompt_stage2(
     alternative_product: Optional[Dict] = None,
     products: Optional[List[Dict]] = None,  # v5.0
     visual_elements: Optional[List[str]] = None,
+    arquetipo_code: str = "",                          # QW-1
+    arquetipo_structure: Optional[List[str]] = None,   # QW-1
 ) -> str:
     """
     Construye prompt para Etapa 2: Análisis crítico del borrador.
@@ -1500,7 +1664,12 @@ def build_new_content_correction_prompt_stage2(
         for elem in visual_elements:
             visual_check += f"- {elem}\n"
         visual_check += "\nSi falta CUALQUIER elemento visual, repórtalo como problema de severidad CRÍTICA.\n"
-    
+
+    # QW-1: Checklist específico del arquetipo
+    archetype_checklist = _build_archetype_checklist_stage2(arquetipo_code, arquetipo_structure)
+    # QW-2: Elementos visuales mínimos del arquetipo
+    visual_minimum_check = _build_visual_elements_minimum_check(arquetipo_code, visual_elements)
+
     return f"""Eres un editor SEO senior de PcComponentes. Analiza críticamente este borrador.
 
 # BORRADOR A ANALIZAR
@@ -1547,11 +1716,13 @@ def build_new_content_correction_prompt_stage2(
 ## 5. ELEMENTOS VISUALES
 - [ ] ¿Están TODOS los elementos visuales que pidió el usuario?
 - [ ] Si falta alguno (TOC, tabla, callout, grid, etc.), reportarlo como problema CRÍTICO
+{visual_minimum_check}
 
 ## 6. DATOS DE PRODUCTO (si aplica)
 - [ ] ¿Se usan las ventajas/desventajas proporcionadas?
 - [ ] ¿Se menciona el producto alternativo?
 - [ ] ¿Los datos de productos enlazados enriquecen el contenido?
+{archetype_checklist}
 
 ---
 
@@ -1606,9 +1777,16 @@ def build_new_content_correction_prompt_stage2(
     "elementos_visuales": {{
         "solicitados": {visual_elements_json},
         "presentes": [],
-        "faltantes": []
+        "faltantes": [],
+        "minimos_arquetipo": [],
+        "minimos_faltantes": []
     }},
-    
+
+    "arquetipo": {{
+        "code": "{arquetipo_code}",
+        "cumplimiento_estructura": []
+    }},
+
     "problemas": [
         {{
             "tipo": "estructura|seo|tono|formato|datos",
