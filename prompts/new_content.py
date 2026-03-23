@@ -1174,6 +1174,64 @@ El tono debe ser el mismo: cercano, experto, con chispa y honesto.
 
 
 # ============================================================================
+# ARCHETYPE-SPECIFIC STAGE 1 INSTRUCTIONS
+# ============================================================================
+
+_ARCHETYPE_STAGE1_INSTRUCTIONS: Dict[str, str] = {
+    'ARQ-5': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Comparativa A vs B)
+
+### Declaración de ganador (OBLIGATORIO)
+El veredicto DEBE declarar un ganador claro. Si es un empate técnico, explica concretamente para qué perfil de usuario es mejor cada opción. No vale "depende de tus necesidades" sin perfiles concretos.
+Ejemplo válido: "Para gaming competitivo, el A es mejor por X. Para productividad multimedia, el B gana por Y."
+Ejemplo inválido: "Depende de lo que busques."
+
+### Tabla comparativa principal
+Usa `<table class="comparison-table">` (NO `<table>` genérico) para la tabla comparativa principal lado a lado.""",
+
+    'ARQ-7': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Ranking / Mejores X)
+
+### Ranking numerado (OBLIGATORIO)
+Numera los productos del 1 al N en orden de recomendación. El #1 es tu recomendación principal. Cada producto debe tener su número visible en el heading (ej: "1. Nombre del producto").
+
+### Badges (OBLIGATORIO)
+El producto #1 debe llevar badge "Mejor en general". Si hay uno con mejor relación calidad-precio distinto del #1, añadirle badge "Mejor calidad-precio".
+Usa `<span class="badge">Mejor en general</span>` junto al nombre del producto.
+
+### Grid de fichas de producto
+Usa `<div class="grid cols-2">` o `<div class="grid cols-3">` para mostrar la ficha resumen de cada producto con specs clave, precio y badge.""",
+
+    'ARQ-16': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Novedades y Lanzamientos)
+
+### Pirámide invertida (OBLIGATORIO)
+Los primeros 2 párrafos deben responder: qué producto es, qué novedad principal trae, cuándo estará disponible y a qué precio. El resto del artículo desarrolla los detalles. No empieces con introducciones genéricas.
+
+### Temporalidad y fechas
+Incluye fechas concretas de disponibilidad. Diferencia claramente entre "ya disponible", "preventa abierta" y "próximamente". Si no tienes fecha exacta, indica "fecha por confirmar" en vez de omitirlo.
+
+### Veredicto concreto
+La sección final (tercer article CMS) debe responder directamente "¿merece la pena?" con una recomendación concreta, no una conclusión genérica. Indica para qué perfil de usuario tiene sentido la compra o el upgrade.""",
+
+    'ARQ-2': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Guía Paso a Paso)
+
+### Diferenciación check-list vs pasos (OBLIGATORIO)
+Usa `<ul class="check-list">` SOLO para requisitos previos (herramientas, materiales necesarios antes de empezar).
+Usa `<ol>` con pasos numerados para el proceso en sí.
+No mezclar ambos formatos: la check-list es para "qué necesitas", la lista ordenada es para "qué hacer".""",
+
+    'ARQ-4': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Review / Análisis de Producto)
+
+### Tabla de benchmark
+Si hay datos de rendimiento o specs comparables con la competencia, preséntalos en una `<table>` con al menos una alternativa como referencia. El lector necesita contexto comparativo para evaluar si los números son buenos o malos.""",
+}
+
+
+def _build_archetype_stage1_instructions(arquetipo_code: str) -> str:
+    """Retorna instrucciones específicas del arquetipo para Stage 1.
+    Retorna string vacío si el arquetipo no tiene instrucciones específicas."""
+    return _ARCHETYPE_STAGE1_INSTRUCTIONS.get(arquetipo_code, "")
+
+
+# ============================================================================
 # ETAPA 1: BORRADOR INICIAL
 # ============================================================================
 
@@ -1291,6 +1349,7 @@ def build_new_content_prompt_stage1(
     # Determinar si incluir mini-historias:
     # Solo si (1) el arquetipo lo requiere Y (2) hay reviews/feedback de usuarios
     arquetipo_code = arquetipo.get('code', '')
+    archetype_specific_section = _build_archetype_stage1_instructions(arquetipo_code)
     include_mini_stories = (
         arquetipo_code in ARQUETIPOS_CON_MINI_STORIES
         and has_feedback
@@ -1349,6 +1408,8 @@ La keyword "{keyword}" DEBE aparecer de forma natural en el contenido:
 {visual_section}
 {headings_section}
 {campos_section}
+
+{archetype_specific_section}
 
 {engagement_section}
 
