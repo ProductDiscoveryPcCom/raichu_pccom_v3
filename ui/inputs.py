@@ -1103,14 +1103,21 @@ def render_guiding_questions(arquetipo_code: str, key_prefix: str = "guiding") -
     arq = get_arquetipo(arquetipo_code)
     arq_name = arq.get('name', arquetipo_code) if arq else arquetipo_code
     
+    _TOP_N = 3  # Número de preguntas visibles por defecto
+
     with st.expander(f"💡 Briefing: {arq_name} — Responder mejora la calidad del contenido", expanded=False):
         answers = {}
-        
+
         # 1. Preguntas específicas del arquetipo PRIMERO (más relevantes)
         if specific_questions:
             st.markdown(f"**📋 Preguntas específicas — {arq_name}**")
             st.caption("Estas preguntas son las más importantes para este tipo de contenido")
-            for i, question in enumerate(specific_questions):
+
+            # Mostrar solo las primeras _TOP_N por defecto
+            _visible = specific_questions[:_TOP_N]
+            _hidden_spec = specific_questions[_TOP_N:]
+
+            for i, question in enumerate(_visible):
                 answer = st.text_area(
                     label=question,
                     key=f"{key_prefix}_spec_{i}",
@@ -1120,22 +1127,48 @@ def render_guiding_questions(arquetipo_code: str, key_prefix: str = "guiding") -
                 )
                 if answer and answer.strip():
                     answers[question] = answer.strip()
-        
-        # 2. Preguntas universales después, separadas visualmente
-        if universal_questions:
-            st.markdown("---")
-            st.markdown("**🌐 Contexto general** _(aplica a todos los tipos de contenido)_")
-            for i, question in enumerate(universal_questions):
-                answer = st.text_area(
-                    label=question,
-                    key=f"{key_prefix}_univ_{i}",
-                    height=80,
-                    placeholder="Tu respuesta...",
-                    label_visibility="visible"
-                )
-                if answer and answer.strip():
-                    answers[question] = answer.strip()
-        
+
+        else:
+            _hidden_spec = []
+
+        # 2. Botón "Ver todas" para preguntas restantes
+        _extra_count = len(_hidden_spec) + len(universal_questions)
+        if _extra_count > 0:
+            _show_all = st.checkbox(
+                f"Ver todas las preguntas ({_extra_count} más)",
+                key=f"{key_prefix}_show_all",
+                value=False,
+            )
+
+            if _show_all:
+                # Preguntas específicas restantes
+                if _hidden_spec:
+                    for i, question in enumerate(_hidden_spec, start=_TOP_N):
+                        answer = st.text_area(
+                            label=question,
+                            key=f"{key_prefix}_spec_{i}",
+                            height=80,
+                            placeholder="Tu respuesta...",
+                            label_visibility="visible"
+                        )
+                        if answer and answer.strip():
+                            answers[question] = answer.strip()
+
+                # Preguntas universales
+                if universal_questions:
+                    st.markdown("---")
+                    st.markdown("**🌐 Contexto general** _(aplica a todos los tipos de contenido)_")
+                    for i, question in enumerate(universal_questions):
+                        answer = st.text_area(
+                            label=question,
+                            key=f"{key_prefix}_univ_{i}",
+                            height=80,
+                            placeholder="Tu respuesta...",
+                            label_visibility="visible"
+                        )
+                        if answer and answer.strip():
+                            answers[question] = answer.strip()
+
         return answers
 
 
@@ -1585,19 +1618,15 @@ def render_visual_elements_selector(key_prefix: str = "visual_elem", arquetipo_c
         except ImportError:
             pass
 
-    st.markdown("**Selecciona los elementos visuales a incluir:**")
-    if _archetype_visual:
-        st.caption(f"Pre-seleccionados del arquetipo: {', '.join(_archetype_visual)}")
-    else:
-        st.caption("Componentes del Design System PcComponentes — CSS cargado desde archivos externos")
-    
+    st.markdown("**Elementos visuales**")
+
     # Enlace a la biblioteca visual (servida como archivo estático por Streamlit)
     st.link_button(
         "📚 Ver Biblioteca Visual",
         url="/_statics/biblioteca_visual.html",
         help="Catálogo con todos los componentes renderizados con el CSS real del CMS. Se abre en pestaña nueva.",
     )
-    
+
     selected_elements = []
     selected_variants = {}
     components_css = set()
@@ -1776,119 +1805,143 @@ def render_visual_elements_selector(key_prefix: str = "visual_elem", arquetipo_c
         },
     }
     
-    # ── Renderizar sección BASE ──
-    st.markdown("##### Elementos de artículo")
-    
-    # Dividir en 2 grupos: Estructura (primeros 7) y Contenido enriquecido (resto)
-    _STRUCTURE_IDS = ['toc', 'callout', 'callout_promo', 'callout_alert', 'verdict', 'grid', 'badges', 'buttons']
-    _CONTENT_IDS = ['faqs', 'intro_box', 'check_list', 'specs_list', 'product_module',
-                    'price_highlight', 'stats_grid', 'section_divider']
-    
-    structure_items = [(k, v) for k, v in BASE_ELEMENTS.items() if k in _STRUCTURE_IDS]
-    content_items = [(k, v) for k, v in BASE_ELEMENTS.items() if k in _CONTENT_IDS]
-    
-    # -- Bloque Estructura --
-    st.caption("Estructura y layout")
-    col1, col2 = st.columns(2)
-    for i, (elem_id, elem_cfg) in enumerate(structure_items):
-        target_col = col1 if i % 2 == 0 else col2
-        with target_col:
-            _default = (elem_id in _archetype_visual) if _archetype_visual else elem_cfg['default']
-            is_selected = st.checkbox(
-                elem_cfg['label'],
-                value=_default,
-                key=f"{key_prefix}_{elem_id}",
-                help=elem_cfg.get('help', elem_cfg['description']),
-            )
-            if is_selected:
-                selected_elements.append(elem_id)
-                if _ds_available and elem_id in COMPONENT_REGISTRY:
-                    components_css.add(COMPONENT_REGISTRY[elem_id].css_file)
+    # Helper: lookup label for an element ID across all dicts
+    _ALL_ELEMENTS = {**BASE_ELEMENTS, **TABLE_ELEMENTS, **CMS_MODULES}
 
-    # -- Bloque Contenido enriquecido --
-    st.caption("Contenido enriquecido")
-    col3, col4 = st.columns(2)
-    for i, (elem_id, elem_cfg) in enumerate(content_items):
-        target_col = col3 if i % 2 == 0 else col4
-        with target_col:
-            _default = (elem_id in _archetype_visual) if _archetype_visual else elem_cfg['default']
-            is_selected = st.checkbox(
-                elem_cfg['label'],
-                value=_default,
-                key=f"{key_prefix}_{elem_id}",
-                help=elem_cfg.get('help', elem_cfg['description']),
-            )
-            if is_selected:
-                selected_elements.append(elem_id)
-                if _ds_available and elem_id in COMPONENT_REGISTRY:
-                    components_css.add(COMPONENT_REGISTRY[elem_id].css_file)
-    
-    # ── Renderizar sección TABLAS ──
-    st.markdown("##### Tablas")
-    st.caption("Puedes combinar varios tipos de tabla en el mismo artículo")
-    col_t1, col_t2, col_t3 = st.columns(3)
-    table_cols = [col_t1, col_t2, col_t3]
-    
-    for i, (elem_id, elem_cfg) in enumerate(TABLE_ELEMENTS.items()):
-        with table_cols[i]:
-            _default = (elem_id in _archetype_visual) if _archetype_visual else elem_cfg['default']
-            is_selected = st.checkbox(
-                elem_cfg['label'],
-                value=_default,
-                key=f"{key_prefix}_{elem_id}",
-                help=elem_cfg.get('help', elem_cfg['description']),
-            )
-            if is_selected:
-                selected_elements.append(elem_id)
-                # Añadir CSS file del componente
-                if _ds_available and elem_id in COMPONENT_REGISTRY:
-                    components_css.add(COMPONENT_REGISTRY[elem_id].css_file)
-    
-    # ── Renderizar sección MÓDULOS CMS ──
-    st.markdown("##### Módulos CMS avanzados")
-    st.caption("Componentes ricos del CMS con variantes de estilo configurables")
-    
-    for elem_id, elem_cfg in CMS_MODULES.items():
-        _default = (elem_id in _archetype_visual) if _archetype_visual else elem_cfg['default']
-        is_selected = st.checkbox(
-            elem_cfg['label'],
-            value=_default,
-            key=f"{key_prefix}_{elem_id}",
-            help=elem_cfg.get('help', elem_cfg['description']),
-        )
-        if is_selected:
-            selected_elements.append(elem_id)
-            if _ds_available and elem_id in COMPONENT_REGISTRY:
-                components_css.add(COMPONENT_REGISTRY[elem_id].css_file)
-            
-            # Mostrar opciones de variantes para módulos CMS
-            _render_cms_module_variants(
-                elem_id, elem_cfg, key_prefix, 
-                selected_variants, _ds_available
-            )
-    
-    # Advertencia si se seleccionan demasiados elementos
-    if len(selected_elements) > 8:
-        st.warning(
-            f"⚠️ Has seleccionado {len(selected_elements)} elementos visuales. "
-            f"Más de 8 puede saturar el prompt y reducir la calidad. "
-            f"Recomendado: 4-8 elementos."
-        )
+    def _label_for(eid: str) -> str:
+        return _ALL_ELEMENTS.get(eid, {}).get('label', eid)
 
-    # ── Preview de elementos seleccionados ──
-    if selected_elements:
-        with st.expander("👁️ Preview HTML de componentes seleccionados", expanded=False):
-            for elem_id in selected_elements:
-                template = _get_component_template(elem_id, _ds_available)
-                if template:
-                    label = (
-                        BASE_ELEMENTS.get(elem_id, {}).get('label') or
-                        TABLE_ELEMENTS.get(elem_id, {}).get('label') or
-                        CMS_MODULES.get(elem_id, {}).get('label', elem_id)
+    # ── Compact tag summary (default view) ──
+    if _archetype_visual:
+        _tag_labels = [_label_for(eid) for eid in _archetype_visual if eid in _ALL_ELEMENTS]
+        _tag_line = " · ".join(_tag_labels) if _tag_labels else "Ninguno"
+        st.markdown(f"✅ {_tag_line}")
+    else:
+        st.caption("Sin elementos pre-seleccionados — usa Personalizar para elegir")
+
+    # ── Toggle "Personalizar" ──
+    # Default to ON when no archetype data (rewrite mode / no archetype selected)
+    _customize = st.checkbox(
+        "Personalizar elementos visuales",
+        key=f"{key_prefix}_customize",
+        value=not bool(_archetype_visual),
+    )
+
+    if _customize:
+        # ── Full checkbox grid (same as before) ──
+        st.markdown("##### Elementos de artículo")
+
+        _STRUCTURE_IDS = ['toc', 'callout', 'callout_promo', 'callout_alert', 'verdict', 'grid', 'badges', 'buttons']
+        _CONTENT_IDS = ['faqs', 'intro_box', 'check_list', 'specs_list', 'product_module',
+                        'price_highlight', 'stats_grid', 'section_divider']
+
+        structure_items = [(k, v) for k, v in BASE_ELEMENTS.items() if k in _STRUCTURE_IDS]
+        content_items = [(k, v) for k, v in BASE_ELEMENTS.items() if k in _CONTENT_IDS]
+
+        # -- Bloque Estructura --
+        st.caption("Estructura y layout")
+        col1, col2 = st.columns(2)
+        for i, (elem_id, elem_cfg) in enumerate(structure_items):
+            target_col = col1 if i % 2 == 0 else col2
+            with target_col:
+                _default = (elem_id in _archetype_visual) if _archetype_visual else elem_cfg['default']
+                is_selected = st.checkbox(
+                    elem_cfg['label'],
+                    value=_default,
+                    key=f"{key_prefix}_{elem_id}",
+                    help=elem_cfg.get('help', elem_cfg['description']),
+                )
+                if is_selected:
+                    selected_elements.append(elem_id)
+                    if _ds_available and elem_id in COMPONENT_REGISTRY:
+                        components_css.add(COMPONENT_REGISTRY[elem_id].css_file)
+
+        # -- Bloque Contenido enriquecido --
+        st.caption("Contenido enriquecido")
+        col3, col4 = st.columns(2)
+        for i, (elem_id, elem_cfg) in enumerate(content_items):
+            target_col = col3 if i % 2 == 0 else col4
+            with target_col:
+                _default = (elem_id in _archetype_visual) if _archetype_visual else elem_cfg['default']
+                is_selected = st.checkbox(
+                    elem_cfg['label'],
+                    value=_default,
+                    key=f"{key_prefix}_{elem_id}",
+                    help=elem_cfg.get('help', elem_cfg['description']),
+                )
+                if is_selected:
+                    selected_elements.append(elem_id)
+                    if _ds_available and elem_id in COMPONENT_REGISTRY:
+                        components_css.add(COMPONENT_REGISTRY[elem_id].css_file)
+
+        # ── Sección TABLAS ──
+        st.markdown("##### Tablas")
+        st.caption("Puedes combinar varios tipos de tabla en el mismo artículo")
+        col_t1, col_t2, col_t3 = st.columns(3)
+        table_cols = [col_t1, col_t2, col_t3]
+
+        for i, (elem_id, elem_cfg) in enumerate(TABLE_ELEMENTS.items()):
+            with table_cols[i]:
+                _default = (elem_id in _archetype_visual) if _archetype_visual else elem_cfg['default']
+                is_selected = st.checkbox(
+                    elem_cfg['label'],
+                    value=_default,
+                    key=f"{key_prefix}_{elem_id}",
+                    help=elem_cfg.get('help', elem_cfg['description']),
+                )
+                if is_selected:
+                    selected_elements.append(elem_id)
+                    if _ds_available and elem_id in COMPONENT_REGISTRY:
+                        components_css.add(COMPONENT_REGISTRY[elem_id].css_file)
+
+        # ── Módulos CMS (colapsados) ──
+        with st.expander("🔧 Módulos CMS avanzados *(uso experto)*", expanded=False):
+            st.caption("Componentes ricos del CMS con variantes de estilo configurables")
+
+            for elem_id, elem_cfg in CMS_MODULES.items():
+                _default = (elem_id in _archetype_visual) if _archetype_visual else elem_cfg['default']
+                is_selected = st.checkbox(
+                    elem_cfg['label'],
+                    value=_default,
+                    key=f"{key_prefix}_{elem_id}",
+                    help=elem_cfg.get('help', elem_cfg['description']),
+                )
+                if is_selected:
+                    selected_elements.append(elem_id)
+                    if _ds_available and elem_id in COMPONENT_REGISTRY:
+                        components_css.add(COMPONENT_REGISTRY[elem_id].css_file)
+
+                    _render_cms_module_variants(
+                        elem_id, elem_cfg, key_prefix,
+                        selected_variants, _ds_available
                     )
-                    st.markdown(f"**{label}**")
-                    st.code(template, language="html")
-    
+
+        # Advertencia si se seleccionan demasiados elementos
+        if len(selected_elements) > 8:
+            st.warning(
+                f"⚠️ Has seleccionado {len(selected_elements)} elementos visuales. "
+                f"Más de 8 puede saturar el prompt y reducir la calidad. "
+                f"Recomendado: 4-8 elementos."
+            )
+
+        # ── Preview de elementos seleccionados ──
+        if selected_elements:
+            with st.expander("👁️ Preview HTML de componentes seleccionados", expanded=False):
+                for elem_id in selected_elements:
+                    template = _get_component_template(elem_id, _ds_available)
+                    if template:
+                        label = _label_for(elem_id)
+                        st.markdown(f"**{label}**")
+                        st.code(template, language="html")
+
+    else:
+        # ── Compact mode: use archetype defaults directly ──
+        selected_elements = list(_archetype_visual)
+        if _ds_available:
+            for eid in selected_elements:
+                if eid in COMPONENT_REGISTRY:
+                    components_css.add(COMPONENT_REGISTRY[eid].css_file)
+
     return {
         'selected': selected_elements,
         'variants': selected_variants,
