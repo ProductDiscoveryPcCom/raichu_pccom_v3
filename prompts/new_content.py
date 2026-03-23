@@ -1842,7 +1842,7 @@ El HTML debe empezar DIRECTAMENTE con <style>:
 ## REGLAS CRÍTICAS
 
 1. **NO** uses ```html ni marcadores markdown
-2. Empieza DIRECTAMENTE con `<style>`
+2. Empieza con `<!-- META: [meta description max 155 chars con keyword] -->` y luego `<style>`
 3. FAQs DEBEN incluir keyword: "Preguntas frecuentes sobre {keyword}"
 4. Si tienes datos de usuarios, ÚSALOS (ventajas/desventajas)
 5. Si tienes datos de productos enlazados, MENCIÓNALOS con sus características
@@ -2387,7 +2387,7 @@ def build_final_prompt_stage3(
 ## REGLAS ABSOLUTAS
 
 1. **NUNCA** uses ```html ni markdown
-2. Empieza DIRECTAMENTE con `<style>`
+2. Empieza con `<!-- META: ... -->` y luego `<style>`
 3. Longitud aproximada: ~{target_length} palabras
 4. FAQs: "Preguntas frecuentes sobre {keyword}"
 5. Incluye verdict-box
@@ -2397,6 +2397,7 @@ def build_final_prompt_stage3(
 9. Tono PcComponentes en cada párrafo
 10. **EMOJIS:** No usar emojis en el contenido generado.
 11. **ELEMENTOS VISUALES:** TODOS los elementos visuales solicitados DEBEN estar presentes.
+12. **META DESCRIPTION:** Incluye `<!-- META: ... -->` (max 155 chars con keyword) ANTES del `<style>` como primera línea del output.
 
 ## 🔍 CHECKLIST PRE-ENTREGA (OBLIGATORIO)
 

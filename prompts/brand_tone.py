@@ -335,6 +335,11 @@ REGLAS_CRITICAS_COMUNES = """
 - **Honestos pero no aburridos:** Si hay "peros", dilos
 - **Cercanos sin forzados:** Natural, no diminutivos ni emojis excesivos
 - **Varía** la estructura de cada párrafo
+
+## META DESCRIPTION
+Al INICIO del contenido (antes del `<style>`), incluye un comentario HTML con la meta description sugerida:
+`<!-- META: [max 155 caracteres, incluye la keyword principal, accionable y específica] -->`
+Ejemplo: `<!-- META: Comparamos RTX 4070 vs RTX 4080 en rendimiento, precio y consumo. Te decimos cuál comprar según tu setup. -->`
 """
 
 

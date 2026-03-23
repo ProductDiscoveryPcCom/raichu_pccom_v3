@@ -87,6 +87,7 @@ HTML_STRUCTURE_INSTRUCTIONS = """
 El contenido DEBE seguir esta estructura exacta de 3 articles:
 
 ```html
+<!-- META: [meta description max 155 chars con keyword] -->
 <!-- ARTICLE 1: CONTENIDO PRINCIPAL -->
 <article class="contentGenerator__main">
     <span class="kicker">TEXTO DEL KICKER</span>
@@ -735,7 +736,11 @@ def build_rewrite_prompt_stage1(
     objetivo = config.get('objetivo', '')
     context = config.get('context', '')
     arquetipo_codigo = config.get('arquetipo_codigo', '')
-    
+
+    # Keywords secundarias (excluir la principal)
+    all_keywords = config.get('keywords', [])
+    secondary_keywords = [k for k in all_keywords[1:] if k and k != keyword] if len(all_keywords) > 1 else []
+
     min_length = int(target_length * 0.95)
     max_length = int(target_length * 1.05)
     
@@ -771,7 +776,11 @@ La keyword "{keyword}" DEBE aparecer de forma natural en el contenido:
 - **Natural:** Integrada en frases reales, nunca forzada ni repetitiva
 - **FAQs:** El H2 de FAQs debe incluir la keyword: "Preguntas frecuentes sobre {keyword}"
 """]
-    
+
+    # Keywords secundarias
+    if secondary_keywords:
+        sections.append("\n## 🔑 KEYWORDS SECUNDARIAS\n" + "\n".join(f"- {k}" for k in secondary_keywords))
+
     if context:
         sections.append(f"\n**Contexto adicional:**\n{context}")
     
@@ -919,7 +928,7 @@ La keyword "{keyword}" DEBE aparecer de forma natural en el contenido:
 
 **GENERA AHORA EL BORRADOR HTML COMPLETO.**
 
-Responde SOLO con el HTML (desde el primer <article> hasta el último </article>).
+Responde SOLO con el HTML: primero `<!-- META: ... -->`, luego el contenido (desde el primer <article> hasta el último </article>).
 NO incluyas explicaciones ni texto fuera del HTML.
 """)
     
@@ -948,6 +957,10 @@ def build_rewrite_correction_prompt_stage2(
     products = config.get('products', [])  # v5.0
     arquetipo_code = config.get('arquetipo_codigo', '')
     visual_elements = config.get('visual_elements', [])
+
+    # Keywords secundarias
+    all_keywords = config.get('keywords', [])
+    secondary_keywords = [k for k in all_keywords[1:] if k and k != keyword] if len(all_keywords) > 1 else []
 
     # QW-1: Checklist específico del arquetipo
     archetype_checklist = ""
@@ -1038,6 +1051,7 @@ Eres un editor SEO senior de PcComponentes. Analiza el borrador y genera un info
 
 ## KEYWORD OBJETIVO
 "{keyword}"
+{"" if not secondary_keywords else chr(10) + "**Keywords secundarias:** " + ", ".join(secondary_keywords) + chr(10) + "Verifica que cada keyword secundaria aparece al menos 1 vez de forma natural."}
 
 ## OBJETIVO DEL CONTENIDO
 {objetivo if objetivo else 'Superar a la competencia'}
@@ -1089,9 +1103,10 @@ Genera un JSON con esta estructura:
     "en_primeras_100_palabras": true/false,
     "en_algun_h2": true/false,
     "distribucion": "buena/concentrada/ausente",
-    "correcciones_keyword": ["lista de ajustes necesarios"]
+    "correcciones_keyword": ["lista de ajustes necesarios"]{"," if secondary_keywords else ""}
+    {"" if not secondary_keywords else '"keywords_secundarias_presentes": ["lista de secundarias encontradas"],' + chr(10) + '    "keywords_secundarias_ausentes": ["lista de secundarias no encontradas"]'}
   }},
-  
+
   "cumplimiento_instrucciones": {{
     "mejoras_aplicadas": ["lista"],
     "mejoras_pendientes": ["lista"],
@@ -1190,7 +1205,11 @@ def build_rewrite_final_prompt_stage3(
     products = config.get('products', [])  # v5.0
     rewrite_instructions = config.get('rewrite_instructions', {})
     rewrite_mode = config.get('rewrite_mode', 'single')
-    
+
+    # Keywords secundarias
+    all_keywords = config.get('keywords', [])
+    secondary_keywords = [k for k in all_keywords[1:] if k and k != keyword] if len(all_keywords) > 1 else []
+
     min_length = int(target_length * 0.95)
     max_length = int(target_length * 1.05)
     
@@ -1320,6 +1339,7 @@ Esta es la ETAPA FINAL. Genera la versión DEFINITIVA aplicando TODAS las correc
 
 7. **APLICAR todas las correcciones**
 8. **KEYWORD "{keyword}"** - Densidad 1-2%, en primeras 100 palabras, en al menos 1 H2, distribuida en inicio/medio/final
+{"   - **Keywords secundarias** (incluir de forma natural): " + ", ".join(secondary_keywords) if secondary_keywords else ""}
 9. **INCLUIR todos los enlaces** (editoriales, productos, alternativos)
 10. **TONO PcComponentes** - Experto, cercano, nunca negativo
 11. **SUPERAR a la competencia**
