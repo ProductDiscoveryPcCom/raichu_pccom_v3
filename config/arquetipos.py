@@ -205,7 +205,7 @@ ARQUETIPOS: Dict[str, Dict[str, Any]] = {
         "default_length": 1800,
         "min_length": 1200,
         "max_length": 2800,
-        "visual_elements": ["toc", "table", "verdict"],
+        "visual_elements": ["toc", "comparison_table", "verdict"],
         "campos_especificos": ["producto_a_url", "producto_b_url", "criterios_comparacion", "ganador"]
     },
     
@@ -274,7 +274,7 @@ ARQUETIPOS: Dict[str, Dict[str, Any]] = {
         "default_length": 2200,
         "min_length": 1500,
         "max_length": 4000,
-        "visual_elements": ["toc", "table", "grid", "verdict"],
+        "visual_elements": ["toc", "grid", "badges", "verdict"],
         "campos_especificos": ["categoria", "productos_lista", "criterio_ranking", "mejor_global", "mejor_calidad_precio"]
     },
     
@@ -402,7 +402,7 @@ ARQUETIPOS: Dict[str, Dict[str, Any]] = {
         "default_length": 1500,
         "min_length": 1000,
         "max_length": 2200,
-        "visual_elements": ["toc", "callout", "check_list"],
+        "visual_elements": ["toc", "callout"],
         "campos_especificos": ["problema", "causas", "nivel_tecnico", "riesgos", "productos_solucion"]
     },
     
@@ -568,7 +568,7 @@ ARQUETIPOS: Dict[str, Dict[str, Any]] = {
         "default_length": 1500,
         "min_length": 1000,
         "max_length": 2200,
-        "visual_elements": ["toc", "table", "callout"],
+        "visual_elements": ["toc"],
         "campos_especificos": ["producto_nuevo", "fecha_lanzamiento", "precio", "mejoras_clave"]
     },
     
@@ -666,7 +666,7 @@ ARQUETIPOS: Dict[str, Dict[str, Any]] = {
         "default_length": 1500,
         "min_length": 1000,
         "max_length": 2500,
-        "visual_elements": ["toc", "callout_promo", "grid", "table"],
+        "visual_elements": ["toc", "callout_promo", "grid", "badges"],
         "campos_especificos": ["tipo_promocion", "fechas_exactas", "mejores_ofertas", "codigos_descuento"]
     },
     
@@ -701,7 +701,7 @@ ARQUETIPOS: Dict[str, Dict[str, Any]] = {
         "default_length": 2000,
         "min_length": 1500,
         "max_length": 4000,
-        "visual_elements": ["toc", "callout_promo", "grid", "table", "verdict"],
+        "visual_elements": ["toc", "callout_promo", "grid", "verdict"],
         "campos_especificos": ["fechas_bf", "ofertas_estrella", "ofertas_flash", "categorias_destacadas"]
     },
     
@@ -869,7 +869,7 @@ ARQUETIPOS: Dict[str, Dict[str, Any]] = {
         "default_length": 1700,
         "min_length": 1100,
         "max_length": 2600,
-        "visual_elements": ["toc", "table", "verdict"],
+        "visual_elements": ["toc", "comparison_table", "verdict"],
         "campos_especificos": ["consolas", "juegos_exclusivos", "accesorios_recomendados"]
     },
     
@@ -1267,7 +1267,7 @@ ARQUETIPOS: Dict[str, Dict[str, Any]] = {
         "default_length": 2000,
         "min_length": 1500,
         "max_length": 3500,
-        "visual_elements": [],
+        "visual_elements": ["toc", "table", "verdict"],
         "campos_especificos": [
             "modo_marca",
             "keyword_principal",
