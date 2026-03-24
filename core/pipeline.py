@@ -65,7 +65,7 @@ def _get_module_flags():
         flags['_brand_tone_available'] = False
     
     try:
-        from config.settings import DEBUG_MODE, CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS, TEMPERATURE
+        from core.config import CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS, TEMPERATURE, DEBUG_MODE
         flags['DEBUG_MODE'] = DEBUG_MODE
         flags['CLAUDE_API_KEY'] = CLAUDE_API_KEY
         flags['CLAUDE_MODEL'] = CLAUDE_MODEL
@@ -721,8 +721,8 @@ Formato tu respuesta de manera clara y accionable."""
                     if composite < 70 and quality_result['priority_fixes']:
                         try:
                             from core.generator import ContentGenerator
-                            from config.settings import CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS, TEMPERATURE
-                            
+                            from core.config import CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS, TEMPERATURE
+
                             fixes_text = "\n".join(
                                 f"- {fix['description']}" for fix in quality_result['priority_fixes'][:5]
                             )
@@ -1128,7 +1128,7 @@ def _auto_retry_missing_elements(html_content: str, missing_ids: List[str]) -> b
     """
     try:
         from core.generator import ContentGenerator
-        from config.settings import CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS, TEMPERATURE
+        from core.config import CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS, TEMPERATURE
         extract_html_content = _extract_html_content
     except ImportError as e:
         logger.warning(f"Auto-retry: imports no disponibles: {e}")
@@ -1324,9 +1324,9 @@ def _check_engagement_elements(html_content: str, check_mini_stories: bool = Tru
     
     try:
         from core.generator import ContentGenerator
-        from config.settings import CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS, TEMPERATURE
+        from core.config import CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS, TEMPERATURE
         extract_html_content = _extract_html_content
-        
+
         fixes_text = "\n".join(f"- {f}" for f in fixes_needed)
         
         engagement_prompt = f"""Eres un editor de PcComponentes. El HTML siguiente necesita mejoras de engagement.

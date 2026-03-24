@@ -94,7 +94,7 @@ def generate_meta(
     # Llamar a Claude
     try:
         from core.generator import ContentGenerator
-        from config.settings import CLAUDE_API_KEY, CLAUDE_MODEL, TEMPERATURE
+        from core.config import CLAUDE_API_KEY, CLAUDE_MODEL, TEMPERATURE
         
         generator = ContentGenerator(
             api_key=CLAUDE_API_KEY,

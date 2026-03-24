@@ -519,7 +519,7 @@ def _execute_refinement(refine_prompt: str) -> None:
     """Ejecuta refinamiento del contenido con Claude."""
     try:
         from core.generator import ContentGenerator
-        from config.settings import CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS, TEMPERATURE
+        from core.config import CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS, TEMPERATURE
     except ImportError as e:
         logger.error(f"Módulos no disponibles: {e}")
         st.error("❌ Módulos de generación no disponibles. Verifica la instalación.")
@@ -1217,7 +1217,7 @@ def _execute_translation(
     with st.spinner(f"Traduciendo a {lang.flag} {lang.name}... (adaptación contextualizada)"):
         try:
             from core.generator import extract_html_content
-            from config.settings import CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS
+            from core.config import CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS
 
             generator = _get_or_create_generator(
                 CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS, 0.3,
@@ -1300,7 +1300,7 @@ def _execute_batch_translation(
 
         try:
             from core.generator import extract_html_content
-            from config.settings import CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS
+            from core.config import CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS
 
             generator = _get_or_create_generator(
                 CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS, 0.3,
