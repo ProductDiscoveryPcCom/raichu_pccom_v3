@@ -73,41 +73,6 @@ except ImportError as e:
     def get_heading_hierarchy(html): return []
 
 # ============================================================================
-# IMPORTS DE STATE_MANAGER
-# ============================================================================
-
-try:
-    from .state_manager import (
-        initialize_session_state,
-        clear_generation_state,
-        save_generation_to_state,
-        save_config_to_state,
-        clear_all_state,
-        has_any_results,
-        get_all_results,
-        get_generation_progress,
-        save_form_data,
-        get_form_data,
-        get_form_value,
-    )
-    _state_manager_available = True
-except ImportError as e:
-    logger.warning(f"No se pudo importar state_manager: {e}")
-    _state_manager_available = False
-    
-    def initialize_session_state(): pass
-    def clear_generation_state(): pass
-    def save_generation_to_state(*args, **kwargs): return ""
-    def save_config_to_state(config): pass
-    def clear_all_state(): pass
-    def has_any_results(): return False
-    def get_all_results(): return {}
-    def get_generation_progress(): return {}
-    def save_form_data(data): pass
-    def get_form_data(): return {}
-    def get_form_value(key, default=None): return default
-
-# ============================================================================
 # GSC UTILS (OPCIONAL)
 # ============================================================================
 
@@ -196,18 +161,6 @@ __all__ = [
     # HTML utils - Enlaces
     'analyze_links',
     'get_heading_hierarchy',
-    # State manager
-    'initialize_session_state',
-    'clear_generation_state',
-    'save_generation_to_state',
-    'save_config_to_state',
-    'clear_all_state',
-    'has_any_results',
-    'get_all_results',
-    'get_generation_progress',
-    'save_form_data',
-    'get_form_data',
-    'get_form_value',
     # Flags
     'GSC_AVAILABLE',
     'SCRUBBER_AVAILABLE',

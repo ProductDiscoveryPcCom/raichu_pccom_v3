@@ -68,25 +68,6 @@ except ImportError as e:
     _templates_available = False
 
 # ============================================================================
-# IMPORTS OPCIONALES DE CONTENT (para compatibilidad)
-# ============================================================================
-
-try:
-    from .content import (
-        build_guide_prompt,
-        build_review_prompt,
-        build_comparison_prompt,
-        build_tutorial_prompt,
-        build_ranking_prompt,
-        get_content_prompt_by_type,
-        CONTENT_TYPE_BUILDERS,
-    )
-    _content_available = True
-except ImportError as e:
-    logger.warning(f"No se pudo importar prompts.content: {e}")
-    _content_available = False
-
-# ============================================================================
 # EXPORTS
 # ============================================================================
 
@@ -120,14 +101,3 @@ if _templates_available:
         'format_dict_for_prompt',
     ])
 
-# Añadir exports de content si están disponibles
-if _content_available:
-    __all__.extend([
-        'build_guide_prompt',
-        'build_review_prompt',
-        'build_comparison_prompt',
-        'build_tutorial_prompt',
-        'build_ranking_prompt',
-        'get_content_prompt_by_type',
-        'CONTENT_TYPE_BUILDERS',
-    ])

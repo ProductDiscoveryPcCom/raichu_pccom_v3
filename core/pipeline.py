@@ -967,13 +967,6 @@ Genera el HTML corregido:"""
                     icon = "✅" if c['ok'] else "⚠️"
                     st.markdown(f"{icon} **{c['name']}** — {c['detail']}")
 
-        # Guardar metadata
-        try:
-            from utils.state_manager import save_generation_to_state
-            save_generation_to_state(config, mode)
-        except ImportError:
-            pass
-        
     except Exception as e:
         logger.error(f"Error en pipeline: {e}\n{traceback.format_exc()}")
         # Show generic message to user; full traceback only in logs
