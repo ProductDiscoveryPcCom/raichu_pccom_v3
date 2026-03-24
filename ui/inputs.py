@@ -1623,7 +1623,7 @@ def render_visual_elements_selector(key_prefix: str = "visual_elem", arquetipo_c
     # Enlace a la biblioteca visual (servida como archivo estático por Streamlit)
     st.link_button(
         "📚 Ver Biblioteca Visual",
-        url="/_statics/biblioteca_visual.html",
+        url="/app/static/biblioteca_visual.html",
         help="Catálogo con todos los componentes renderizados con el CSS real del CMS. Se abre en pestaña nueva.",
     )
 
