@@ -334,9 +334,15 @@ def _merge_json_analyses(claude: Dict, openai: Dict) -> str:
             seen.add(desc)
             merged_problems.append(p)
 
-    # Tomar el peor score
+    # Tomar el peor score (defensivo: puntuacion_general puede ser dict o número)
     claude_score = claude.get('puntuacion_general', 0)
     openai_score = openai.get('puntuacion_general', 0)
+    if isinstance(claude_score, dict):
+        claude_score = claude_score.get('general', claude_score.get('total', 0))
+    if isinstance(openai_score, dict):
+        openai_score = openai_score.get('general', openai_score.get('total', 0))
+    claude_score = claude_score if isinstance(claude_score, (int, float)) else 0
+    openai_score = openai_score if isinstance(openai_score, (int, float)) else 0
     min_score = min(claude_score, openai_score) if claude_score and openai_score else claude_score or openai_score
 
     # Combinar frases de IA detectadas
@@ -366,10 +372,14 @@ def _merge_json_analyses(claude: Dict, openai: Dict) -> str:
             merged['enlaces'] = {}
         merged['enlaces']['faltantes'] = all_missing
 
-    # Añadir aspectos positivos de ambos
+    # Añadir aspectos positivos de ambos (defensivo: pueden ser dicts no hashables)
     claude_positives = claude.get('aspectos_positivos', [])
     openai_positives = openai.get('aspectos_positivos', [])
-    merged['aspectos_positivos'] = list(set(claude_positives + openai_positives))
+    seen_positives = []
+    for p in claude_positives + openai_positives:
+        if p not in seen_positives:
+            seen_positives.append(p)
+    merged['aspectos_positivos'] = seen_positives
 
     # Recomendación combinada
     claude_rec = claude.get('recomendacion_principal', '')
