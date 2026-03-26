@@ -4,7 +4,7 @@ Aplica a: `app.py` y `ui/*.py`
 
 ## Session state — keys core
 
-Inicializadas en `initialize_app()` (app.py L365-386):
+Inicializadas en `initialize_app()` (`core/session.py`):
 
 | Key | Tipo | Descripcion |
 |-----|------|-------------|
@@ -33,27 +33,27 @@ Inicializadas en `initialize_app()` (app.py L365-386):
 
 ## Aislamiento de modos
 
-Al cambiar de modo (app.py L485-498):
+Al cambiar de modo (`core/session.py`):
 
 1. `_save_mode_results(previous_mode)` — guarda las keys de `_MODE_RESULT_KEYS` en `_saved_results_{mode}`
 2. `_restore_mode_results(new_mode)` — restaura resultados previos del modo entrante
 
-**`_MODE_RESULT_KEYS`** (app.py L503-507):
+**`_MODE_RESULT_KEYS`** (`core/session.py`):
 ```python
 ['draft_html', 'analysis_json', 'final_html',
  'rewrite_analysis', 'content_history', 'generation_metadata',
  'last_config', 'timestamp']
 ```
 
-Las keys `translated_html_*` se guardan/restauran por separado (L518-530).
+Las keys `translated_html_*` se guardan/restauran por separado.
 
 ## Como anadir un modo nuevo
 
-1. Anadir el string del modo a `options` en `st.radio()` (app.py L454)
-2. Anadir nombre display al dict `format_func` (app.py L455-461)
-3. Crear funcion `render_X_mode()` (en app.py o en `ui/x_mode.py`)
-4. Anadir branch `elif mode == 'x':` en el routing de `main()` (app.py L1562-1577)
-5. Si el modo genera contenido, anadirlo al check `if mode in [...]` (app.py L1581)
+1. Anadir el string del modo a `options` en `st.radio()` (app.py)
+2. Anadir nombre display al dict `format_func` (app.py)
+3. Crear funcion `render_X_mode()` en `ui/x_mode.py`
+4. Anadir branch en el routing de `ui/router.py` o `main()` (app.py)
+5. Si el modo genera contenido, anadirlo al check correspondiente
 
 ## Patron de validacion
 

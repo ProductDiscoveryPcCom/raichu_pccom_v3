@@ -42,32 +42,22 @@ Agente especializado en extraer logica del monolito `app.py` (1592 lineas, 29 fu
 ### Fallbacks
 - `get_arquetipo()`, `get_arquetipo_names()`, `count_words_in_html()`, `extract_html_content()`, `get_system_prompt_base()` — definiciones fallback si los imports fallan
 
-## Plan de extraccion (por orden de riesgo)
+## Plan de extraccion (por orden de riesgo) — COMPLETADO
 
-### 1. `auth.py` (BAJO riesgo)
+### 1. `core/auth.py` — HECHO
+Extraido: `check_auth()` — autenticacion con hmac contra st.secrets.
 
-Extraer: `check_auth()`
-- Funcion pura, solo depende de `st.secrets`, `hmac`, `hashlib`, `st.session_state`
-- Sin dependencias de otros modulos del proyecto
-- ~50 lineas
+### 2. `core/config.py` — HECHO
+Extraido: bridge de API keys (st.secrets → os.environ para downstream). ANTHROPIC_API_KEY NO se copia a os.environ — se inyecta directamente via parametro `api_key` de ContentGenerator.
 
-### 2. `app_config.py` (BAJO riesgo)
+### 3. `core/session.py` — HECHO
+Extraido: `initialize_app()`, `_save_mode_results()`, `_restore_mode_results()`, `clear_session_state()`, `_MODE_RESULT_KEYS`.
 
-Extraer: `_load_config()` + todo el bloque de bridge de API keys (L72-214)
-- Incluye: carga de config, bridge st.secrets → os.environ para Claude, OpenAI, Gemini, SEMrush, SerpAPI
-- Exporta: `CLAUDE_API_KEY`, `CLAUDE_MODEL`, `MAX_TOKENS`, `TEMPERATURE`, `DEBUG_MODE`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `GEMINI_API_KEY`
+### 4. `ui/verify.py` — HECHO
+Extraido: `render_verify_mode()` y guia de verificacion.
 
-### 3. `state.py` (MEDIO riesgo)
-
-Extraer: `initialize_app()`, `_save_mode_results()`, `_restore_mode_results()`, `clear_session_state()`, `save_generation_to_state()`, `_MODE_RESULT_KEYS`
-- Cohesivo: todo es gestion de `st.session_state`
-- `render_app_header()` llama a save/restore, necesitara importar de aqui
-
-### 4. `ui/verify.py` (MEDIO riesgo)
-
-Extraer: `render_verify_mode()`, `render_verify_results()`, `_render_verify_guide()`
-- Consistente con el patron existente: `ui/opportunities.py` ya es un modulo separado
-- El modo verify se importa inline en main() como opportunities
+### 5. `ui/router.py` — HECHO (adicional)
+Extraido: routing de modos.
 
 ## Constraints
 
@@ -85,6 +75,6 @@ Despues de CADA extraccion:
 3. Verificar debug panel — confirmar que todos los modulos aparecen como disponibles
 4. Hacer commit individual por extraccion
 
-## Objetivo final
+## Estado actual
 
-Reducir app.py a ~400 lineas: solo imports, routing en `main()`, `render_app_header()`, y fallbacks.
+app.py reducido a ~836 lineas. Contiene: imports, routing en `main()`, `render_app_header()`, fallbacks, y delegacion de pipeline. Futuras extracciones podrian reducirlo mas (~400 lineas objetivo original).

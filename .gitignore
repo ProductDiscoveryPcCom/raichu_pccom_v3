@@ -6,6 +6,9 @@ __pycache__/
 .env
 .streamlit/secrets.toml
 credentials.json
+*.local
+.claude/settings.local.json
+.venv/
 
 .coverage
 coverage.xml

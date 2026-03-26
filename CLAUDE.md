@@ -12,7 +12,7 @@ Aplicacion Streamlit para generacion automatizada de contenido SEO para PcCompon
 ## Estructura del proyecto
 
 ```
-app.py                  # Entrypoint: routing de modos, auth, config, pipeline delegation (1592 lineas)
+app.py                  # Entrypoint: routing de modos, header, fallbacks (~836 lineas)
 VERSION                 # Source of truth para version ("5.1.0")
 version.py              # Lee VERSION, exporta __version__
 
@@ -22,8 +22,11 @@ config/
   design_system.py       # CSS components y sistema de diseno visual
 
 core/
+  config.py              # Bridge: copia modelo y params a os.environ para downstream
   generator.py           # ContentGenerator class, GenerationResult, retry logic
-  pipeline.py            # Orquestacion del pipeline de 3 etapas (1420 lineas)
+  pipeline.py            # Orquestacion del pipeline de 3 etapas
+  auth.py                # Autenticacion (hmac contra st.secrets)
+  session.py             # Gestion de session state (init, save/restore modos)
   scraper.py             # Scraping de competidores y productos
   openai_client.py       # Wrapper OpenAI para correccion dual (Stage 2)
   semrush.py             # Integracion API SEMrush (keyword research)
@@ -31,17 +34,19 @@ core/
   n8n_integration.py     # Webhooks n8n para datos de producto
 
 prompts/
-  new_content.py         # Prompts para contenido nuevo (Stage 1/2/3, 1885 lineas)
-  rewrite.py             # Prompts para reescritura competitiva (Stage 1/2/3, 1374 lineas)
+  new_content.py         # Prompts para contenido nuevo (Stage 1/2/3)
+  rewrite.py             # Prompts para reescritura competitiva (Stage 1/2/3)
   brand_tone.py          # Tono de marca, instrucciones anti-IA, system prompts base
   templates.py           # Templates HTML/CSS
 
 ui/
-  inputs.py              # Formularios de entrada y validacion (2855 lineas)
-  rewrite.py             # UI modo reescritura (2562 lineas)
-  results.py             # Visualizacion de resultados (2236 lineas)
+  inputs.py              # Formularios de entrada y validacion
+  rewrite.py             # UI modo reescritura
+  results.py             # Visualizacion de resultados
   opportunities.py       # Modo oportunidades GSC/SEMrush
   assistant.py           # Chat asistente con comandos internos
+  verify.py              # Modo verificacion de canibalizacion
+  router.py              # Routing de modos
   sidebar.py             # Barra lateral
   gsc_section.py         # Seccion GSC en UI
 
@@ -53,16 +58,17 @@ utils/
   image_gen.py           # Generacion de imagenes con Gemini
   product_json_utils.py  # Parse/validacion JSON de productos
   translation.py         # Traduccion de contenido
-  + 10 modulos mas de utilidades especializadas
+  + 12 modulos mas de utilidades especializadas
 
 tests/
+  conftest.py            # Fixtures de pytest
   test_modular.py        # Tests basicos de imports y arquetipos
-  + 6 archivos de test adicionales
+  + 12 archivos de test adicionales (462 tests)
 ```
 
 ## Cascada de API keys
 
-Prioridad de carga (app.py L72-214):
+Prioridad de carga:
 1. `st.secrets` (Streamlit Cloud) — keys: `claude_key`, `openai_key`, `gemini_key`, `semrush.api_key`, `serpapi_key`
 2. `config.settings` — importa `CLAUDE_API_KEY`, `CLAUDE_MODEL`, etc.
 3. `os.getenv()` — fallback: `ANTHROPIC_API_KEY`, `CLAUDE_API_KEY`, etc.
@@ -108,6 +114,6 @@ Los `__version__` en `config/settings.py` y `config/arquetipos.py` estan desactu
 ## NO TOCAR
 
 - **`.streamlit/secrets.toml`** — API keys reales, excluido de git
-- **Patron de degradacion graceful** — 12 flags `_X_available` en app.py (L227-326). Cada modulo se importa con try/except y flag booleano. Si un modulo falla, la app sigue funcionando sin esa feature. No eliminar estos bloques.
+- **Patron de degradacion graceful** — flags `_X_available` en app.py. Cada modulo se importa con try/except y flag booleano. Si un modulo falla, la app sigue funcionando sin esa feature. No eliminar estos bloques.
 - **Estructura CMS 3-article** — El HTML generado DEBE contener 3 `<article>` con clases: `contentGenerator__main`, `contentGenerator__faqs`, `contentGenerator__verdict`. Esta estructura es requerida por el CMS de PcComponentes.
-- **Aislamiento de session state por modo** — `_save_mode_results()` / `_restore_mode_results()` (app.py L510-537). Al cambiar de modo se guardan/restauran los resultados para no perder trabajo.
+- **Aislamiento de session state por modo** — `_save_mode_results()` / `_restore_mode_results()` en `core/session.py`. Al cambiar de modo se guardan/restauran los resultados para no perder trabajo.

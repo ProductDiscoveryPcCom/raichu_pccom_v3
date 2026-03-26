@@ -1,402 +1,162 @@
-# 🚀 PcComponentes Content Generator
+# PcComponentes Content Generator
 
-**Versión 5.1.0** | Generador de contenido SEO optimizado con IA
+**Version 5.1.0** | Generador de contenido SEO optimizado con IA
 
-Aplicación Streamlit que genera contenido de alta calidad para PcComponentes usando Claude AI, con análisis competitivo, validación CMS y flujo de 3 etapas para máxima calidad.
-
----
-
-## 📋 Tabla de Contenidos
-
-- [Características](#-características)
-- [Requisitos Previos](#-requisitos-previos)
-- [Instalación](#-instalación)
-- [Configuración](#️-configuración)
-- [Uso](#-uso)
-- [Estructura del Proyecto](#-estructura-del-proyecto)
-- [Modos de Generación](#-modos-de-generación)
-- [Arquitectura](#️-arquitectura)
-- [Desarrollo](#-desarrollo)
-- [Troubleshooting](#-troubleshooting)
-- [Changelog](#-changelog)
-- [Contribuir](#-contribuir)
-- [Licencia](#-licencia)
+Aplicacion Streamlit que genera contenido de alta calidad para PcComponentes usando Claude AI, con analisis competitivo, validacion CMS y flujo de 3 etapas.
 
 ---
 
-## ✨ Características
+## Caracteristicas
 
-### 🎯 Generación de Contenido
-
-- **18 Arquetipos predefinidos**: Reviews, guías, comparativas, noticias, etc.
-- **Flujo de 3 etapas**: Borrador → Análisis Crítico → Versión Final
-- **Validación CMS v4.1.1**: Estructura HTML compatible con el CMS de PcComponentes
-- **Control de longitud preciso**: ±5% del objetivo
-- **Tono de marca**: Aspiracional, positivo, experto pero cercano
-
-### 🔄 Modo Reescritura Competitiva
-
-- **Análisis automático** de top 5 competidores en Google
-- **Identificación de gaps** de contenido
-- **Generación mejorada** que supera a la competencia
-- **Validación competitiva** en análisis crítico
-
-### 🔍 Validaciones Automáticas
-
-- Estructura HTML CMS-compatible (3 articles)
-- Word count y precisión
-- Enlaces internos y externos
-- Elementos clave (callouts, FAQs, verdict)
-- CSS y clases correctas
-
-### 📊 Análisis y Métricas
-
-- Análisis de estructura HTML
-- Conteo preciso de palabras
-- Validación de enlaces
-- Detección de problemas críticos
-- Sugerencias de mejora
+- **34 arquetipos SEO**: Reviews, guias, comparativas, noticias, rankings, etc.
+- **Flujo de 3 etapas**: Borrador -> Analisis Critico (Claude + OpenAI dual) -> Version Final
+- **Validacion CMS**: Estructura HTML compatible (3 articles obligatorios)
+- **5 modos**: Nuevo, Reescritura competitiva, Verificacion GSC, Oportunidades, Asistente
+- **Tono de marca**: Anti-IA, personalidad PcComponentes, 6 pilares de tono
+- **Integraciones**: Google Search Console, SEMrush, SerpAPI, Google Gemini (imagenes)
 
 ---
 
-## 🔧 Requisitos Previos
+## Requisitos
 
-- **Python 3.9+** (recomendado 3.11)
+- **Python 3.11+**
 - **API Key de Anthropic** (Claude)
-- **Conexión a internet** (para scraping y API calls)
-- **(Opcional) Google Search Console API** para verificación de keywords
+- **(Opcional)** OpenAI API key (correccion dual Stage 2), Google Gemini, SEMrush, SerpAPI, Google Search Console
 
 ---
 
-## 📥 Instalación
+## Instalacion
 
-### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/tu-usuario/content-generator.git
-cd content-generator
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+# .venv\Scripts\activate   # Windows
+
+pip install -r requirements.txt        # produccion
+pip install -r requirements-dev.txt    # desarrollo (incluye pytest, black, flake8)
 ```
 
-### 2. Crear entorno virtual
+### Configuracion
+
+API keys via `.env` o `.streamlit/secrets.toml` (para Streamlit Cloud):
+
 ```bash
-# Linux/Mac
-python -m venv venv
-source venv/bin/activate
-
-# Windows
-python -m venv venv
-venv\Scripts\activate
-```
-
-### 3. Instalar dependencias
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Configurar variables de entorno
-
-Copia el archivo de ejemplo y edita con tus credenciales:
-```bash
-cp .env.example .env
-# Editar .env con tu API key de Claude
-```
-
----
-
-## ⚙️ Configuración
-
-### Variables de Entorno
-
-Crear archivo `.env` en la raíz del proyecto:
-```bash
-# API Keys
-ANTHROPIC_API_KEY=tu-api-key-aqui
-
-# Configuración de Claude
+# .env
+ANTHROPIC_API_KEY=sk-ant-...
 CLAUDE_MODEL=claude-sonnet-4-20250514
-MAX_TOKENS=8000
-TEMPERATURE=0.7
-
-# Configuración de la App
-DEBUG_MODE=False
 ```
 
-### Secrets para Streamlit Cloud
-
-Crear `.streamlit/secrets.toml`:
-```toml
-[api]
-claude_key = "tu-api-key-aqui"
-
-[settings]
-debug_mode = false
-```
-
-### Configuración de Streamlit
-
-Crear `.streamlit/config.toml`:
-```toml
-[theme]
-primaryColor = "#FF6000"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F0F2F6"
-textColor = "#262730"
-font = "sans serif"
-
-[server]
-maxUploadSize = 200
-enableXsrfProtection = true
-enableCORS = false
-```
+Cascada de prioridad: `st.secrets` -> `config.settings` -> `os.getenv()`
 
 ---
 
-## 🚀 Uso
+## Uso
 
-### Ejecución Local
 ```bash
-streamlit run app.py
-```
-
-La aplicación se abrirá en `http://localhost:8501`
-
-### Despliegue en Streamlit Cloud
-
-1. Push del código a GitHub
-2. Conectar repositorio en [share.streamlit.io](https://share.streamlit.io)
-3. Configurar secrets en Settings > Secrets
-4. Deploy automático
-
----
-
-## 📁 Estructura del Proyecto
-```
-content-generator-mvp/
-├── app.py                          # Aplicación principal
-├── requirements.txt                # Dependencias Python
-├── .env.example                    # Ejemplo de variables de entorno
-├── .gitignore                      # Archivos a ignorar en Git
-├── README.md                       # Este archivo
-│
-├── config/                         # Configuración
-│   ├── __init__.py
-│   ├── settings.py                 # Configuración general
-│   ├── archetipos.py               # 18 arquetipos de contenido
-│   ├── brand.py                    # Tono de marca y CSS
-│   └── cms_compatible.css          # CSS del CMS
-│
-├── core/                           # Lógica principal
-│   ├── __init__.py
-│   ├── generator.py                # ContentGenerator class
-│   └── scraper.py                  # Scraping de datos
-│
-├── prompts/                        # Prompts de IA
-│   ├── __init__.py
-│   ├── new_content.py              # Prompts para contenido nuevo
-│   └── rewrite.py                  # Prompts para reescritura
-│
-├── ui/                             # Componentes de interfaz
-│   ├── __init__.py
-│   ├── sidebar.py                  # Sidebar con configuración
-│   ├── inputs.py                   # Inputs de contenido
-│   ├── results.py                  # Visualización de resultados
-│   └── rewrite.py                  # Interfaz de reescritura
-│
-├── utils/                          # Utilidades
-│   ├── __init__.py
-│   ├── html_utils.py               # Procesamiento HTML
-│   └── state_manager.py            # Gestión de estado
-│
-├── .streamlit/                     # Config de Streamlit
-│   ├── config.toml                 # Tema y configuración
-│   └── secrets.toml.example        # Ejemplo de secrets
-│
-└── tests/                          # Tests (opcional)
-    ├── __init__.py
-    └── test_modular.py
+streamlit run app.py          # Ejecutar la app
+pytest tests/                 # Ejecutar tests
 ```
 
 ---
 
-## 🎨 Modos de Generación
+## Estructura del Proyecto
 
-### 📝 Modo: Crear Nuevo
+```
+app.py                  # Entrypoint: routing, header, fallbacks (~836 lineas)
+VERSION                 # Source of truth para version ("5.1.0")
+version.py              # Lee VERSION, exporta __version__
 
-Genera contenido desde cero basándose en arquetipos predefinidos.
+config/
+  settings.py           # Variables de configuracion (API keys, modelos, timeouts)
+  arquetipos.py         # 34 arquetipos SEO (ARQ-1 a ARQ-34)
+  design_system.py      # CSS components y sistema de diseno visual
 
-**Flujo:**
-1. Seleccionar arquetipo (18 opciones)
-2. Configurar parámetros (producto, keywords, longitud)
-3. Generar en 3 etapas
-4. Validar y exportar
+core/
+  config.py             # Bridge: copia params a os.environ para downstream
+  generator.py          # ContentGenerator class, GenerationResult, retry logic
+  pipeline.py           # Orquestacion del pipeline de 3 etapas
+  auth.py               # Autenticacion (hmac contra st.secrets)
+  session.py            # Gestion de session state (init, save/restore modos)
+  scraper.py            # Scraping de competidores y productos
+  openai_client.py      # Wrapper OpenAI para correccion dual (Stage 2)
+  semrush.py            # Integracion API SEMrush
+  cms_publisher.py      # Publicacion a CMS
+  n8n_integration.py    # Webhooks n8n para datos de producto
 
-**Ideal para:**
-- Artículos nuevos
-- Reviews de productos
-- Guías y tutoriales
-- Comparativas
-- Contenido original
+prompts/
+  new_content.py        # Prompts para contenido nuevo (Stage 1/2/3)
+  rewrite.py            # Prompts para reescritura competitiva (Stage 1/2/3)
+  brand_tone.py         # Tono de marca, instrucciones anti-IA, system prompts base
+  templates.py          # Templates HTML/CSS
 
-### 🔄 Modo: Reescritura
+ui/
+  inputs.py             # Formularios de entrada y validacion
+  rewrite.py            # UI modo reescritura
+  results.py            # Visualizacion de resultados
+  opportunities.py      # Modo oportunidades GSC/SEMrush
+  assistant.py          # Chat asistente con comandos internos
+  verify.py             # Modo verificacion de canibalizacion
+  router.py             # Routing de modos
+  sidebar.py            # Barra lateral
+  gsc_section.py        # Seccion GSC en UI
 
-Analiza competidores y genera contenido superior.
+utils/                  # 19 modulos de utilidades
+  html_utils.py         # Conteo de palabras, validacion HTML, deteccion frases IA
+  gsc_utils.py          # Google Search Console (cache, canibalizacion, CSV fallback)
+  gsc_api.py            # API GSC directa
+  serp_research.py      # Investigacion SERP (DuckDuckGo/SerpAPI)
+  image_gen.py          # Generacion de imagenes con Gemini
+  + 14 modulos mas (translation, meta_generator, quality_scorer, etc.)
 
-**Flujo:**
-1. Introducir keyword objetivo
-2. Scraping automático de top 5 URLs
-3. Análisis competitivo (gaps, fortalezas, debilidades)
-4. Generación mejorada en 3 etapas
-5. Validación competitiva
-
-**Ideal para:**
-- Mejorar contenido existente
-- Competir por keywords específicas
-- Superar a competidores
-- Contenido diferenciado
+tests/                  # 13 archivos de test, 462 tests
+  conftest.py           # Fixtures de pytest
+  test_modular.py       # Tests basicos de imports y arquetipos
+  + 12 archivos de test adicionales
+```
 
 ---
 
-## 🏗️ Arquitectura
+## Arquitectura
 
-### Flujo de Generación (3 Etapas)
+### Pipeline de 3 etapas
+
 ```
-┌─────────────────────────────────────────────┐
-│         ETAPA 1: BORRADOR INICIAL           │
-│  - Claude genera primera versión            │
-│  - Basado en inputs del usuario             │
-│  - ~1-2 minutos                             │
-└─────────────────┬───────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────┐
-│      ETAPA 2: ANÁLISIS CRÍTICO              │
-│  - Claude analiza el borrador               │
-│  - Identifica 3-5 problemas                 │
-│  - Propone correcciones específicas         │
-│  - JSON estructurado                        │
-│  - ~1 minuto                                │
-└─────────────────┬───────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────┐
-│       ETAPA 3: VERSIÓN FINAL                │
-│  - Claude aplica correcciones               │
-│  - Versión lista para publicar              │
-│  - Validación CMS automática                │
-│  - ~1-2 minutos                             │
-└─────────────────────────────────────────────┘
+Stage 1 (Borrador)  -->  Stage 2 (Analisis dual)  -->  Stage 3 (Final)
+   Claude genera           Claude + OpenAI             Claude incorpora
+   HTML draft              validan en paralelo         feedback y genera
+                                                       version final
 ```
 
-### Stack Tecnológico
+### Stack
 
 - **Frontend**: Streamlit 1.28+
-- **IA**: Claude Sonnet 4 (Anthropic API)
-- **Backend**: Python 3.11
-- **Scraping**: BeautifulSoup4, Requests
-- **Deployment**: Streamlit Cloud
+- **IA**: Claude Sonnet 4 (Anthropic), GPT-4.1 (OpenAI, correccion dual), Gemini 2.5 Flash (imagenes)
+- **Scraping/Research**: BeautifulSoup4 + lxml, SerpAPI, SEMrush API, Google Search Console API
+- **Deploy**: Streamlit Cloud
+- **CI**: GitHub Actions (pytest, black, flake8)
 
 ---
 
-## 👨‍💻 Desarrollo
+## Desarrollo
 
-### Instalación de dependencias de desarrollo
 ```bash
-pip install -r requirements-dev.txt
+pytest tests/             # Tests
+black . && isort .        # Formateo
+flake8 .                  # Linting
 ```
 
-### Running tests
-```bash
-pytest tests/
-```
-
-### Code formatting
-```bash
-black .
-isort .
-```
-
-### Linting
-```bash
-flake8 .
-mypy .
-```
+Pre-commit hooks configurados en `.pre-commit-config.yaml`.
 
 ---
 
-## 🐛 Troubleshooting
+## Documentacion
 
-### Error: "API key not found"
-
-**Solución**: Verifica que `.env` o `secrets.toml` contenga tu API key de Claude.
-
-### Error: "Module not found"
-
-**Solución**: 
-```bash
-pip install -r requirements.txt --upgrade
-```
-
-### El contenido no cumple validación CMS
-
-**Solución**: Revisa la sección de errores en la UI. Los errores críticos deben corregirse antes de publicar.
-
-### Scraping de competidores falla
-
-**Solución**: 
-- Verifica conexión a internet
-- Algunos sitios bloquean scraping (normal)
-- Usa VPN si es necesario
-- En producción, implementar sistema robusto con Zenrows
+- [CLAUDE.md](CLAUDE.md) — Arquitectura y convenciones del proyecto
+- [CHANGELOG.md](CHANGELOG.md) — Historial de versiones
+- [docs/audit-2026-03.md](docs/audit-2026-03.md) — Auditoria de salud del proyecto
+- [docs/ux-audit-2026-03.md](docs/ux-audit-2026-03.md) — Auditoria UX del formulario
+- [docs/output-quality-audit-2026-03.md](docs/output-quality-audit-2026-03.md) — Auditoria de calidad del output
 
 ---
 
-## 📝 Changelog
-
-Ver [CHANGELOG.md](CHANGELOG.md) para historial completo de versiones.
-
-### v4.1.1 (2025-01-XX)
-
-- ✅ Refactorización completa a arquitectura modular
-- ✅ Nuevo sistema de validación CMS v4.1.1
-- ✅ Modo reescritura con análisis competitivo
-- ✅ 18 arquetipos predefinidos
-- ✅ Flujo de 3 etapas optimizado
-
----
-
-## 🤝 Contribuir
-
-1. Fork del repositorio
-2. Crear branch para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit de cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push al branch (`git push origin feature/AmazingFeature`)
-5. Abrir Pull Request
-
-### Guidelines
-
-- Código en inglés, comentarios en español
-- Seguir estructura modular existente
-- Añadir tests para nuevas features
-- Actualizar documentación
-
----
-
-## 📄 Licencia
-
-Uso interno de PcComponentes. Todos los derechos reservados.
-
----
-
-## 👥 Equipo
-
-**Product Discovery & Content**  
-PcComponentes
-
----
-
-## 📞 Soporte
-
-Para bugs o sugerencias, abrir un issue en GitHub.
-
----
-
-**Hecho con ❤️ por el equipo de Product Discovery & Content de PcComponentes**
+**Equipo Product Discovery & Content — PcComponentes**
