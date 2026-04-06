@@ -901,8 +901,69 @@ La keyword "{keyword}" DEBE aparecer de forma natural en el contenido:
         if visual_info:
             sections.append(visual_info)
     
-    # Estructura HTML
-    sections.append(HTML_STRUCTURE_INSTRUCTIONS)
+    # CSS para <style> block (siempre incluir base CSS del CMS)
+    css_for_prompt = ""
+    if _get_css_for_prompt:
+        css_for_prompt = _get_css_for_prompt(visual_elements=visual_elements if visual_elements else None)
+
+    # Estructura HTML con CSS inyectado (dinámico, no usa HTML_STRUCTURE_INSTRUCTIONS)
+    html_struct = f"""
+## ESTRUCTURA HTML OBLIGATORIA (CMS PcComponentes)
+
+El contenido DEBE seguir esta estructura exacta:
+
+```
+<style>
+{css_for_prompt}
+</style>
+
+<article class="contentGenerator__main">
+    <span class="kicker">TEXTO DEL KICKER</span>
+    <h2>Título Principal (NUNCA h1)</h2>
+
+    <nav class="toc">
+        <p class="toc__title">Contenido</p>
+        <ol class="toc__list">
+            <li><a href="#seccion1">Sección 1</a></li>
+        </ol>
+    </nav>
+
+    <section id="seccion1">
+        <h3>Título de Sección</h3>
+        <p>Contenido...</p>
+    </section>
+</article>
+
+<article class="contentGenerator__faqs">
+    <h2>Preguntas frecuentes sobre {keyword}</h2>
+    <div class="faqs">
+        <div class="faqs__item">
+            <h3 class="faqs__question">¿Pregunta?</h3>
+            <p class="faqs__answer">Respuesta...</p>
+        </div>
+    </div>
+</article>
+
+<article class="contentGenerator__verdict">
+    <div class="verdict-box">
+        <h2>Nuestro veredicto</h2>
+        <p>Conclusión...</p>
+    </div>
+</article>
+```
+
+REGLAS CRÍTICAS:
+- El título principal SIEMPRE es <h2>, NUNCA <h1>
+- El kicker SIEMPRE usa <span class="kicker">, NUNCA <div>
+- Las secciones usan <h3>
+- Las FAQs van en un article SEPARADO con clase contentGenerator__faqs
+- El veredicto va en un article SEPARADO con clase contentGenerator__verdict
+- NO usar estilos inline, solo clases CSS del <style>
+- Incluir 2-3 mini-historias con nombres concretos y cifras específicas (distribuidas: inicio, medio, final)
+- Incluir 2-3 CTAs distribuidos (no solo al final). Primer CTA antes de las 500 palabras.
+- Usa SOLO las clases CSS definidas en el <style>. No inventes clases nuevas.
+"""
+    sections.append(html_struct)
     
     # Instrucciones finales
     sections.append(f"""
@@ -942,7 +1003,7 @@ La keyword "{keyword}" DEBE aparecer de forma natural en el contenido:
 
 **GENERA AHORA EL BORRADOR HTML COMPLETO.**
 
-Responde SOLO con el HTML: primero `<!-- META: ... -->`, luego el contenido (desde el primer <article> hasta el último </article>).
+Responde SOLO con el HTML: primero `<!-- META: ... -->`, luego `<style>` con el CSS proporcionado, luego los 3 articles.
 NO incluyas explicaciones ni texto fuera del HTML.
 """)
     
@@ -1279,26 +1340,23 @@ def build_rewrite_final_prompt_stage3(
     # v5.0: Visual elements en Stage 3 rewrite
     visual_elements = config.get('visual_elements', [])
     visual_section = ""
-    css_section = ""
     checklist_section = ""
-    
+
+    # CSS: siempre incluir (base CMS + componentes visuales si hay)
+    css_for_prompt = ""
+    if _get_css_for_prompt:
+        css_for_prompt = _get_css_for_prompt(visual_elements=visual_elements if visual_elements else None)
+
+    # Visual instructions and checklist only when visual_elements present
     if visual_elements:
-        # Templates e instrucciones imperativas
         if _build_stage3_visual_instructions:
             visual_section = "\n" + _build_stage3_visual_instructions(visual_elements)
-        
-        # CSS para los componentes
-        if _get_css_for_prompt:
-            css_for_prompt = _get_css_for_prompt(visual_elements=visual_elements)
-            if css_for_prompt:
-                css_section = f"\n## CSS DE COMPONENTES\nIncluye este CSS en el <style> del HTML:\n```css\n{css_for_prompt}\n```\n"
-        
-        # Checklist pre-entrega
+
         if _build_stage3_checklist:
             checklist_items = _build_stage3_checklist(visual_elements)
             if checklist_items:
-                checklist_section = f"\n## 🔍 CHECKLIST PRE-ENTREGA\nAntes de entregar, verifica que TODOS estos elementos están en el HTML:\n{checklist_items}\n"
-    
+                checklist_section = f"\n## CHECKLIST PRE-ENTREGA\nAntes de entregar, verifica que TODOS estos elementos están en el HTML:\n{checklist_items}\n"
+
     prompt = f"""# TAREA: VERSIÓN FINAL CON CORRECCIONES (ETAPA 3/3)
 
 Esta es la ETAPA FINAL. Genera la versión DEFINITIVA aplicando TODAS las correcciones.
@@ -1309,7 +1367,6 @@ Esta es la ETAPA FINAL. Genera la versión DEFINITIVA aplicando TODAS las correc
 ## MODO
 {rewrite_mode.upper()}
 {visual_section}
-{css_section}
 
 ## BORRADOR ORIGINAL (ETAPA 1)
 
@@ -1338,6 +1395,46 @@ Esta es la ETAPA FINAL. Genera la versión DEFINITIVA aplicando TODAS las correc
 
 ---
 
+# ESTRUCTURA FINAL REQUERIDA
+
+```
+<style>
+{css_for_prompt}
+</style>
+
+<article class="contentGenerator__main">
+    <span class="kicker">KICKER</span>
+    <h2>Título con {keyword}</h2>
+    <nav class="toc">
+        <p class="toc__title">Contenido</p>
+        <ol class="toc__list">
+            <li><a href="#seccion1">Sección 1</a></li>
+        </ol>
+    </nav>
+    <section id="seccion1">
+        <h3>Subtítulo</h3>
+        <p>Contenido...</p>
+    </section>
+</article>
+
+<article class="contentGenerator__faqs">
+    <h2>Preguntas frecuentes sobre {keyword}</h2>
+    <div class="faqs">
+        <div class="faqs__item">
+            <h3 class="faqs__question">¿Pregunta?</h3>
+            <p class="faqs__answer">Respuesta...</p>
+        </div>
+    </div>
+</article>
+
+<article class="contentGenerator__verdict">
+    <div class="verdict-box">
+        <h2>Nuestro veredicto</h2>
+        <p>Conclusión que APORTE valor real...</p>
+    </div>
+</article>
+```
+
 # INSTRUCCIONES CRÍTICAS
 
 ## Requisitos Técnicos:
@@ -1347,7 +1444,7 @@ Esta es la ETAPA FINAL. Genera la versión DEFINITIVA aplicando TODAS las correc
 3. **Kicker con <span class="kicker">**
 4. **Longitud entre {min_length} y {max_length} palabras**
 5. **HTML puro** sin markdown
-6. **Clases CSS correctas**
+6. **Usa SOLO clases CSS definidas** en el `<style>` proporcionado. No inventes clases nuevas.
 
 ## Requisitos de Contenido:
 
@@ -1365,8 +1462,8 @@ Esta es la ETAPA FINAL. Genera la versión DEFINITIVA aplicando TODAS las correc
 
 **GENERA AHORA LA VERSIÓN FINAL.**
 
-Responde SOLO con el HTML completo.
-NO incluyas explicaciones.
+Empieza con `<!-- META: ... -->` y luego `<style>`.
+Responde SOLO con el HTML completo. NO incluyas explicaciones.
 """
     
     return prompt

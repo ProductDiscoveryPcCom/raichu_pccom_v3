@@ -15,7 +15,8 @@
       "Bash(grep -l \"st.file_uploader\\\\|st.slider\\\\|st.selectbox\\\\|st.multiselect\" ui/*.py)",
       "Bash(grep -l \"st.tabs\\\\|st.expander\\\\|st.columns\" ui/*.py)",
       "Bash(grep -rn \"session_state\\\\[.*serp\\\\|session_state\\\\[.*research\\\\|session_state\\\\[.*related\" '/c/Users/maximo.sanchez/OneDrive - PcComponentes/Escritorio/claude projects/raichu_pccom_v3' --include=*.py)",
-      "Bash(python -m pytest tests/test_visual_elements_and_serp.py -x -q)"
+      "Bash(python -m pytest tests/test_visual_elements_and_serp.py -x -q)",
+      "Bash(python -m pytest tests/ -v --tb=short)"
     ]
   }
 }
