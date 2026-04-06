@@ -2,7 +2,20 @@
   "permissions": {
     "allow": [
       "Bash(python -m pytest tests/ -x -q)",
-      "Bash(python -m pytest tests/ -q)"
+      "Bash(python -m pytest tests/ -q)",
+      "Read(//c/Users/maximo.sanchez/OneDrive/ -/ PcComponentes/Escritorio/claude/ projects/raichu_pccom_v3/ui/**)",
+      "Read(//c/Users/maximo.sanchez/OneDrive/ -/ PcComponentes/Escritorio/claude/ projects/raichu_pccom_v3/config/**)",
+      "Read(//c/Users/maximo.sanchez/OneDrive/ -/ PcComponentes/Escritorio/claude/ projects/raichu_pccom_v3/core/**)",
+      "Read(//c/Users/maximo.sanchez/OneDrive/ -/ PcComponentes/Escritorio/claude/ projects/raichu_pccom_v3/**)",
+      "Read(//c/Users/maximo.sanchez/**)",
+      "Bash(grep -rn \"st\\\\.\" \"C:\\\\Users\\\\maximo.sanchez\\\\OneDrive - PcComponentes\\\\Escritorio\\\\claude projects\\\\raichu_pccom_v3\\\\ui\"\" --include=\"*.py\" 2>/dev/null | grep -E \"st.file_uploader)",
+      "Bash(st.slider)",
+      "Bash(st.selectbox)",
+      "Bash(st.multiselect \")",
+      "Bash(grep -l \"st.file_uploader\\\\|st.slider\\\\|st.selectbox\\\\|st.multiselect\" ui/*.py)",
+      "Bash(grep -l \"st.tabs\\\\|st.expander\\\\|st.columns\" ui/*.py)",
+      "Bash(grep -rn \"session_state\\\\[.*serp\\\\|session_state\\\\[.*research\\\\|session_state\\\\[.*related\" '/c/Users/maximo.sanchez/OneDrive - PcComponentes/Escritorio/claude projects/raichu_pccom_v3' --include=*.py)",
+      "Bash(python -m pytest tests/test_visual_elements_and_serp.py -x -q)"
     ]
   }
 }

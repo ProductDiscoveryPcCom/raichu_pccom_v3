@@ -1599,6 +1599,34 @@ def _build_archetype_stage1_instructions(arquetipo_code: str) -> str:
     return _ARCHETYPE_STAGE1_INSTRUCTIONS.get(arquetipo_code, "")
 
 
+def _build_faq_instructions(faq_questions: Optional[List[str]] = None) -> str:
+    """Build FAQ injection instructions for Stage 1 prompt.
+    Returns empty string if no questions provided."""
+    if not faq_questions:
+        return ""
+    faq_block = "\n".join(f"   - {q}" for q in faq_questions)
+    return (
+        f"   **PREGUNTAS FAQ OBLIGATORIAS:** El bloque `contentGenerator__faqs` DEBE incluir "
+        f"estas preguntas EXACTAS con respuestas completas y útiles (mínimo 2-3 frases por respuesta):\n"
+        f"{faq_block}\n"
+        f"   Puedes añadir 1-2 preguntas adicionales relevantes."
+    )
+
+
+def _build_faq_verification(faq_questions: Optional[List[str]] = None) -> str:
+    """Build FAQ verification checklist for Stage 2 prompt.
+    Returns empty string if no questions provided."""
+    if not faq_questions:
+        return ""
+    checks = "\n".join(f"  - [ ] ¿Aparece: \"{q}\"?" for q in faq_questions)
+    return (
+        f"\n## Verificación de FAQs obligatorias\n"
+        f"Verifica que estas preguntas específicas aparecen en `contentGenerator__faqs`:\n"
+        f"{checks}\n"
+        f"Si alguna falta, reportar como problema de severidad ALTA.\n"
+    )
+
+
 # ============================================================================
 # ETAPA 1: BORRADOR INICIAL
 # ============================================================================
@@ -1618,6 +1646,7 @@ def build_new_content_prompt_stage1(
     alternative_product: Optional[Dict] = None,
     products: Optional[List[Dict]] = None,  # NUEVO v5.0
     headings_config: Optional[Dict[str, int]] = None,  # NUEVO v5.0
+    faq_questions: Optional[List[str]] = None,  # Preguntas FAQ seleccionadas (PAA + custom)
 ) -> str:
     """
     Construye prompt para Etapa 1: Borrador inicial.
@@ -1844,6 +1873,7 @@ El HTML debe empezar DIRECTAMENTE con <style>:
 1. **NO** uses ```html ni marcadores markdown
 2. Empieza con `<!-- META: [meta description max 155 chars con keyword] -->` y luego `<style>`
 3. FAQs DEBEN incluir keyword: "Preguntas frecuentes sobre {keyword}"
+{_build_faq_instructions(faq_questions)}
 4. Si tienes datos de usuarios, ÚSALOS (ventajas/desventajas)
 5. Si tienes datos de productos enlazados, MENCIÓNALOS con sus características
 6. SÉ HONESTO: si hay "peros", menciónalos
@@ -2035,6 +2065,7 @@ def build_new_content_correction_prompt_stage2(
     visual_elements: Optional[List[str]] = None,
     arquetipo_code: str = "",                          # QW-1
     arquetipo_structure: Optional[List[str]] = None,   # QW-1
+    faq_questions: Optional[List[str]] = None,  # Preguntas FAQ a verificar
 ) -> str:
     """
     Construye prompt para Etapa 2: Análisis crítico del borrador.
@@ -2152,7 +2183,7 @@ def build_new_content_correction_prompt_stage2(
 - [ ] ¿Se menciona el producto alternativo?
 - [ ] ¿Los datos de productos enlazados enriquecen el contenido?
 {archetype_checklist}
-
+{_build_faq_verification(faq_questions)}
 ---
 
 **Responde SOLO con JSON estructurado:**

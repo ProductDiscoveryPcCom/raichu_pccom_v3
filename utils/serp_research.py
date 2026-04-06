@@ -139,6 +139,7 @@ class SerpResearchResult:
     serp_results: List[SerpResult] = field(default_factory=list)
     competitors: List[CompetitorAnalysis] = field(default_factory=list)
     related_searches: List[str] = field(default_factory=list)  # Búsquedas relacionadas de Google
+    paa_questions: List[str] = field(default_factory=list)  # People Also Ask de Google
     insights: Dict[str, Any] = field(default_factory=dict)
     success: bool = True
     error: str = ""
@@ -187,14 +188,15 @@ def _search_serpapi(
     los 3 primeros que sean artículos/reviews (no tiendas).
     
     Returns:
-        Tuple[List[SerpResult], List[str]]:
+        Tuple[List[SerpResult], List[str], List[str]]:
           - Lista de SerpResult orgánicos
           - Lista de búsquedas relacionadas (para enriquecer SEO)
+          - Lista de preguntas People Also Ask
     """
     api_key = _get_serpapi_key()
     if not api_key:
         logger.warning("SerpAPI: API key no configurada (SERPAPI_API_KEY / serpapi_key)")
-        return [], []
+        return [], [], []
 
     try:
         params = {
@@ -226,7 +228,7 @@ def _search_serpapi(
         # Verificar si SerpAPI devolvió error en el JSON
         if 'error' in data:
             logger.error(f"SerpAPI error: {data['error']}")
-            return [], []
+            return [], [], []
 
         results = []
         for item in data.get('organic_results', [])[:max_results]:
@@ -247,21 +249,29 @@ def _search_serpapi(
             if q:
                 related.append(q)
 
+        # Extraer People Also Ask (preguntas frecuentes de Google)
+        paa = []
+        for rq in data.get('related_questions', []):
+            q = rq.get('question', '').strip()
+            if q:
+                paa.append(q)
+
         logger.info(
             f"SerpAPI: {len(results)} resultados, "
-            f"{len(related)} related searches para '{keyword}'"
+            f"{len(related)} related searches, "
+            f"{len(paa)} PAA para '{keyword}'"
         )
-        return results, related
+        return results, related, paa
 
     except requests.exceptions.HTTPError as e:
         logger.error(f"SerpAPI HTTP error: {e}")
-        return [], []
+        return [], [], []
     except requests.exceptions.Timeout:
         logger.error(f"SerpAPI timeout ({DEFAULT_TIMEOUT}s) para '{keyword}'")
-        return [], []
+        return [], [], []
     except Exception as e:
         logger.warning(f"SerpAPI fallo: {e}. Se usara DuckDuckGo como fallback.")
-        return [], []
+        return [], [], []
 
 
 # ============================================================================
@@ -343,19 +353,40 @@ def search_serp(
     """
     Busca en SERPs con prioridad: SerpAPI > DuckDuckGo.
     SerpAPI devuelve 10 resultados orgánicos (1 crédito).
-    
+
     Returns:
-        Tuple[List[SerpResult], List[str]]:
+        Tuple[List[SerpResult], List[str], List[str]]:
           - Lista de resultados orgánicos
           - Lista de búsquedas relacionadas (solo con SerpAPI)
+          - Lista de preguntas People Also Ask (solo con SerpAPI)
     """
     # Intentar SerpAPI primero (10 resultados = 1 crédito)
-    results, related = _search_serpapi(keyword, max_results=max_results)
+    results, related, paa = _search_serpapi(keyword, max_results=max_results)
     if results:
-        return results, related
+        return results, related, paa
 
-    # Fallback: DuckDuckGo (sin related searches)
-    return _search_duckduckgo(keyword, max_results=max_results, lang=lang), []
+    # Fallback: DuckDuckGo (sin related searches ni PAA)
+    return _search_duckduckgo(keyword, max_results=max_results, lang=lang), [], []
+
+
+def fetch_paa_questions(keyword: str) -> List[str]:
+    """
+    Fetch People Also Ask questions from SerpAPI for a keyword.
+    Cached in Streamlit session state to avoid repeated API calls.
+
+    Returns:
+        List of PAA question strings (empty if unavailable).
+    """
+    import streamlit as st
+
+    cache_key = f"paa_{keyword.strip().lower()}"
+    cached = st.session_state.get(cache_key)
+    if cached is not None:
+        return cached
+
+    _results, _related, paa = _search_serpapi(keyword)
+    st.session_state[cache_key] = paa
+    return paa
 
 
 # ============================================================================
@@ -707,8 +738,8 @@ def research_serp(
     if not keyword:
         return SerpResearchResult(keyword=keyword, success=False, error="Keyword vacía")
 
-    # 1. Buscar (returns tuple: results, related_searches)
-    serp_results, related_searches = search_serp(keyword, max_results=max_results)
+    # 1. Buscar (returns tuple: results, related_searches, paa_questions)
+    serp_results, related_searches, paa_questions = search_serp(keyword, max_results=max_results)
     if not serp_results:
         # Diagnóstico: ¿hay API key?
         has_key = bool(_get_serpapi_key())
@@ -740,6 +771,7 @@ def research_serp(
         keyword=keyword,
         serp_results=serp_results,
         related_searches=related_searches,
+        paa_questions=paa_questions,
         competitors=competitors,
     )
 
@@ -868,6 +900,14 @@ def format_for_prompt(research: SerpResearchResult) -> str:
         for rs in research.related_searches[:8]:
             lines.append(f"- {rs}")
 
+    # People Also Ask (preguntas frecuentes de Google)
+    if research.paa_questions:
+        lines.append("")
+        lines.append("### Preguntas frecuentes (People Also Ask)")
+        lines.append("Estas preguntas aparecen en Google — úsalas como base para la sección de FAQs:")
+        for pq in research.paa_questions[:8]:
+            lines.append(f"- {pq}")
+
     return "\n".join(lines)
 
 
@@ -940,6 +980,12 @@ def format_for_display(research: SerpResearchResult) -> str:
         lines.append("\n---\n**🔗 Búsquedas relacionadas (Google):**\n")
         for rs in research.related_searches[:8]:
             lines.append(f"- {rs}")
+
+    # People Also Ask
+    if research.paa_questions:
+        lines.append("\n---\n**❓ People Also Ask (Google):**\n")
+        for pq in research.paa_questions[:8]:
+            lines.append(f"- {pq}")
 
     return "\n".join(lines)
 

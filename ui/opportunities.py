@@ -661,7 +661,7 @@ def _fetch_serp_data(keyword: str) -> Optional[Dict]:
     try:
         from utils.serp_research import search_serp
 
-        results, related = search_serp(keyword, max_results=10)
+        results, related, paa = search_serp(keyword, max_results=10)
 
         if not results:
             return None
@@ -678,6 +678,7 @@ def _fetch_serp_data(keyword: str) -> Optional[Dict]:
                 for r in results[:10]
             ],
             "related_searches": related[:10] if related else [],
+            "paa_questions": paa[:10] if paa else [],
         }
 
         st.session_state[cache_key] = serp_data

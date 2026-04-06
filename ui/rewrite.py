@@ -2145,6 +2145,20 @@ def render_rewrite_configuration(keyword: str, rewrite_mode: str) -> Dict:
             if k.strip() and k.strip() != keyword
         ]
     
+    # ── 5b. Preguntas FAQ (PAA) ─────────────────────────────────────
+    try:
+        from ui.inputs import render_paa_selector as _render_paa
+    except ImportError:
+        try:
+            from inputs import render_paa_selector as _render_paa
+        except ImportError:
+            _render_paa = None
+
+    if _render_paa and keyword:
+        faq_questions = _render_paa(keyword, key_prefix="rewrite_paa")
+        if faq_questions:
+            config['faq_questions'] = faq_questions
+
     # ── 6. Elementos visuales + Encabezados (colapsados) ────────────
     try:
         from ui.inputs import render_visual_elements_selector
@@ -2351,6 +2365,7 @@ def prepare_rewrite_config(
         'arquetipo_codigo': rewrite_config.get('arquetipo_codigo'),
         'guiding_context': rewrite_config.get('guiding_context', ''),  # v1.3.0: briefing del arquetipo
         'headings_config': rewrite_config.get('headings_config'),  # v5.0
+        'faq_questions': rewrite_config.get('faq_questions', []),  # PAA + custom FAQ questions
     }
     
     # =========================================================================

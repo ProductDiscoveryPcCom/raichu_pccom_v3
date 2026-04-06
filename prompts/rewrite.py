@@ -35,6 +35,7 @@ try:
         _build_stage3_checklist,
         _build_archetype_checklist_stage2,
         _build_visual_elements_minimum_check,
+        _build_faq_verification,
     )
 except ImportError:
     _format_products_for_prompt = None
@@ -45,6 +46,7 @@ except ImportError:
     _build_stage3_checklist = None
     _build_archetype_checklist_stage2 = None
     _build_visual_elements_minimum_check = None
+    _build_faq_verification = None
 
 # Importar tono de marca centralizado
 try:
@@ -777,6 +779,18 @@ La keyword "{keyword}" DEBE aparecer de forma natural en el contenido:
 - **FAQs:** El H2 de FAQs debe incluir la keyword: "Preguntas frecuentes sobre {keyword}"
 """]
 
+    # Preguntas FAQ seleccionadas (PAA + custom)
+    faq_questions = config.get('faq_questions', [])
+    if faq_questions:
+        faq_block = "\n".join(f"- {q}" for q in faq_questions)
+        sections.append(
+            f"\n## ❓ PREGUNTAS FAQ OBLIGATORIAS\n"
+            f"El bloque `contentGenerator__faqs` DEBE incluir estas preguntas EXACTAS "
+            f"con respuestas completas y útiles (mínimo 2-3 frases por respuesta):\n"
+            f"{faq_block}\n\n"
+            f"Puedes añadir 1-2 preguntas adicionales relevantes."
+        )
+
     # Keywords secundarias
     if secondary_keywords:
         sections.append("\n## 🔑 KEYWORDS SECUNDARIAS\n" + "\n".join(f"- {k}" for k in secondary_keywords))
@@ -1078,7 +1092,7 @@ Eres un editor SEO senior de PcComponentes. Analiza el borrador y genera un info
 '''}
 {visual_minimum_check}
 {archetype_checklist}
-
+{_build_faq_verification(config.get('faq_questions', [])) if _build_faq_verification else ''}
 ---
 
 # ANÁLISIS REQUERIDO

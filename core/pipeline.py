@@ -272,6 +272,7 @@ Usa este contenido como base, mejóralo y amplíalo según el análisis competit
                 'main_product': config.get('main_product'),
                 'visual_elements': config.get('visual_elements', []),
                 'products': config.get('products', []),
+                'faq_questions': config.get('faq_questions', []),
             }
         
         # ====================================================================
@@ -432,6 +433,7 @@ Formato tu respuesta de manera clara y accionable."""
                         alternative_product=config.get('producto_alternativo', config.get('alternative_product')),
                         products=config.get('products', []),
                         headings_config=config.get('headings_config'),
+                        faq_questions=config.get('faq_questions', []),
                     )
                 else:  # mode == 'rewrite'
                     stage1_prompt = rewrite.build_rewrite_prompt_stage1(
@@ -508,6 +510,8 @@ Formato tu respuesta de manera clara y accionable."""
                     if 'arquetipo_structure' in _s2_sig.parameters:
                         from config.arquetipos import get_structure
                         stage2_kwargs['arquetipo_structure'] = get_structure(config.get('arquetipo_codigo', ''))
+                    if 'faq_questions' in _s2_sig.parameters:
+                        stage2_kwargs['faq_questions'] = config.get('faq_questions', [])
                 except Exception:
                     pass
                 stage2_prompt = new_content.build_correction_prompt_stage2(**stage2_kwargs)

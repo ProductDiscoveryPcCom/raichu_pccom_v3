@@ -279,6 +279,8 @@ class FormData:
     headings_config: Optional[Dict[str, int]] = None  # {'h2': N, 'h3': N, 'h4': N}
     # NUEVO v5.1: Keywords secundarias
     secondary_keywords: Optional[List[str]] = None
+    # NUEVO: Preguntas FAQ seleccionadas (PAA + custom)
+    faq_questions: Optional[List[str]] = None
 
 
 # ============================================================================
@@ -2254,6 +2256,85 @@ def render_headings_config(key_prefix: str = "headings") -> Optional[Dict[str, i
     return {'h2': h2_count, 'h3': h3_count, 'h4': h4_count}
 
 
+# ============================================================================
+# SELECTOR DE PREGUNTAS FAQ (PAA)
+# ============================================================================
+
+def render_paa_selector(keyword: str, key_prefix: str = "paa") -> Optional[List[str]]:
+    """
+    Render PAA question selector with fetch button + custom questions.
+
+    Shows a collapsible section with:
+    1. A button to fetch PAA questions from SerpAPI
+    2. Checkboxes for each PAA question (unchecked by default)
+    3. A text_area for custom FAQ questions
+
+    Returns:
+        List of selected PAA + custom questions, or None if empty.
+    """
+    if not keyword or not keyword.strip():
+        return None
+
+    data_key = f"{key_prefix}_data"
+    fetch_key = f"{key_prefix}_fetch"
+    keyword_key = f"{key_prefix}_keyword"
+
+    with st.expander("❓ Preguntas FAQ (People Also Ask)", expanded=False):
+        st.caption(
+            "Busca preguntas reales de Google para incluirlas en la sección de FAQs. "
+            "También puedes añadir preguntas personalizadas."
+        )
+
+        # Clear cached PAA if keyword changed
+        prev_keyword = st.session_state.get(keyword_key, "")
+        if prev_keyword and prev_keyword.strip().lower() != keyword.strip().lower():
+            st.session_state.pop(data_key, None)
+        st.session_state[keyword_key] = keyword
+
+        # Fetch button
+        if st.button("🔍 Buscar preguntas FAQ", key=fetch_key):
+            try:
+                from utils.serp_research import fetch_paa_questions
+                with st.spinner("Buscando preguntas en Google..."):
+                    paa = fetch_paa_questions(keyword.strip())
+                if paa:
+                    st.session_state[data_key] = paa
+                    st.success(f"✅ {len(paa)} preguntas encontradas")
+                else:
+                    st.session_state[data_key] = []
+                    st.info("No se encontraron preguntas PAA para esta keyword.")
+            except ImportError:
+                st.warning("⚠️ Módulo serp_research no disponible")
+            except Exception as e:
+                st.warning(f"⚠️ Error al buscar PAA: {str(e)[:100]}")
+
+        # Show checkboxes if PAA data exists
+        selected = []
+        paa_data = st.session_state.get(data_key)
+        if paa_data:
+            st.markdown("**Selecciona las preguntas a incluir:**")
+            for i, question in enumerate(paa_data):
+                if st.checkbox(question, key=f"{key_prefix}_q_{i}", value=False):
+                    selected.append(question)
+
+        # Custom questions
+        custom_input = st.text_area(
+            "Preguntas personalizadas (una por línea)",
+            key=f"{key_prefix}_custom",
+            height=80,
+            placeholder="¿Cuál es el mejor...?\n¿Qué diferencia hay entre...?",
+        )
+        custom_questions = [
+            q.strip() for q in custom_input.split('\n')
+            if q.strip() and len(q.strip()) >= 5
+        ] if custom_input else []
+
+        all_questions = selected + custom_questions
+
+        if all_questions:
+            st.caption(f"📋 {len(all_questions)} preguntas seleccionadas para FAQs")
+
+    return all_questions if all_questions else None
 
 
 def _render_single_product_entry(
@@ -2573,6 +2654,9 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
         except Exception:
             total_q = num_answered + 3
 
+    # ── PREGUNTAS FAQ (PAA) ─────────────────────────────────────────
+    faq_questions = render_paa_selector(keyword, key_prefix="main_paa") if keyword else None
+
     # ── SECCIÓN 2: Opciones opcionales (agrupadas) ──────────────────
     st.markdown("#### ⚙️ Opciones adicionales")
     st.caption("*Todos estos campos son opcionales. Empieza solo con keyword + arquetipo si es tu primera vez.*")
@@ -2721,6 +2805,7 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
         products=products or None,
         headings_config=headings_config,
         secondary_keywords=secondary_keywords or None,
+        faq_questions=faq_questions or None,
     )
 
 
@@ -2828,6 +2913,8 @@ def render_content_inputs() -> Tuple[bool, Dict[str, Any]]:
         'headings_config': form_data.headings_config,
         # NUEVO v5.1: Keywords secundarias
         'keywords': [form_data.keyword] + (form_data.secondary_keywords or []),
+        # Preguntas FAQ seleccionadas (PAA + custom)
+        'faq_questions': form_data.faq_questions or [],
     }
     
     # REC-6: Resumen pre-generación compacto
