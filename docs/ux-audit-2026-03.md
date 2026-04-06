@@ -117,21 +117,21 @@ Cada arquetipo en `config/arquetipos.py` define `visual_elements` (ej: ARQ-5 Com
 | P0.2 | Mover keywords secundarias al expander Avanzado | inputs.py:2507→2600 | Hecho |
 | P0.3 | Hint contextual por arquetipo en expander de Productos | inputs.py:2539 | Hecho |
 
-### P1 — Esfuerzo medio (medio dia cada uno)
+### P1 — Esfuerzo medio (medio dia cada uno) — IMPLEMENTADOS
 
 | ID | Cambio | Fichero | Detalle |
 |----|--------|---------|---------|
-| P1.1 | Truncar briefing a top 3 preguntas + boton "ver todas" | inputs.py:1084 | Reducir de 14 a 3 textareas visibles |
-| P1.2 | Reemplazar checkboxes visuales con tag summary + toggle "Personalizar" | inputs.py:1549 | Mostrar `toc, table, verdict` como tags, no 24 checkboxes |
-| P1.3 | Ocultar modulos CMS tras sub-toggle | inputs.py:1845 | Los 5 CMS checkboxes son para power users |
+| P1.1 | Truncar briefing a top 3 preguntas + boton "ver todas" | inputs.py:1084 | Hecho |
+| P1.2 | Reemplazar checkboxes visuales con tag summary + toggle "Personalizar" | inputs.py:1549 | Hecho |
+| P1.3 | Ocultar modulos CMS tras sub-toggle | inputs.py:1845 | Hecho |
 
 ### P2 — Refactors mayores (1-2 dias cada uno)
 
 | ID | Cambio | Fichero | Detalle |
 |----|--------|---------|---------|
-| P2.1 | Form profiles por arquetipo (recomendado/opcional/oculto) | arquetipos.py + inputs.py | Configuracion declarativa de que secciones mostrar |
+| P2.1 | Form profiles por arquetipo (recomendado/opcional/oculto) | arquetipos.py + inputs.py | Hecho — _get_form_profile() oculta secciones irrelevantes |
 | P2.2 | Wizard mode para primera vez | inputs.py + app.py | 3 pasos cuando `_has_generated_new` es False |
-| P2.3 | Selector de arquetipo con busqueda y grupos | inputs.py:725 | Reemplazar selectbox de 37 items con selector agrupado |
+| P2.3 | Selector de arquetipo con busqueda y grupos | inputs.py:725 | Hecho — selector 2 niveles (Categoria -> Arquetipo) |
 
 ---
 

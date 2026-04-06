@@ -44,17 +44,20 @@ import logging
 import unicodedata
 from datetime import datetime
 import re
+import os
 
 logger = logging.getLogger(__name__)
 
 # Importar utilidades
 from utils.html_utils import count_words_in_html
+from utils.brief_parser import parse_cannibalization_brief
 
 # Importar configuración
 from config.settings import (
     GSC_VERIFICATION_ENABLED,
     SEMRUSH_ENABLED,
-    SEMRUSH_API_KEY
+    SEMRUSH_API_KEY,
+    SCRAPE_TIMEOUT,
 )
 
 # Importar arquetipos - TODOS los 34
@@ -245,6 +248,85 @@ def _render_gsc_api_results(urls: List[Dict], check: Dict, suffix: str = "") -> 
     )
 
 
+def render_brief_uploader_section() -> None:
+    """
+    Renderiza un uploader de archivos para briefs de canibalización.
+    Si se sube un archivo, parsea el contenido y autocompleta el formulario.
+    """
+    with st.expander("🚀 **Power User: Carga de Brief Directa**", expanded=False):
+        st.markdown("""
+        Si tienes un **brief del equipo de SEO** (herramienta de canibalizaciones), 
+        súbelo aquí para autocompletar la keyword, arquetipo, instrucciones y objetivos.
+        """)
+        
+        uploaded_brief = st.file_uploader(
+            "Subir Brief de Canibalización (.md)",
+            type=['md'],
+            key="rewrite_brief_uploader",
+            help="Sube el archivo .md generado por la herramienta de canibalizaciones"
+        )
+        
+        if uploaded_brief:
+            try:
+                # Leer y parsear
+                content = uploaded_brief.read().decode('utf-8')
+                data = parse_cannibalization_brief(content)
+                
+                if st.button("✨ Aplicar Brief al Formulario", type="primary"):
+                    # 1. Keyword
+                    if data.get('keyword'):
+                        st.session_state.keyword_input = data['keyword']
+                    
+                    # 2. Configuración
+                    if data.get('arquetipo'):
+                        # Asegurarse de que el código existe en ARQUETIPOS
+                        if data['arquetipo'] in ARQUETIPOS:
+                            st.session_state.rewrite_arquetipo_selector = data['arquetipo']
+                    
+                    if data.get('summary') or data.get('action'):
+                        context_parts = []
+                        if data.get('action'):
+                            context_parts.append(f"ACCION: {data['action']}")
+                        if data.get('summary'):
+                            context_parts.append(f"RESUMEN: {data['summary']}")
+                        st.session_state.rewrite_objective_input = "\n\n".join(context_parts)
+                    
+                    if data.get('target_length'):
+                        st.session_state.rewrite_target_length_input = data['target_length']
+                    
+                    # 3. HTML a reescribir (URL)
+                    if data.get('url'):
+                        st.session_state.rewrite_single_url = data['url']
+                    
+                    # 4. Instrucciones
+                    if data.get('instructions'):
+                        inst = data['instructions']
+                        if inst.get('add'):
+                            st.session_state.rewrite_add = "\n".join([f"- {i}" for i in inst['add']])
+                        if inst.get('maintain'):
+                            st.session_state.rewrite_maintain = "\n".join([f"- {i}" for i in inst['maintain']])
+                        
+                        # Combinar action con remove para 'changes'
+                        change_parts = []
+                        if inst.get('remove'):
+                            change_parts.append("**ELIMINAR / MOVER:**")
+                            change_parts.extend([f"- {i}" for i in inst['remove']])
+                        
+                        if change_parts:
+                            st.session_state.rewrite_changes = "\n".join(change_parts)
+
+                    # 5. Keywords secundarias
+                    if data.get('keywords'):
+                        st.session_state.rewrite_secondary_keywords_input = "\n".join(data['keywords'])
+                    
+                    st.success("✅ Configuración cargada desde el brief. Los campos se han actualizado.")
+                    st.rerun()
+                    
+            except Exception as e:
+                st.error(f"❌ Error al procesar el brief: {str(e)}")
+                logger.error(f"Error parsing brief: {e}", exc_info=True)
+
+
 def render_rewrite_section() -> Tuple[bool, Dict]:
     """
     Renderiza la sección completa del modo reescritura.
@@ -275,8 +357,11 @@ def render_rewrite_section() -> Tuple[bool, Dict]:
     _process_pending_deletions()
     
     # =========================================================================
-    # PASO 1: Keyword y verificación GSC
+    # PASO 0: Carga de Brief Directa (Opcional Power User)
     # =========================================================================
+    render_brief_uploader_section()
+    
+    st.markdown("---")
     st.markdown("##### 1. Keyword Principal")
     
     keyword, should_search = render_keyword_input()
@@ -797,7 +882,8 @@ def render_merge_articles_input() -> List[Dict[str, Any]]:
         st.success(f"✅ {len(html_contents)} artículos para fusionar ({total_words:,} palabras totales)")
     elif len(html_contents) == 1:
         st.warning("⚠️ Necesitas al menos 2 artículos para fusionar")
-    
+        return []
+
     return html_contents
 
 
@@ -1926,7 +2012,7 @@ def _scrape_single_url(url: str, position: int) -> Dict:
         'Accept-Language': 'es-ES,es;q=0.9',
     }
     
-    response = requests.get(url, headers=headers, timeout=15)
+    response = requests.get(url, headers=headers, timeout=SCRAPE_TIMEOUT)
     
     if response.status_code != 200:
         raise Exception(f"HTTP {response.status_code}")
@@ -2105,7 +2191,8 @@ def render_rewrite_configuration(keyword: str, rewrite_mode: str) -> Dict:
                     "Tenemos datos internos de ventas que muestran preferencia por ASUS y MSI. "
                     "El artículo actual está desactualizado y le faltan modelos nuevos.",
         help="Combina tu objetivo (qué lograr) con cualquier contexto útil (datos internos, perspectiva única, etc.)",
-        height=120
+        height=120,
+        key="rewrite_objective_input"
     )
     # Mapear a 'context' para backward compat (el prompt usa ambos)
     config['context'] = ''  # Ya no necesitamos campo separado
@@ -2120,7 +2207,8 @@ def render_rewrite_configuration(keyword: str, rewrite_mode: str) -> Dict:
             min_value=min_len,
             max_value=max_len,
             value=default_len,
-            step=100
+            step=100,
+            key="rewrite_target_length_input"
         )
     
     with col2:
@@ -2137,13 +2225,14 @@ def render_rewrite_configuration(keyword: str, rewrite_mode: str) -> Dict:
             "Keywords secundarias (una por línea)",
             placeholder=f"{keyword}\nkeyword relacionada 1\nkeyword relacionada 2",
             height=80,
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key="rewrite_secondary_keywords_input"
         )
-        
-        config['keywords'] = [keyword] + [
-            k.strip() for k in keywords_input.split('\n') 
-            if k.strip() and k.strip() != keyword
-        ]
+    
+    config['keywords'] = [keyword] + [
+        k.strip() for k in keywords_input.split('\n') 
+        if k.strip() and k.strip() != keyword
+    ]
     
     # ── 5b. Preguntas FAQ (PAA) ─────────────────────────────────────
     try:

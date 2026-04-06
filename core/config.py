@@ -128,23 +128,36 @@ except Exception:
     pass
 if not GEMINI_API_KEY:
     GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
-# Inyectar en entorno para que utils/image_gen.py la encuentre
-if GEMINI_API_KEY:
-    os.environ['GEMINI_API_KEY'] = GEMINI_API_KEY
 
-# SEMrush: puente st.secrets → os.environ (para config/settings.py y core/semrush.py)
+# SEMrush: puente st.secrets → variables locales (sin os.environ, ver F7/U1)
+SEMRUSH_API_KEY = ""
+SEMRUSH_DATABASE = "es"
+SEMRUSH_ENABLED = False
 try:
     if hasattr(st, 'secrets') and 'semrush' in st.secrets:
         _semrush_key = st.secrets['semrush'].get('api_key', '')
         _semrush_db = st.secrets['semrush'].get('database', 'es')
         if _semrush_key:
-            os.environ['SEMRUSH_API_KEY'] = _semrush_key
-            os.environ['SEMRUSH_DATABASE'] = _semrush_db
-            os.environ['SEMRUSH_ENABLED'] = 'true'
+            SEMRUSH_API_KEY = _semrush_key
+            SEMRUSH_DATABASE = _semrush_db
+            SEMRUSH_ENABLED = True
 except Exception:
     pass
 
-# SerpAPI: puente st.secrets → os.environ (para utils/serp_research.py)
+# N8N: token de autenticación para webhooks (sin os.environ, ver F7/U1)
+N8N_API_TOKEN = ""
+try:
+    if hasattr(st, 'secrets') and 'n8n' in st.secrets:
+        _n8n_token = st.secrets['n8n'].get('api_token', '')
+        if _n8n_token:
+            N8N_API_TOKEN = _n8n_token
+except Exception:
+    pass
+if not N8N_API_TOKEN:
+    N8N_API_TOKEN = os.getenv('N8N_TOKEN', '')
+
+# SerpAPI: puente st.secrets → variables locales (sin os.environ, ver F7/U1)
+SERPAPI_API_KEY = ""
 try:
     if hasattr(st, 'secrets'):
         # Intentar acceso directo primero (más fiable en Streamlit Cloud)
@@ -160,7 +173,7 @@ try:
             except Exception:
                 pass
         if _serpapi_key:
-            os.environ['SERPAPI_API_KEY'] = str(_serpapi_key)
+            SERPAPI_API_KEY = str(_serpapi_key)
             logger.info("SerpAPI key cargada desde st.secrets")
 except Exception as e:
     logger.debug(f"SerpAPI key bridge: {e}")

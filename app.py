@@ -322,6 +322,11 @@ def render_rewrite_mode() -> None:
     )
 
     if generate_clicked:
+        # Save original HTML for before/after comparison in results
+        _orig_html = config.get('html_to_rewrite', '') or ''
+        if not _orig_html and config.get('html_contents'):
+            _orig_html = config['html_contents'][0].get('html', '')
+        st.session_state['rewrite_original_html'] = _orig_html
         execute_generation_pipeline(config, mode='rewrite')
 
 
@@ -375,30 +380,19 @@ except ImportError:
 # ============================================================================
 
 
-def _get_cached_generator() -> 'ContentGenerator':
-    """Obtiene o crea un ContentGenerator cacheado en session_state.
+@st.cache_resource
+def _get_cached_generator(_api_key: str, _model: str, _max_tokens: int = 8192, _temperature: float = 0.7) -> 'ContentGenerator':
+    """Obtiene o crea un ContentGenerator cacheado.
 
     Evita recrear el cliente de Anthropic (y su connection pool) en cada
-    mensaje del asistente. Se invalida si cambian las credenciales.
+    rerun. Se invalida automáticamente si cambian los parámetros.
     """
-    # Use hash of API key to avoid storing plaintext credentials in session state
-    _key_hash = hashlib.sha256(CLAUDE_API_KEY.encode()).hexdigest()[:16] if CLAUDE_API_KEY else ''
-    cache_key = f"{_key_hash}:{CLAUDE_MODEL}:{MAX_TOKENS}:{TEMPERATURE}"
-    cached = st.session_state.get('_cached_generator')
-    cached_key = st.session_state.get('_cached_generator_key')
-
-    if cached is not None and cached_key == cache_key:
-        return cached
-
-    generator = ContentGenerator(
-        api_key=CLAUDE_API_KEY,
-        model=CLAUDE_MODEL,
-        max_tokens=MAX_TOKENS,
-        temperature=TEMPERATURE,
+    return ContentGenerator(
+        api_key=_api_key,
+        model=_model,
+        max_tokens=_max_tokens,
+        temperature=_temperature,
     )
-    st.session_state['_cached_generator'] = generator
-    st.session_state['_cached_generator_key'] = cache_key
-    return generator
 
 
 def render_assistant_mode() -> None:
@@ -455,7 +449,7 @@ def render_assistant_mode() -> None:
     with st.chat_message("assistant"):
         with st.spinner("Pensando..."):
             try:
-                generator = _get_cached_generator()
+                generator = _get_cached_generator(CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS, TEMPERATURE)
 
                 messages = build_messages_for_api()
 

@@ -79,10 +79,16 @@ ARQUETIPOS_CON_MINI_STORIES = {
 
 # Importar constantes de tono desde prompts.brand_tone (fuente única de tono)
 try:
-    from prompts.brand_tone import get_tone_instructions, get_system_prompt_base, EJEMPLOS_TONO_STAGE3
+    from prompts.brand_tone import (
+        get_tone_instructions, get_system_prompt_base, EJEMPLOS_TONO_STAGE3,
+        build_archetype_instructions
+    )
 except ImportError:
     try:
-        from brand_tone import get_tone_instructions, get_system_prompt_base, EJEMPLOS_TONO_STAGE3
+        from brand_tone import (
+            get_tone_instructions, get_system_prompt_base, EJEMPLOS_TONO_STAGE3,
+            build_archetype_instructions
+        )
     except ImportError:
         # Fallback inline si no existen las funciones
         def get_tone_instructions(has_product_data: bool = False) -> str:
@@ -90,6 +96,8 @@ except ImportError:
         def get_system_prompt_base() -> str:
             return "Eres un redactor SEO experto de PcComponentes."
         EJEMPLOS_TONO_STAGE3 = ""
+        def build_archetype_instructions(arquetipo_code: str) -> str:
+            return ""
 
 
 # ============================================================================
@@ -1174,429 +1182,8 @@ El tono debe ser el mismo: cercano, experto, con chispa y honesto.
 
 
 # ============================================================================
-# ARCHETYPE-SPECIFIC STAGE 1 INSTRUCTIONS
+# ARCHETYPE-SPECIFIC STAGE 1 INSTRUCTIONS (Movido a brand_tone.py)
 # ============================================================================
-
-_ARCHETYPE_STAGE1_INSTRUCTIONS: Dict[str, str] = {
-    'ARQ-5': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Comparativa A vs B)
-
-### Declaración de ganador (OBLIGATORIO)
-El veredicto DEBE declarar un ganador claro. Si es un empate técnico, explica concretamente para qué perfil de usuario es mejor cada opción. No vale "depende de tus necesidades" sin perfiles concretos.
-Ejemplo válido: "Para gaming competitivo, el A es mejor por X. Para productividad multimedia, el B gana por Y."
-Ejemplo inválido: "Depende de lo que busques."
-
-### Tabla comparativa principal
-Usa `<table class="comparison-table">` (NO `<table>` genérico) para la tabla comparativa principal lado a lado.""",
-
-    'ARQ-7': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Ranking / Mejores X)
-
-### Ranking numerado (OBLIGATORIO)
-Numera los productos del 1 al N en orden de recomendación. El #1 es tu recomendación principal. Cada producto debe tener su número visible en el heading (ej: "1. Nombre del producto").
-
-### Badges (OBLIGATORIO)
-El producto #1 debe llevar badge "Mejor en general". Si hay uno con mejor relación calidad-precio distinto del #1, añadirle badge "Mejor calidad-precio".
-Usa `<span class="badge">Mejor en general</span>` junto al nombre del producto.
-
-### Grid de fichas de producto
-Usa `<div class="grid cols-2">` o `<div class="grid cols-3">` para mostrar la ficha resumen de cada producto con specs clave, precio y badge.""",
-
-    'ARQ-16': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Novedades y Lanzamientos)
-
-### Pirámide invertida (OBLIGATORIO)
-Los primeros 2 párrafos deben responder: qué producto es, qué novedad principal trae, cuándo estará disponible y a qué precio. El resto del artículo desarrolla los detalles. No empieces con introducciones genéricas.
-
-### Temporalidad y fechas
-Incluye fechas concretas de disponibilidad. Diferencia claramente entre "ya disponible", "preventa abierta" y "próximamente". Si no tienes fecha exacta, indica "fecha por confirmar" en vez de omitirlo.
-
-### Veredicto concreto
-La sección final (tercer article CMS) debe responder directamente "¿merece la pena?" con una recomendación concreta, no una conclusión genérica. Indica para qué perfil de usuario tiene sentido la compra o el upgrade.""",
-
-    'ARQ-2': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Guía Paso a Paso)
-
-### Diferenciación check-list vs pasos (OBLIGATORIO)
-Usa `<ul class="check-list">` SOLO para requisitos previos (herramientas, materiales necesarios antes de empezar).
-Usa `<ol>` con pasos numerados para el proceso en sí.
-No mezclar ambos formatos: la check-list es para "qué necesitas", la lista ordenada es para "qué hacer".""",
-
-    'ARQ-4': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Review / Análisis de Producto)
-
-### Tabla de benchmark
-Si hay datos de rendimiento o specs comparables con la competencia, preséntalos en una `<table>` con al menos una alternativa como referencia. El lector necesita contexto comparativo para evaluar si los números son buenos o malos.""",
-
-    # ── product_verdict ──────────────────────────────────────────────
-
-    'ARQ-1': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Artículos SEO con Enlaces Internos)
-
-### Densidad de enlaces internos (OBLIGATORIO)
-Incluye al menos 1 enlace interno contextual cada 200-250 palabras. Los enlaces deben apuntar a categorías o productos de PcComponentes proporcionados en los datos de entrada. No agrupes todos los enlaces en un solo párrafo: distribúyelos de forma natural a lo largo del artículo.
-
-### CTA final específico
-El tercer `<article>` (veredicto) DEBE terminar con un CTA concreto que dirija al usuario a una acción: visitar una categoría, ver un producto o consultar una guía. Nada de "visita nuestra web" genérico.
-
-### Tabla comparativa solo si procede
-Usa `<table>` solo si hay 2+ productos comparables. Si el artículo es puramente informativo sin comparación directa, sustituye la tabla por un `<div class="callout">` resumen con los puntos clave.""",
-
-    'ARQ-6': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Guía de Compra)
-
-### Factores de compra antes que productos (OBLIGATORIO)
-La primera mitad del artículo DEBE explicar los factores de decisión (specs clave, rangos de precio, tipos de producto) ANTES de recomendar productos concretos. El lector necesita criterio antes de ver opciones.
-
-### Segmentación por rango de precio
-Organiza las recomendaciones en al menos 2 rangos de precio (ej: "Menos de 200€", "200-500€", "Más de 500€"). Usa `<table>` para presentar las opciones por rango con specs clave y enlace.
-
-### Errores comunes (OBLIGATORIO)
-Incluye una sección "Errores comunes al comprar [categoría]" con un `<div class="callout">` que liste al menos 3 errores reales y específicos, no obviedades como "no comprar lo más barato".""",
-
-    'ARQ-20': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Black Friday / Cyber Monday)
-
-### Urgencia con datos, no con adjetivos (OBLIGATORIO)
-La urgencia debe venir de fechas, stock y precios concretos, NO de adjetivos como "increíble" o "imperdible". Ejemplo válido: "Disponible hasta el 28/11 o fin de stock (quedan 50 uds)." Ejemplo inválido: "¡No te pierdas esta oferta increíble!"
-
-### Callout promocional obligatorio
-Usa `<div class="callout-bf">` para las ofertas estrella (máximo 3 callouts promocionales en todo el artículo). Cada uno debe incluir: producto, precio original, precio oferta y enlace directo.
-
-### Grid de ofertas por categoría
-Usa `<div class="grid cols-3">` con `<div class="card">` para agrupar las mejores ofertas por categoría (ej: portátiles, monitores, periféricos). Cada card debe mostrar nombre, precio y descuento.""",
-
-    'ARQ-25': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Consolas y Gaming Portátil)
-
-### Tabla comparativa de consolas (OBLIGATORIO)
-Usa `<table class="comparison-table">` para comparar specs clave lado a lado: precio, catálogo de exclusivos, rendimiento, almacenamiento y servicios online. No omitas ninguna consola relevante del mercado actual.
-
-### Posicionamiento honesto por perfil
-El veredicto DEBE recomendar consolas específicas por perfil de jugador (casual, competitivo, familiar, portátil). Evita "todas son buenas a su manera" — cada perfil necesita una respuesta concreta.
-
-### Ecosistema y accesorios
-Dedica una sección a los accesorios imprescindibles para cada consola con enlace a productos PcComponentes.""",
-
-    'ARQ-33': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Movilidad y Gadgets)
-
-### Tabla comparativa de dispositivos (OBLIGATORIO)
-Usa `<table>` para comparar al menos 3 dispositivos con specs clave (batería, pantalla, peso, precio). El lector espera datos concretos para decidir.
-
-### Integración de ecosistema
-Indica explícitamente la compatibilidad de cada dispositivo con ecosistemas (Apple, Google, Samsung, etc.) y cómo afecta a la decisión de compra.
-
-### Veredicto por caso de uso
-El veredicto DEBE recomendar un dispositivo distinto para al menos 2 casos de uso concretos (ej: "Para productividad móvil...", "Para entretenimiento...").""",
-
-    # ── step_by_step ─────────────────────────────────────────────────
-
-    'ARQ-11': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Solución de Problemas / Troubleshooting)
-
-### Diagnóstico antes que solución (OBLIGATORIO)
-Estructura el contenido como: 1) Identificar síntomas → 2) Diagnosticar causa → 3) Aplicar solución. Nunca saltes directamente a la solución sin ayudar al lector a identificar qué variante del problema tiene.
-
-### Orden por probabilidad
-Las soluciones deben ir ordenadas de más probable/sencilla a menos probable/compleja. Usa `<ol>` para los pasos de diagnóstico y solución.
-
-### Cuándo buscar ayuda profesional
-Incluye un `<div class="callout">` al final con criterios claros de cuándo el problema requiere un técnico. Indica qué productos de PcComponentes podrían ser la solución si el componente está dañado.""",
-
-    'ARQ-13': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Configuración y Setup)
-
-### Requisitos previos con check-list (OBLIGATORIO)
-Abre con una `<ul class="check-list">` de todo lo necesario antes de empezar: hardware, software, cables, herramientas y tiempo estimado. No mezclar esto con los pasos del proceso.
-
-### Pasos numerados con resultado esperado
-Cada paso en la `<ol>` debe describir: qué hacer, cómo verificar que se hizo bien y qué debería verse/pasar si funciona correctamente.
-
-### Troubleshooting inline
-Tras cada paso crítico (instalación de drivers, configuración de BIOS, etc.), añade un `<div class="callout">` con los errores más frecuentes en ese paso específico y cómo resolverlos.""",
-
-    # ── educational ──────────────────────────────────────────────────
-
-    'ARQ-3': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Explicación / Educativo)
-
-### De lo concreto a lo abstracto (OBLIGATORIO)
-Empieza con una definición en 1-2 frases llanas (como si lo explicaras a alguien sin conocimientos técnicos). Después profundiza en contexto técnico, historia y funcionamiento interno.
-
-### Mitos vs realidad
-Si el tema tiene mitos comunes, dedica una sección con `<div class="callout">` por mito, usando formato "MITO: ... / REALIDAD: ...".
-
-### Ejemplos prácticos obligatorios
-Cada concepto abstracto DEBE ir acompañado de un ejemplo práctico o caso de uso real. "Esto significa que..." seguido de una situación concreta.""",
-
-    'ARQ-9': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Mejores Productos por Precio)
-
-### Tabla de rangos de precio (OBLIGATORIO)
-Usa `<table>` con columnas: Rango de precio | Mejor opción | Punto fuerte | Para quién. Debe cubrir al menos 3 franjas de presupuesto.
-
-### Sweet spot destacado
-Usa un `<div class="callout">` para destacar el "sweet spot" (mejor relación calidad-precio global) con una justificación concreta de por qué ese rango ofrece el mejor valor.
-
-### Sin juicios sobre el presupuesto
-Nunca uses expresiones como "si te lo puedes permitir" o "para presupuestos ajustados". Describe cada rango de forma neutral: qué obtienes a ese precio y qué sacrificas.""",
-
-    'ARQ-12': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Especificaciones Técnicas Explicadas)
-
-### Spec → Impacto real (OBLIGATORIO)
-Cada especificación DEBE explicarse en términos de impacto para el usuario. No basta con definir "latencia CAS"; hay que añadir "esto significa que al abrir 20 pestañas de Chrome notarás...".
-
-### Tabla de valores recomendados
-Usa `<table>` con columnas: Spec | Valor mínimo aceptable | Recomendado | Gama alta, segmentado por caso de uso (gaming, ofimática, edición, etc.).
-
-### Callout de mitos técnicos
-Usa `<div class="callout">` para desmontar al menos 1 mito técnico común sobre las specs (ej: "más GHz siempre es mejor").""",
-
-    'ARQ-14': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Optimización y Mejora)
-
-### Diagnóstico antes que optimización (OBLIGATORIO)
-Empieza con cómo medir el rendimiento actual (herramientas, métricas) ANTES de proponer mejoras. El lector necesita saber su punto de partida.
-
-### Mejoras ordenadas por impacto/coste
-Organiza las mejoras de mayor a menor ratio impacto/coste. Usa `<table>` con columnas: Mejora | Coste aproximado | Mejora esperada | Dificultad.
-
-### Mejor inversión destacada
-Usa `<div class="callout">` para destacar la mejora con mejor relación impacto/precio, con enlace al producto correspondiente en PcComponentes.""",
-
-    'ARQ-15': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Mantenimiento y Cuidados)
-
-### Calendario de mantenimiento (OBLIGATORIO)
-Usa `<table>` con columnas: Tarea | Frecuencia | Tiempo estimado | Materiales necesarios. Organiza por frecuencia: diario/semanal → mensual → anual.
-
-### Señales de alerta
-Incluye un `<div class="callout">` con los signos que indican que algo va mal y hay que actuar ya (ruidos, temperaturas, rendimiento degradado).
-
-### Productos de mantenimiento
-Enlaza productos de limpieza y mantenimiento de PcComponentes (aire comprimido, pasta térmica, kits de limpieza) donde sea pertinente.""",
-
-    'ARQ-22': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Requisitos de Videojuegos)
-
-### Tablas de requisitos obligatorias (OBLIGATORIO)
-Usa `<table>` para presentar: requisitos mínimos, recomendados y 4K/Ultra en columnas lado a lado. Incluye CPU, GPU, RAM, almacenamiento y SO.
-
-### Configuraciones de hardware probadas
-Incluye al menos 2 builds concretas (presupuesto y rendimiento) con componentes específicos de PcComponentes y los FPS esperados a cada calidad gráfica.
-
-### Optimización de ajustes gráficos
-Usa un `<div class="callout">` para indicar qué ajustes gráficos bajar primero para ganar más FPS con menor impacto visual (ej: sombras, reflejos ray-tracing).""",
-
-    'ARQ-24': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Periféricos Gaming)
-
-### Specs clave por tipo de periférico (OBLIGATORIO)
-Usa `<table>` con las specs que realmente importan para cada periférico: sensor/DPI para ratones, switches/respuesta para teclados, driver/respuesta para auriculares. No listes specs irrelevantes.
-
-### Recomendaciones por presupuesto
-Segmenta las recomendaciones en al menos 2 rangos de precio. Cada producto debe tener nombre concreto, precio y enlace.
-
-### Combos recomendados
-Cierra con un `<div class="callout">` que recomiende un combo completo de periféricos (ratón + teclado + auriculares) para al menos 2 perfiles: competitivo y casual.""",
-
-    'ARQ-26': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Workstation Profesional)
-
-### Configuración por disciplina (OBLIGATORIO)
-Usa `<table>` con configuraciones específicas por disciplina profesional (3D, vídeo, CAD, desarrollo, etc.). No mezcles requisitos de disciplinas distintas en una sola recomendación.
-
-### Software → Hardware
-Organiza cada sección partiendo del software principal de la disciplina y derivando los requisitos de hardware que necesita. No al revés.
-
-### Ergonomía como inversión
-Incluye una sección sobre monitor, silla y escritorio como parte integral de la workstation, no como accesorio opcional. Usa `<div class="callout">` para destacar que la ergonomía afecta directamente a la productividad.""",
-
-    'ARQ-28': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Productividad y Software)
-
-### Stack recomendado (OBLIGATORIO)
-Cierra con una tabla-resumen del stack completo recomendado por área: herramienta, precio (gratis/pago), plataforma y alternativa.
-
-### Hardware complementario
-Cada categoría de software debe mencionar si hay hardware que mejora la experiencia (monitor ultrawide para multitarea, SSD para compilación, etc.) con enlace a PcComponentes.
-
-### Tips accionables
-Usa `<div class="callout">` para tips de productividad concretos y accionables, no consejos genéricos como "organiza tu tiempo".""",
-
-    'ARQ-29': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Seguridad y Privacidad)
-
-### Nivel de amenaza real (OBLIGATORIO)
-Empieza cada sección de amenaza con el impacto real y la probabilidad, no con alarmismo. Formato: "Qué es → Cómo te afecta → Cómo protegerte".
-
-### Checklist de seguridad
-Cierra el artículo con una tabla-checklist: Medida | Dificultad | Importancia | Estado (para que el lector pueda evaluar su propia situación).
-
-### Productos de seguridad
-Incluye productos físicos de seguridad (llaves USB FIDO, webcam covers, routers con firewall) con enlace cuando sean pertinentes. Usa `<div class="callout">` para la medida de protección más crítica.""",
-
-    'ARQ-30': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Redes y Conectividad)
-
-### Diagnóstico de red actual (OBLIGATORIO)
-Empieza con cómo evaluar la red actual del lector (herramientas de test, qué medir) antes de recomendar equipamiento.
-
-### Tabla de equipamiento por tamaño de espacio
-Usa `<table>` con recomendaciones de equipamiento según tamaño del espacio y número de dispositivos. Columnas: Espacio | Dispositivos | Router recomendado | Extensores necesarios.
-
-### Configuración paso a paso
-Incluye al menos una sección con pasos numerados (`<ol>`) para la configuración básica del router/red. Usa `<div class="callout">` para los errores de configuración más frecuentes.""",
-
-    'ARQ-32': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Fotografía y Vídeo)
-
-### Equipamiento por nivel (OBLIGATORIO)
-Usa `<table>` con 3 columnas de nivel: Iniciación | Intermedio | Profesional. Filas por tipo de equipo (cámara, objetivo, iluminación, audio, almacenamiento).
-
-### Triángulo cámara-objetivo-luz
-Dedica una sección a explicar que el equipo fotográfico/vídeo funciona como sistema: no vale invertir todo en el cuerpo de la cámara sin buenos objetivos o luz.
-
-### Kit recomendado completo
-Cierra con un `<div class="callout">` que liste un kit completo recomendado para el nivel más demandado, con precios y enlaces a PcComponentes.""",
-
-    'ARQ-34': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Sostenibilidad y Eficiencia Energética)
-
-### Datos de consumo reales (OBLIGATORIO)
-Incluye cifras concretas de consumo energético (W, kWh/año, coste anual estimado) siempre que sea posible. Usa `<table>` para comparar consumo entre productos eficientes y convencionales.
-
-### Certificaciones como criterio de compra
-Explica las certificaciones relevantes (Energy Star, 80 Plus, EPEAT) en términos prácticos: qué garantizan al comprador y cómo buscarlas.
-
-### Impacto personal cuantificado
-Usa `<div class="callout">` para mostrar el ahorro estimado en euros/año al elegir productos eficientes frente a los convencionales.""",
-
-    # ── grid_recommendations ─────────────────────────────────────────
-
-    'ARQ-8': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Lista de Recomendaciones)
-
-### Grid de productos (OBLIGATORIO)
-Usa `<div class="grid cols-2">` o `<div class="grid cols-3">` con `<div class="card">` para cada producto recomendado. Cada card debe incluir: nombre, para quién es ideal y el punto fuerte diferencial.
-
-### Criterios de selección antes de la lista
-Explica brevemente (2-3 párrafos) los criterios usados para seleccionar los productos ANTES de mostrar la lista. El lector debe entender por qué estos y no otros.
-
-### Callout con recomendación rápida
-Abre con un `<div class="callout">` que diga "Si tienes prisa: [producto] es nuestra recomendación principal por [razón]." para lectores que no quieren leer todo el artículo.""",
-
-    'ARQ-10': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Productos para Perfil Específico)
-
-### Perfil de usuario concreto (OBLIGATORIO)
-Los primeros 2 párrafos DEBEN definir el perfil de usuario con detalle: qué hace, qué necesita, qué presupuesto maneja, qué errores típicos comete al comprar. No vale "gamers" a secas — sé específico.
-
-### Grid de productos recomendados
-Usa `<div class="grid cols-2">` con `<div class="card">` para cada producto. Cada card debe explicar por qué encaja en ESE perfil específico, no por qué es buen producto en general.
-
-### Kit ideal completo
-Cierra con un `<div class="callout">` que presente el kit ideal completo para ese perfil con precio total aproximado.""",
-
-    'ARQ-18': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Eventos y Ferias Tech)
-
-### Pirámide invertida por anuncio (OBLIGATORIO)
-Cada anuncio destacado debe abrir con lo más importante: qué es, cuándo llega y a qué precio. Los detalles técnicos van después.
-
-### Grid de anuncios por categoría
-Usa `<div class="grid cols-2">` con `<div class="card">` para agrupar anuncios por categoría (procesadores, GPUs, portátiles, etc.). Cada card: nombre del producto, novedad principal y fecha estimada.
-
-### Callout de impacto para el consumidor
-Usa `<div class="callout">` para explicar en lenguaje llano qué significan los anuncios técnicos para el consumidor final: "Esto significa que los portátiles de 2025 tendrán X% más de batería por el mismo precio.".""",
-
-    'ARQ-23': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Streaming y Creación de Contenido)
-
-### Kit por nivel (OBLIGATORIO)
-Usa `<div class="grid cols-3">` para presentar 3 niveles: Principiante | Intermedio | Profesional. Cada card del grid debe listar los equipos esenciales con precio total del kit.
-
-### Software antes que hardware
-Empieza explicando qué software se usará (OBS, DaVinci, etc.) y sus requisitos, para que las recomendaciones de hardware tengan contexto.
-
-### Callout de errores de principiante
-Usa `<div class="callout">` para los 3 errores más comunes al montar un setup de streaming (ej: invertir todo en cámara sin buena iluminación, ignorar el audio).""",
-
-    'ARQ-27': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Teletrabajo y Home Office)
-
-### Kit por presupuesto (OBLIGATORIO)
-Usa `<div class="grid cols-3">` con `<div class="card">` para 3 kits: Básico (<300€) | Confort (300-700€) | Premium (>700€). Cada card debe listar todos los elementos del kit con precio total.
-
-### Ergonomía como prioridad
-La ergonomía NO es una sección secundaria: dedica al menos 1 sección H2 completa a silla, escritorio, postura y pausas. Usa `<div class="callout">` para destacar que invertir en ergonomía reduce bajas laborales.
-
-### Conectividad como requisito
-Incluye recomendaciones de router/conexión como parte esencial del setup de teletrabajo, no como accesorio.""",
-
-    'ARQ-31': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Hogar Inteligente / Smart Home)
-
-### Ecosistema primero (OBLIGATORIO)
-Antes de recomendar dispositivos, explica los ecosistemas disponibles (Google Home, Alexa, HomeKit, Matter) y ayuda al lector a elegir uno. Cada dispositivo recomendado debe indicar su compatibilidad.
-
-### Grid de starter kits
-Usa `<div class="grid cols-2">` con `<div class="card">` para presentar kits de inicio por ecosistema. Cada card: ecosistema, dispositivos incluidos y precio total.
-
-### Callout de seguridad y privacidad
-Usa `<div class="callout">` para abordar brevemente las preocupaciones de seguridad/privacidad del smart home y cómo mitigarlas.""",
-
-    # ── promo ────────────────────────────────────────────────────────
-
-    'ARQ-19': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Ofertas y Promociones)
-
-### Urgencia basada en datos (OBLIGATORIO)
-La urgencia debe venir de fechas y condiciones concretas ("Válido del 15 al 22 de marzo"), NO de adjetivos ("¡Oferta increíble!"). Incluye siempre fecha de fin y condiciones.
-
-### Callout promocional para ofertas estrella
-Usa `<div class="callout-bf">` para las 2-3 ofertas estrella de la promoción. Cada callout debe incluir: producto, precio original tachado, precio oferta y enlace directo. Máximo 3 callouts promocionales en todo el artículo.
-
-### Grid de ofertas por categoría
-Usa `<div class="grid cols-2">` con `<div class="card">` para agrupar ofertas por categoría. Cada card: nombre, descuento y enlace. Añade `<span class="badge">-X%</span>` con el porcentaje de descuento.""",
-
-    # ── gaming_multicomponent ────────────────────────────────────────
-
-    'ARQ-21': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Setup Gaming Completo)
-
-### Builds completas por presupuesto (OBLIGATORIO)
-Presenta al menos 2 builds completas (presupuesto y rendimiento) con TODOS los componentes: CPU, GPU, RAM, placa, SSD, fuente, caja, monitor, teclado, ratón, auriculares. Usa `<table>` para cada build con componente, modelo recomendado y precio.
-
-### Grid de componentes por prioridad
-Usa `<div class="grid cols-2">` para mostrar los componentes donde más importa invertir vs donde se puede ahorrar. No tratar todos los componentes con la misma importancia.
-
-### Ruta de upgrade futuro
-Incluye un `<div class="callout">` con la ruta de upgrade a 1-2 años: qué componente cambiar primero para mejorar rendimiento sin rehacer todo el setup.""",
-
-    # ── trends ───────────────────────────────────────────────────────
-
-    'ARQ-17': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Tendencias del Sector)
-
-### Predicciones con base (OBLIGATORIO)
-Cada tendencia o predicción DEBE apoyarse en al menos un dato concreto, fuente o evidencia observable. No escribas "se espera que..." sin indicar quién lo espera o por qué. Si no hay fuente, indica explícitamente que es una proyección editorial.
-
-### Sin tablas ni grids forzados
-Este arquetipo NO requiere tablas ni grids. Usa formato narrativo con H2/H3. Solo añade una tabla si hay datos numéricos reales que comparar (cuotas de mercado, precios históricos, etc.).
-
-### Callout de impacto para el consumidor
-Cada tendencia debe cerrar con un `<div class="callout">` explicando qué significa para el comprador medio de PcComponentes: "Esto significa que en 6 meses podrás comprar...".""",
-
-    # ── external_text ────────────────────────────────────────────────
-
-    'ARQ-35': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Nota de Prensa)
-
-### Tono institucional estricto (OBLIGATORIO)
-Escribe en tercera persona ("PcComponentes anuncia..."). Cero adjetivos promocionales: no uses "líder", "mejor", "increíble", "revolucionario". Los datos hablan solos.
-
-### Estructura de pirámide invertida
-El primer párrafo (lead) DEBE responder quién, qué, cuándo, dónde y por qué. El resto del comunicado desarrolla detalles en orden decreciente de importancia.
-
-### Cita del portavoz
-Si se proporcionan datos del portavoz (campos_especificos), incluye una cita textual entrecomillada. La cita debe sonar natural y aportar contexto, no repetir lo que ya dice el texto.""",
-
-    'ARQ-36': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Contenido para Web de Afiliados)
-
-### Honestidad persuasiva (OBLIGATORIO)
-El tono debe ser de experto independiente que recomienda con criterio. Incluye siempre al menos 1 "contra" real por producto recomendado. La credibilidad vende más que la hipérbole.
-
-### Tabla resumen rápida al inicio
-Tras la introducción, incluye una tabla-resumen con los 3-5 productos analizados: Producto | Mejor para | Precio | Nota. El lector que tiene prisa necesita esto arriba.
-
-### CTAs de afiliado naturales
-Los enlaces de compra deben ir integrados en el flujo del texto ("Ver precio actual en PcComponentes"), nunca como botones agresivos ni con urgencia artificial.""",
-
-    'ARQ-37': """## INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO (Guest Posting)
-
-### Tono de autor invitado (OBLIGATORIO)
-Escribe como un experto independiente publicando en un medio ajeno. NUNCA uses "en PcComponentes" como sujeto de frase. La mención a PcComponentes debe ser contextual y limitada a 1-2 apariciones en todo el artículo.
-
-### Valor primero, marca después
-El 80% del artículo debe ser contenido de valor puro sin mencionar ninguna marca. La sección con mención de PcComponentes debe aportar valor adicional, no ser un anuncio insertado.
-
-### Sin estructura CMS visible
-Aunque técnicamente se mantiene la estructura de 3 articles para el CMS, el contenido debe leerse como un artículo editorial continuo. No uses "Nuestro veredicto" ni "FAQs" como headers — usa títulos editoriales naturales.""",
-}
-
-
-def _build_archetype_stage1_instructions(arquetipo_code: str) -> str:
-    """Retorna instrucciones específicas del arquetipo para Stage 1.
-    Retorna string vacío si el arquetipo no tiene instrucciones específicas."""
-    return _ARCHETYPE_STAGE1_INSTRUCTIONS.get(arquetipo_code, "")
 
 
 def _build_faq_instructions(faq_questions: Optional[List[str]] = None) -> str:
@@ -1647,11 +1234,15 @@ def build_new_content_prompt_stage1(
     products: Optional[List[Dict]] = None,  # NUEVO v5.0
     headings_config: Optional[Dict[str, int]] = None,  # NUEVO v5.0
     faq_questions: Optional[List[str]] = None,  # Preguntas FAQ seleccionadas (PAA + custom)
+    authoritative_sources: str = "",  # NUEVO [I1]: Fuentes autoritativas
 ) -> str:
     """
     Construye prompt para Etapa 1: Borrador inicial.
     
     Funciona igual de bien CON o SIN datos de producto.
+    
+    NUEVO v5.1:
+    - Task I1: Fuentes autoritativas (prioridad de información)
     
     NUEVO v4.9.0:
     - Fusiona pdp_data + pdp_json_data
@@ -1672,6 +1263,10 @@ def build_new_content_prompt_stage1(
         visual_elements: Elementos visuales a incluir ['toc', 'table', etc.]
         guiding_context: Contexto guía del usuario
         alternative_product: Producto alternativo {url, name, json_data}
+        products: Lista unificada de productos (v5.0)
+        headings_config: Configuración de encabezados (v5.0)
+        faq_questions: Preguntas FAQ seleccionadas
+        authoritative_sources: Fuentes prioritarias (I1)
         
     Returns:
         Prompt completo para Claude
@@ -1735,6 +1330,15 @@ def build_new_content_prompt_stage1(
             if value:
                 campos_section += f"- **{key}:** {value}\n"
     
+    # NUEVO [I1]: Fuentes autoritativas
+    authoritative_sources_section = ""
+    if authoritative_sources:
+        authoritative_sources_section = f"""
+## 💎 FUENTES AUTORITATIVAS (PRIORIDAD MÁXIMA)
+Usa los datos de estas fuentes como VERDAD ABSOLUTA. Si hay conflicto entre estas fuentes y tu conocimiento general, prevalecen estas fuentes:
+{authoritative_sources}
+"""
+    
     # Formatear sección del arquetipo para el prompt
     arquetipo_detail = ""
     if arquetipo_tone:
@@ -1746,7 +1350,7 @@ def build_new_content_prompt_stage1(
     # Determinar si incluir mini-historias:
     # Solo si (1) el arquetipo lo requiere Y (2) hay reviews/feedback de usuarios
     arquetipo_code = arquetipo.get('code', '')
-    archetype_specific_section = _build_archetype_stage1_instructions(arquetipo_code)
+    archetype_specific_section = build_archetype_instructions(arquetipo_code)
     include_mini_stories = (
         arquetipo_code in ARQUETIPOS_CON_MINI_STORIES
         and has_feedback
@@ -1794,6 +1398,8 @@ La keyword "{keyword}" DEBE aparecer de forma natural en el contenido:
 - **Natural:** Integrada en frases reales, nunca forzada ni repetitiva
 
 {product_section}
+
+{authoritative_sources_section}
 
 {tone_instructions}
 
@@ -1917,7 +1523,9 @@ _ARCHETYPE_STAGE2_GROUPS = {
 _GROUP_CHECKLISTS_STAGE2 = {
     'product_verdict': [
         "¿El veredicto aporta una opinión ORIGINAL y no es un simple resumen del artículo?",
+        "¿Existe una declaración de 'ganador claro' en el veredicto? (Obligatorio para comparativas ARQ-5)",
         "¿La tabla comparativa usa datos reales (specs, precios, características concretas)?",
+        "¿La tabla comparativa usa la clase CSS .comparison-table?",
         "¿Se mencionan pros Y contras de forma honesta (no solo ventajas)?",
         "¿Los datos de producto proporcionados se usan de forma sustantiva en el texto?",
         "¿El CTA final es específico y orientado a la acción?",
@@ -1925,6 +1533,7 @@ _GROUP_CHECKLISTS_STAGE2 = {
     'step_by_step': [
         "¿Los pasos están numerados en una lista ordenada (<ol>) o con numeración explícita?",
         "¿Cada paso es autocontenido y accionable?",
+        "¿Las listas <ul class=\"check-list\"> se usan SOLO para requisitos previos, no para los pasos procedimentales?",
         "¿Existe una sección de requisitos previos separada de los pasos?",
         "¿Hay guidance para errores comunes o problemas durante el proceso?",
     ],
@@ -1960,6 +1569,29 @@ _GROUP_CHECKLISTS_STAGE2 = {
         "¿El tono es apropiado para publicación externa (no promocional)?",
         "¿La estructura CMS de 3 articles se mantiene aunque el contenido sea externo?",
         "¿Las menciones a PcComponentes son naturales e integradas?",
+    ],
+}
+
+# --- Archetype-specific overrides for individual checks (QW-1b) ---
+_ARCHETYPE_SPECIFIC_CHECKS_STAGE2 = {
+    'ARQ-4': [  # Review / Análisis de Producto
+        "¿El veredicto final incluye una puntuación o valoración explícita (número, estrellas, o escala)?",
+    ],
+    'ARQ-5': [  # Comparativa A vs B
+        "¿Hay una declaración explícita de ganador con justificación?",
+        "¿La tabla comparativa central usa la clase CSS .comparison-table?",
+    ],
+    'ARQ-7': [  # Roundup / Mejores X (Ranking)
+        "¿Los productos están numerados del 1 al N con ranking explícito?",
+        "¿Incluye badges diferenciadores ('Mejor en general', 'Mejor calidad-precio')?",
+        "¿Usa el componente `.grid` para la presentación de productos resumen?",
+    ],
+    'ARQ-16': [  # Novedades y Lanzamientos
+        "¿Sigue estructura de pirámide invertida (Qué, Quién, Cuándo y Precio en los 2 primeros párrafos)?",
+        "¿Menciona fechas concretas de disponibilidad o lanzamiento?",
+    ],
+    'ARQ-2': [  # Guía Paso a Paso
+        "¿Se diferencia correctamente entre herramienta/material (check-list) y paso del proceso (lista ordenada)?",
     ],
 }
 
@@ -2000,12 +1632,22 @@ def _build_archetype_checklist_stage2(
         pass
 
     items = _GROUP_CHECKLISTS_STAGE2.get(group, [])
-    if not items:
+    if not items and arquetipo_code not in _ARCHETYPE_SPECIFIC_CHECKS_STAGE2:
         return ""
 
     lines = [f"\n## 7. CHECKLIST DEL ARQUETIPO ({arq_name})"]
+    
+    # Checks grupales
     for item in items:
         lines.append(f"- [ ] {item}")
+
+    # Checks específicos del arquetipo (QW-1c)
+    specific_items = _ARCHETYPE_SPECIFIC_CHECKS_STAGE2.get(arquetipo_code, [])
+    if specific_items:
+        if items:
+            lines.append(f"\n### Checks específicos para {arq_name}:")
+        for item in specific_items:
+            lines.append(f"- [ ] {item}")
 
     # Estructura esperada del arquetipo
     if arquetipo_structure:
@@ -2065,7 +1707,8 @@ def build_new_content_correction_prompt_stage2(
     visual_elements: Optional[List[str]] = None,
     arquetipo_code: str = "",                          # QW-1
     arquetipo_structure: Optional[List[str]] = None,   # QW-1
-    faq_questions: Optional[List[str]] = None,  # Preguntas FAQ a verificar
+    faq_questions: Optional[List[str]] = None,
+    secondary_keywords: Optional[List[str]] = None,    # QW-3
 ) -> str:
     """
     Construye prompt para Etapa 2: Análisis crítico del borrador.
@@ -2169,6 +1812,8 @@ def build_new_content_correction_prompt_stage2(
 - [ ] ¿La densidad de keyword es 1-2%? (contar apariciones y calcular)
 - [ ] ¿La keyword está distribuida en inicio, medio y final?
 - [ ] ¿La keyword aparece de forma natural, no forzada?
+- [ ] ¿Se usan las keywords secundarias de forma natural en el texto? (si se proporcionan)
+- [ ] ¿El borrador incluye el comentario `<!-- META: ... -->` antes del `<style>`? (max 155 chars, con keyword)
 - [ ] ¿TODOS los enlaces proporcionados están incluidos?
 - [ ] ¿Se mencionan los datos de los productos enlazados?
 - [ ] ¿La longitud es aproximada al objetivo?
@@ -2201,7 +1846,8 @@ def build_new_content_correction_prompt_stage2(
         "en_primeras_100_palabras": false,
         "en_algun_h2": false,
         "distribucion": "buena/concentrada/ausente",
-        "correcciones_keyword": []
+        "correcciones_keyword": []{"," if secondary_keywords else ""}
+        {"" if not secondary_keywords else '"keywords_secundarias_presentes": ["lista de secundarias encontradas"],' + chr(10) + '    "keywords_secundarias_ausentes": ["lista de secundarias no encontradas"]'}
     }},
 
     "estructura": {{
@@ -2209,6 +1855,7 @@ def build_new_content_correction_prompt_stage2(
         "tiene_main": false,
         "tiene_faqs": false,
         "tiene_verdict": false,
+        "tiene_meta_description": false,
         "faqs_incluye_keyword": false,
         "tiene_markdown_wrapper": false
     }},
@@ -2394,22 +2041,28 @@ def build_final_prompt_stage3(
 </style>
 
 <article class="contentGenerator__main">
+    #MODULE_START:MAIN#
     <span class="kicker">KICKER</span>
     <h2>Título con {keyword}</h2>
 {_stage3_structure_hints(visual_elements)}
     <section>...</section>
+    #MODULE_END:MAIN#
 </article>
 
 <article class="contentGenerator__faqs">
+    #MODULE_START:FAQS#
     <h2>Preguntas frecuentes sobre {keyword}</h2>
     <div class="faqs">...</div>
+    #MODULE_END:FAQS#
 </article>
 
 <article class="contentGenerator__verdict">
+    #MODULE_START:VERDICT#
     <div class="verdict-box">
         <h2>Nuestro veredicto</h2>
         <p>Conclusión que APORTE valor real...</p>
     </div>
+    #MODULE_END:VERDICT#
 </article>
 ```
 
@@ -2429,6 +2082,7 @@ def build_final_prompt_stage3(
 10. **EMOJIS:** No usar emojis en el contenido generado.
 11. **ELEMENTOS VISUALES:** TODOS los elementos visuales solicitados DEBEN estar presentes.
 12. **META DESCRIPTION:** Incluye `<!-- META: ... -->` (max 155 chars con keyword) ANTES del `<style>` como primera línea del output.
+13. **MODULAR MARKERS (NUEVO):** Encierra cada bloque <article> con marcadores `#MODULE_START:ID#` y `#MODULE_END:ID#` (IDs: MAIN, FAQS, VERDICT) como se muestra en la estructura. No incluyas nada fuera de estos marcadores excepto el META y el <style>.
 
 ## 🔍 CHECKLIST PRE-ENTREGA (OBLIGATORIO)
 

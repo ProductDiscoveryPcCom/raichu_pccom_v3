@@ -17,6 +17,7 @@ Seguridad:
 Configuración en Streamlit Secrets:
     [n8n]
     webhook_url = "https://tu-servidor-n8n.com/webhook/extract-product-data"
+    api_token = "tu-token-secreto"  # Opcional: se envía como Authorization: Bearer
 
 Autor: PcComponentes - Product Discovery & Content
 """
@@ -24,11 +25,18 @@ Autor: PcComponentes - Product Discovery & Content
 import requests
 import re
 import json
+import time
 import logging
 from typing import Dict, Optional, Any, Tuple, List
 from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
+
+# Token de autenticación para webhooks (cargado desde core.config)
+try:
+    from core.config import N8N_API_TOKEN
+except ImportError:
+    N8N_API_TOKEN = ""
 
 __version__ = "1.2.1"
 
@@ -45,7 +53,18 @@ URL_PATTERNS = [
 ]
 
 # Timeout para requests HTTP
-DEFAULT_TIMEOUT = 30
+try:
+    from config.settings import REQUEST_TIMEOUT as DEFAULT_TIMEOUT
+except ImportError:
+    DEFAULT_TIMEOUT = 30
+
+try:
+    from config.settings import MAX_RETRIES as _SETTINGS_MAX_RETRIES
+except ImportError:
+    _SETTINGS_MAX_RETRIES = 3
+
+# Cap webhook retries at 3 (2 retries = 3 attempts total)
+WEBHOOK_MAX_RETRIES = min(_SETTINGS_MAX_RETRIES, 3)
 
 
 # ============================================================================
@@ -160,6 +179,8 @@ def fetch_product_via_n8n_webhook(
         return False, None, "No se ha configurado webhook_url en secrets [n8n]"
 
     headers = {"Content-Type": "application/json"}
+    if N8N_API_TOKEN:
+        headers["Authorization"] = f"Bearer {N8N_API_TOKEN}"
 
     # Payloads a intentar en orden de prioridad
     payloads_to_try = [
@@ -176,13 +197,46 @@ def fetch_product_via_n8n_webhook(
         try:
             logger.info(f"Intentando webhook con payload: {list(payload.keys())}")
 
-            response = requests.post(
-                webhook_url,
-                json=payload,
-                headers=headers,
-                timeout=timeout,
-                verify=True,
-            )
+            # Retry loop for transient failures (ConnectionError, Timeout, 502/503/504)
+            response = None
+            _last_transient_error = None
+            for _attempt in range(WEBHOOK_MAX_RETRIES):
+                try:
+                    response = requests.post(
+                        webhook_url,
+                        json=payload,
+                        headers=headers,
+                        timeout=timeout,
+                        verify=True,
+                    )
+                    # Retry on transient HTTP errors (502, 503, 504)
+                    if response.status_code in (502, 503, 504):
+                        _last_transient_error = f"HTTP {response.status_code}"
+                        if _attempt < WEBHOOK_MAX_RETRIES - 1:
+                            _delay = 2 ** _attempt  # 1s, 2s
+                            logger.warning(
+                                f"Webhook transient error {response.status_code}, "
+                                f"retry {_attempt + 1}/{WEBHOOK_MAX_RETRIES - 1} in {_delay}s"
+                            )
+                            time.sleep(_delay)
+                            response = None
+                            continue
+                    break  # Success or non-transient error
+                except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                    _last_transient_error = str(e)
+                    if _attempt < WEBHOOK_MAX_RETRIES - 1:
+                        _delay = 2 ** _attempt  # 1s, 2s
+                        logger.warning(
+                            f"Webhook {type(e).__name__}, "
+                            f"retry {_attempt + 1}/{WEBHOOK_MAX_RETRIES - 1} in {_delay}s"
+                        )
+                        time.sleep(_delay)
+                        continue
+                    raise  # Re-raise on final attempt
+
+            if response is None:
+                last_error = f"Transient error tras {WEBHOOK_MAX_RETRIES} intentos: {_last_transient_error}"
+                continue
 
             logger.info(f"Respuesta HTTP {response.status_code}")
 

@@ -594,13 +594,12 @@ def _fetch_semrush_data(keyword: str) -> Optional[Dict]:
         return cached
 
     try:
-        import os
-        api_key = os.environ.get('SEMRUSH_API_KEY', '')
-        if not api_key:
-            try:
-                api_key = st.secrets.get('semrush', {}).get('api_key', '')
-            except Exception:
-                pass
+        api_key = ""
+        try:
+            from core.config import SEMRUSH_API_KEY
+            api_key = SEMRUSH_API_KEY
+        except ImportError:
+            pass
 
         if not api_key:
             return None

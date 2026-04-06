@@ -20,6 +20,11 @@ logger = logging.getLogger(__name__)
 
 __version__ = "1.0.0"
 
+try:
+    from config.settings import SCRAPE_TIMEOUT
+except ImportError:
+    SCRAPE_TIMEOUT = 15
+
 BLOG_SITEMAP_URL = "https://www.pccomponentes.com/sitemap/blog.xml"
 
 # Caché TTL en segundos (1 hora)
@@ -28,7 +33,7 @@ _CACHE_TTL = 3600
 
 def fetch_blog_urls(
     sitemap_url: str = BLOG_SITEMAP_URL,
-    timeout: int = 15,
+    timeout: int = SCRAPE_TIMEOUT,
 ) -> Optional[List[Dict[str, Any]]]:
     """
     Descarga y parsea el sitemap XML del blog.

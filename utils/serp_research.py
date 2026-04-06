@@ -34,39 +34,13 @@ __version__ = "2.0.0"
 # ============================================================================
 
 def _get_serpapi_key() -> str:
-    """Obtiene API key de SerpAPI desde secrets o env.
+    """Obtiene API key de SerpAPI.
     
-    Orden de búsqueda:
-    1. Variable de entorno SERPAPI_API_KEY
-    2. st.secrets['serpapi_key'] (acceso directo)
-    3. st.secrets.get('serpapi_key') (método get)
+    Busca la variable cacheada en core.config (U1/F7 refactor).
     """
-    # 1. Variable de entorno (puesta por app.py o externamente)
-    key = os.environ.get('SERPAPI_API_KEY', '')
-    if key:
-        return key
-    
-    # 2. Streamlit secrets (intentar múltiples métodos)
     try:
-        import streamlit as st
-        if hasattr(st, 'secrets'):
-            # Método directo (más fiable en Streamlit Cloud)
-            try:
-                key = st.secrets["serpapi_key"]
-                if key:
-                    # Cachear en os.environ para llamadas futuras
-                    os.environ['SERPAPI_API_KEY'] = str(key)
-                    return str(key)
-            except (KeyError, FileNotFoundError):
-                pass
-            # Método get (fallback)
-            try:
-                key = st.secrets.get('serpapi_key', '')
-                if key:
-                    os.environ['SERPAPI_API_KEY'] = str(key)
-                    return str(key)
-            except Exception as e:
-                logger.debug(f"SerpAPI secrets.get fallback failed: {e}")
+        from core.config import SERPAPI_API_KEY
+        return SERPAPI_API_KEY
     except ImportError:
         pass
     
@@ -75,7 +49,12 @@ def _get_serpapi_key() -> str:
 
 def _get_semrush_available() -> bool:
     """Verifica si SEMrush está disponible."""
-    return os.environ.get('SEMRUSH_ENABLED', '').lower() == 'true'
+    try:
+        from core.config import SEMRUSH_ENABLED
+        return bool(SEMRUSH_ENABLED)
+    except ImportError:
+        pass
+    return False
 
 
 # Dominios a excluir del scraping de competidores
@@ -92,7 +71,10 @@ REVIEW_DOMAINS = ['xataka', 'computerhoy', 'hardzone', 'profesionalreview', 'gee
 # Configuración por defecto
 DEFAULT_MAX_RESULTS = 10
 DEFAULT_MAX_SCRAPE = 4
-DEFAULT_TIMEOUT = 15
+try:
+    from config.settings import SCRAPE_TIMEOUT as DEFAULT_TIMEOUT
+except ImportError:
+    DEFAULT_TIMEOUT = 15
 DEFAULT_SCRAPE_DELAY = 0.5
 
 
@@ -699,17 +681,33 @@ def scrape_competitors(
         logger.info(f"SERP scrape: {len(skipped)} dominios filtrados: {', '.join(skipped[:5])}")
     logger.info(f"SERP scrape: {len(urls_to_scrape)} URLs a scrapear de {len(serp_results)} resultados")
 
-    results = []
-    for url in urls_to_scrape:
-        analysis = scrape_competitor(url)
-        results.append(analysis)
-        if not analysis.success:
-            logger.warning(f"SERP scrape fallido: {analysis.domain} — {analysis.error[:80]}")
-        else:
-            logger.info(f"SERP scrape OK: {analysis.domain} — {analysis.word_count} palabras, {analysis.h2_count} H2")
-        time.sleep(DEFAULT_SCRAPE_DELAY)
+    # Politeness delay before batch
+    time.sleep(DEFAULT_SCRAPE_DELAY)
 
-    return results
+    # Scrape in parallel with ThreadPoolExecutor
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    results = [None] * len(urls_to_scrape)
+
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        future_to_idx = {
+            executor.submit(scrape_competitor, url): i
+            for i, url in enumerate(urls_to_scrape)
+        }
+        for future in as_completed(future_to_idx):
+            idx = future_to_idx[future]
+            try:
+                analysis = future.result()
+                results[idx] = analysis
+                if not analysis.success:
+                    logger.warning(f"SERP scrape fallido: {analysis.domain} — {analysis.error[:80]}")
+                else:
+                    logger.info(f"SERP scrape OK: {analysis.domain} — {analysis.word_count} palabras, {analysis.h2_count} H2")
+            except Exception as e:
+                logger.warning(f"SERP scrape exception for {urls_to_scrape[idx]}: {e}")
+
+    # Filter out None entries (from failed futures)
+    return [r for r in results if r is not None]
 
 
 # ============================================================================

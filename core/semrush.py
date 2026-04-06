@@ -39,7 +39,10 @@ __version__ = "4.2.0"
 
 # Configuración por defecto
 DEFAULT_API_URL = "https://api.semrush.com"
-DEFAULT_TIMEOUT = 30
+try:
+    from config.settings import REQUEST_TIMEOUT as DEFAULT_TIMEOUT
+except ImportError:
+    DEFAULT_TIMEOUT = 30
 DEFAULT_MAX_RETRIES = 3
 DEFAULT_RETRY_DELAY = 1.0
 DEFAULT_BACKOFF_MULTIPLIER = 2.0
@@ -221,8 +224,11 @@ class SEMrushConfig:
     def __post_init__(self):
         """Validar configuración después de inicializar."""
         if not self.api_key:
-            # Intentar obtener de variables de entorno
-            self.api_key = os.environ.get('SEMRUSH_API_KEY')
+            try:
+                from core.config import SEMRUSH_API_KEY
+                self.api_key = SEMRUSH_API_KEY
+            except ImportError:
+                pass
 
 
 @dataclass

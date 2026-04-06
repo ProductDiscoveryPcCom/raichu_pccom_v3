@@ -42,7 +42,7 @@ TEMPERATURE: float = _safe_float('TEMPERATURE', 0.7)
 # ============================================================================
 APP_NAME: str = "PcComponentes Content Generator"
 APP_TITLE: str = APP_NAME  # Alias
-APP_VERSION: str = "1.2.0"
+APP_VERSION: str = "5.1.0"
 PAGE_ICON: str = "🚀"
 DEBUG_MODE: bool = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
 
@@ -64,9 +64,10 @@ SEMRUSH_DATABASE: str = os.getenv('SEMRUSH_DATABASE', 'es')
 # ============================================================================
 # SCRAPER SETTINGS
 # ============================================================================
-MAX_RETRIES: int = _safe_int('MAX_RETRIES', 5)
+MAX_RETRIES: int = _safe_int('MAX_RETRIES', 3)
 RETRY_DELAY: float = _safe_float('RETRY_DELAY', 1.0)
 REQUEST_TIMEOUT: int = _safe_int('REQUEST_TIMEOUT', 30)
+SCRAPE_TIMEOUT: int = _safe_int('SCRAPE_TIMEOUT', 15)
 USER_AGENT: str = os.getenv(
     'USER_AGENT', 
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
@@ -145,7 +146,6 @@ def is_configured() -> bool:
 # EXPORTS
 # ============================================================================
 __all__ = [
-    '__version__',
     # API
     'CLAUDE_API_KEY',
     'ANTHROPIC_API_KEY',
@@ -171,6 +171,7 @@ __all__ = [
     'MAX_RETRIES',
     'RETRY_DELAY',
     'REQUEST_TIMEOUT',
+    'SCRAPE_TIMEOUT',
     'USER_AGENT',
     # N8N
     'N8N_WEBHOOK_URL',

@@ -281,6 +281,8 @@ class FormData:
     secondary_keywords: Optional[List[str]] = None
     # NUEVO: Preguntas FAQ seleccionadas (PAA + custom)
     faq_questions: Optional[List[str]] = None
+    # NUEVO [I1]: Fuentes autoritativas
+    authoritative_sources: Optional[str] = None
 
 
 # ============================================================================
@@ -725,23 +727,59 @@ def render_length_slider(
 
 
 def render_arquetipo_selector(key: str = "arquetipo_selector") -> str:
-    """Renderiza selector de arquetipo con descripción del tipo de contenido."""
+    """Renderiza selector de arquetipo con opciones agrupadas por categoría."""
     saved_value = get_form_value('arquetipo', 'ARQ-1')
     names = get_arquetipo_names()
-    options = list(names.keys())
     
-    try:
-        default_index = options.index(saved_value)
-    except ValueError:
-        default_index = 0
+    # ── Definir categorías ──
+    categories_map = {
+        "1. Básicos y Core (ARQ 1-5)": [f"ARQ-{i}" for i in range(1, 6)],
+        "2. Producto y Guías (ARQ 6-9)": [f"ARQ-{i}" for i in range(6, 10)],
+        "3. Campañas y Eventos (ARQ 10-15)": [f"ARQ-{i}" for i in range(10, 16)],
+        "4. Actualidad y Marca (ARQ 16-21)": [f"ARQ-{i}" for i in range(16, 22)],
+        "5. Formatos Específicos (ARQ 22-31)": [f"ARQ-{i}" for i in range(22, 32)],
+        "6. Microformatos y Otros (ARQ 32-37)": [f"ARQ-{i}" for i in range(32, 38)],
+    }
     
-    arquetipo = st.selectbox(
-        label="📋 Tipo de Contenido (Arquetipo)",
-        options=options,
-        format_func=lambda x: f"{x}: {names.get(x, x)}",
-        index=default_index,
-        key=key
-    )
+    # Filtrar solo arqueitpos existentes y determinar la categoría actual
+    valid_categories = {}
+    current_category = list(categories_map.keys())[0]
+    
+    for cat_name, codes in categories_map.items():
+        valid_codes = [c for c in codes if c in names]
+        if valid_codes:
+            valid_categories[cat_name] = valid_codes
+            if saved_value in valid_codes:
+                current_category = cat_name
+    
+    cat_options = list(valid_categories.keys())
+    
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        cat_index = cat_options.index(current_category) if current_category in cat_options else 0
+        selected_category = st.selectbox(
+            label="📁 Categoría",
+            options=cat_options,
+            index=cat_index,
+            key=f"{key}_category"
+        )
+        
+    with col2:
+        valid_arqs = valid_categories.get(selected_category, [])
+        
+        try:
+            default_index = valid_arqs.index(saved_value)
+        except ValueError:
+            default_index = 0
+            
+        arquetipo = st.selectbox(
+            label="📋 Tipo de Contenido",
+            options=valid_arqs,
+            format_func=lambda x: f"{x}: {names.get(x, x)}",
+            index=default_index,
+            key=key
+        )
     
     # Mostrar descripción del arquetipo seleccionado
     if arquetipo:
@@ -1579,6 +1617,18 @@ def render_additional_instructions(key: str = "additional_instructions") -> str:
         placeholder="Ej: Enfócate en el rendimiento gaming, menciona la garantía extendida..."
     )
     return instructions.strip() if instructions else ""
+
+
+def render_authoritative_sources_input(key: str = "authoritative_sources") -> str:
+    """Renderiza área de fuentes autoritativas (Task I1)."""
+    sources = st.text_area(
+        label="Fuentes autoritativas (Prioridad máxima)",
+        key=key,
+        height=80,
+        placeholder="Escribe URLs o nombres de fuentes (una por línea) que Claude debe usar como referencia principal.",
+        help="Claude dará prioridad absoluta a los datos de estas fuentes sobre su conocimiento general."
+    )
+    return sources.strip() if sources else ""
 
 
 def render_visual_elements_selector(key_prefix: str = "visual_elem", arquetipo_code: Optional[str] = None) -> Dict[str, Any]:
@@ -2610,6 +2660,45 @@ def render_products_block(
 # FORMULARIO PRINCIPAL
 # ============================================================================
 
+def _get_form_profile(arquetipo_code: str) -> Dict[str, bool]:
+    """Returns a dict of booleans describing which form sections are relevant.
+    
+    This drives P2.1 — Dynamic Form Profiles.  Sections set to False are
+    hidden to reduce cognitive load for content types where they add no value.
+    """
+    # Defaults — everything visible
+    profile = {
+        'show_products': True,
+        'show_links': True,
+        'show_competitors': True,     # only in rewrite mode, but still togglable
+        'show_visual_config': True,
+        'show_headings': True,
+        'show_secondary_kw': True,
+        'show_authoritative': True,
+        'show_faq_paa': True,
+    }
+
+    # --- News / Event / Time-sensitive ---
+    _NEWS_ARQS = {'ARQ-16', 'ARQ-17', 'ARQ-20'}
+    if arquetipo_code in _NEWS_ARQS:
+        profile['show_competitors'] = False   # original reporting, no comparison
+        profile['show_headings'] = False      # structure is predefined
+
+    # --- Micro-formats / short ---
+    _MICRO_ARQS = {f'ARQ-{i}' for i in range(32, 38)}
+    if arquetipo_code in _MICRO_ARQS:
+        profile['show_headings'] = False
+        profile['show_faq_paa'] = False       # too short for FAQ section
+        profile['show_secondary_kw'] = False  # single keyword focus
+
+    # --- External / off-site text ---
+    _EXTERNAL_ARQS = {'ARQ-19', 'ARQ-21'}
+    if arquetipo_code in _EXTERNAL_ARQS:
+        profile['show_faq_paa'] = False       # external sites don't have FAQ blocks
+
+    return profile
+
+
 def render_main_form(mode: str = "new") -> Optional[FormData]:
     """Renderiza el formulario principal completo con jerarquía visual mejorada."""
     errors = []
@@ -2629,6 +2718,9 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
 
     with col_arq:
         arquetipo = render_arquetipo_selector(key="main_arquetipo")
+
+    # ── Perfil dinámico del formulario (P2.1) ──
+    _profile = _get_form_profile(arquetipo)
 
     # Fila 2: Longitud objetivo
     target_length = render_length_slider(key="main_length", arquetipo_code=arquetipo)
@@ -2655,7 +2747,9 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
             total_q = num_answered + 3
 
     # ── PREGUNTAS FAQ (PAA) ─────────────────────────────────────────
-    faq_questions = render_paa_selector(keyword, key_prefix="main_paa") if keyword else None
+    faq_questions = None
+    if _profile['show_faq_paa']:
+        faq_questions = render_paa_selector(keyword, key_prefix="main_paa") if keyword else None
 
     # ── SECCIÓN 2: Opciones opcionales (agrupadas) ──────────────────
     st.markdown("#### ⚙️ Opciones adicionales")
@@ -2697,9 +2791,9 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
             allow_json=False
         )
 
-    # Competidores (solo rewrite)
+    # Competidores (solo rewrite + arquetipos que lo soporten)
     competitor_urls = []
-    if mode == "rewrite":
+    if mode == "rewrite" and _profile['show_competitors']:
         with st.expander("🏆 Análisis de Competencia", expanded=True):
             competitor_urls, _ = render_competitor_urls_input(key="main_competitors")
 
@@ -2722,9 +2816,11 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
 
         st.markdown("---")
 
-        # Estructura de encabezados
-        st.markdown("**Estructura de Encabezados**")
-        headings_config = render_headings_config(key_prefix="main_headings")
+        # Estructura de encabezados (ocultar si el perfil lo indica)
+        headings_config = None
+        if _profile['show_headings']:
+            st.markdown("**Estructura de Encabezados**")
+            headings_config = render_headings_config(key_prefix="main_headings")
 
         st.markdown("---")
 
@@ -2734,23 +2830,31 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
 
         st.markdown("---")
 
-        # Keywords secundarias (movidas aquí desde la sección principal)
-        st.markdown("**Keywords Secundarias**")
-        st.caption("Una por línea — se añaden al prompt para enriquecer el contenido")
-        keywords_input = st.text_area(
-            "Keywords secundarias",
-            key="main_secondary_keywords",
-            height=68,
-            placeholder="keyword relacionada 1\nkeyword relacionada 2",
-            label_visibility="collapsed"
-        )
-        secondary_keywords = [
-            k.strip() for k in keywords_input.split('\n')
-            if k.strip() and k.strip() != keyword and len(k.strip()) >= 2
-        ] if keywords_input else []
-        if secondary_keywords and len(secondary_keywords) > 15:
-            st.warning("⚠️ Demasiadas keywords secundarias. Recomendado: 5-10 máximo.")
-            secondary_keywords = secondary_keywords[:15]
+        # Fuentes autoritativas (Task I1)
+        st.markdown("**Fuentes Autoritativas**")
+        authoritative_sources = render_authoritative_sources_input(key="main_authoritative_sources")
+
+        st.markdown("---")
+
+        # Keywords secundarias (ocultar si el perfil lo indica)
+        secondary_keywords = []
+        if _profile['show_secondary_kw']:
+            st.markdown("**Keywords Secundarias**")
+            st.caption("Una por línea — se añaden al prompt para enriquecer el contenido")
+            keywords_input = st.text_area(
+                "Keywords secundarias",
+                key="main_secondary_keywords",
+                height=68,
+                placeholder="keyword relacionada 1\nkeyword relacionada 2",
+                label_visibility="collapsed"
+            )
+            secondary_keywords = [
+                k.strip() for k in keywords_input.split('\n')
+                if k.strip() and k.strip() != keyword and len(k.strip()) >= 2
+            ] if keywords_input else []
+            if secondary_keywords and len(secondary_keywords) > 15:
+                st.warning("⚠️ Demasiadas keywords secundarias. Recomendado: 5-10 máximo.")
+                secondary_keywords = secondary_keywords[:15]
 
     # ── Validación ──────────────────────────────────────────────────
     if errors:
@@ -2806,6 +2910,7 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
         headings_config=headings_config,
         secondary_keywords=secondary_keywords or None,
         faq_questions=faq_questions or None,
+        authoritative_sources=authoritative_sources or None,
     )
 
 
@@ -2915,6 +3020,8 @@ def render_content_inputs() -> Tuple[bool, Dict[str, Any]]:
         'keywords': [form_data.keyword] + (form_data.secondary_keywords or []),
         # Preguntas FAQ seleccionadas (PAA + custom)
         'faq_questions': form_data.faq_questions or [],
+        # NUEVO [I1]: Fuentes autoritativas
+        'authoritative_sources': form_data.authoritative_sources or '',
     }
     
     # REC-6: Resumen pre-generación compacto

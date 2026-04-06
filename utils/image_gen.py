@@ -163,13 +163,12 @@ def _get_gemini_client():
     """Obtiene cliente Gemini configurado."""
     try:
         from google import genai
-        api_key = os.environ.get('GEMINI_API_KEY', '')
-        if not api_key:
-            try:
-                from config.settings import GEMINI_API_KEY
-                api_key = GEMINI_API_KEY
-            except (ImportError, AttributeError):
-                pass
+        api_key = ""
+        try:
+            from core.config import GEMINI_API_KEY
+            api_key = GEMINI_API_KEY
+        except ImportError:
+            pass
         if not api_key:
             # Fallback: Streamlit secrets
             try:

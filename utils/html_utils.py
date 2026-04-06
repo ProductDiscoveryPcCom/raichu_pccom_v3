@@ -10,9 +10,12 @@ Autor: PcComponentes - Product Discovery & Content
 """
 
 import re
+import logging
 from typing import Dict, List, Tuple, Optional, Any
 from html.parser import HTMLParser as BaseHTMLParser
 from dataclasses import dataclass, field
+
+logger = logging.getLogger(__name__)
 
 __version__ = "1.2.0"
 
@@ -120,14 +123,65 @@ def get_bs4_parser():
 # FUNCIONES DE CONTEO
 # ============================================================================
 
+# Pre-compiled regex patterns (avoid re-compiling on every call)
+# -- count_words_in_html / strip_html_tags --
+_RE_TAGS = re.compile(r'<[^>]+>')
+_RE_ENTITIES = re.compile(r'&[a-zA-Z]+;')
+_RE_NUMERIC_ENTITIES = re.compile(r'&#\d+;')
+_RE_WHITESPACE = re.compile(r'\s+')
+
+# -- extract_content_structure / extract_content / get_heading_hierarchy --
+_RE_TITLE_H12 = re.compile(r'<h[12][^>]*>(.*?)</h[12]>', re.I | re.DOTALL)
+_RE_HEADINGS = re.compile(r'<(h[1-6])[^>]*>(.*?)</\1>', re.I | re.DOTALL)
+_RE_HREF = re.compile(r'href=["\']([^"\']+)["\']', re.I)
+_RE_TITLE_TAG = re.compile(r'<title[^>]*>(.*?)</title>', re.I | re.DOTALL)
+_RE_ANCHOR = re.compile(r'<a[^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', re.I | re.DOTALL)
+
+# -- extract_meta_tags --
+_RE_META_TAG = re.compile(r'<meta[^>]+>', re.I)
+_RE_META_NAME = re.compile(r'name=["\']([^"\']+)["\']', re.I)
+_RE_META_PROPERTY = re.compile(r'property=["\']([^"\']+)["\']', re.I)
+_RE_META_CONTENT = re.compile(r'content=["\']([^"\']+)["\']', re.I)
+
+# -- extract_html_content (markdown cleanup) --
+_RE_MD_START = [re.compile(p, re.IGNORECASE) for p in [
+    r'^```html\s*\n?', r'^```HTML\s*\n?', r'^```xml\s*\n?', r'^```\s*\n?',
+]]
+_RE_MD_END = [re.compile(p, re.IGNORECASE) for p in [
+    r'\n?```\s*$', r'\n?```html\s*$',
+]]
+_RE_MD_INNER = re.compile(r'```(?:html)?\s*(.*?)\s*```', re.DOTALL | re.IGNORECASE)
+
+# -- detect_ai_phrases (pre-compiled per pattern) --
+_AI_PHRASE_COMPILED = [(re.compile(p, re.IGNORECASE), d) for p, d in [
+    (r'en el mundo actual', 'En el mundo actual...'),
+    (r'en la era digital', 'En la era digital...'),
+    (r'sin lugar a dudas', 'Sin lugar a dudas...'),
+    (r'es importante destacar', 'Es importante destacar...'),
+    (r'cabe mencionar que', 'Cabe mencionar que...'),
+    (r'es fundamental', 'Es fundamental...'),
+    (r'a la hora de', 'A la hora de...'),
+    (r'en lo que respecta', 'En lo que respecta...'),
+    (r'ofrece una experiencia', 'Ofrece una experiencia...'),
+    (r'brinda la posibilidad', 'Brinda la posibilidad...'),
+    (r'esto se traduce en', 'Esto se traduce en...'),
+    (r'lo que permite', 'Lo que permite...'),
+    (r'no es de extra[ñn]ar', 'No es de extrañar...'),
+    (r'en definitiva', 'En definitiva...'),
+    (r'cabe destacar', 'Cabe destacar...'),
+    (r'resulta especialmente', 'Resulta especialmente...'),
+    (r'en este sentido', 'En este sentido...'),
+]]
+
+
 def count_words_in_html(html_content: str) -> int:
     """Cuenta palabras en HTML excluyendo tags."""
     if not html_content:
         return 0
-    text = re.sub(r'<[^>]+>', ' ', html_content)
-    text = re.sub(r'&[a-zA-Z]+;', ' ', text)
-    text = re.sub(r'&#\d+;', ' ', text)
-    text = re.sub(r'\s+', ' ', text).strip()
+    text = _RE_TAGS.sub(' ', html_content)
+    text = _RE_ENTITIES.sub(' ', text)
+    text = _RE_NUMERIC_ENTITIES.sub(' ', text)
+    text = _RE_WHITESPACE.sub(' ', text).strip()
     return len(text.split()) if text else 0
 
 def get_word_count(html_content: str) -> int:
@@ -138,8 +192,8 @@ def strip_html_tags(html_content: str) -> str:
     """Elimina tags HTML dejando solo texto."""
     if not html_content:
         return ""
-    text = re.sub(r'<[^>]+>', ' ', html_content)
-    return re.sub(r'\s+', ' ', text).strip()
+    text = _RE_TAGS.sub(' ', html_content)
+    return _RE_WHITESPACE.sub(' ', text).strip()
 
 def strip_tags(html_content: str) -> str:
     """Alias para strip_html_tags."""
@@ -155,15 +209,15 @@ def extract_content_structure(html_content: str) -> Dict:
         return {'word_count': 0, 'structure_valid': False}
     
     try:
-        title_match = re.search(r'<h[12][^>]*>(.*?)</h[12]>', html_content, re.I | re.DOTALL)
+        title_match = _RE_TITLE_H12.search(html_content)
         title = strip_html_tags(title_match.group(1)) if title_match else None
-        
+
         headings = []
-        for level, text in re.findall(r'<(h[1-6])[^>]*>(.*?)</\1>', html_content, re.I | re.DOTALL):
+        for level, text in _RE_HEADINGS.findall(html_content):
             headings.append({'level': level.lower(), 'text': strip_html_tags(text)})
-        
+
         html_lower = html_content.lower()
-        links = re.findall(r'href=["\']([^"\']+)["\']', html_content, re.I)
+        links = _RE_HREF.findall(html_content)
         
         return {
             'title': title,
@@ -191,15 +245,15 @@ def extract_content(html_content: str) -> ExtractedContent:
     result.word_count = count_words_in_html(html_content)
     
     # Título
-    title_match = re.search(r'<title[^>]*>(.*?)</title>', html_content, re.I | re.DOTALL)
+    title_match = _RE_TITLE_TAG.search(html_content)
     result.title = strip_html_tags(title_match.group(1)) if title_match else ""
-    
+
     # Headings
-    for level, text in re.findall(r'<(h[1-6])[^>]*>(.*?)</\1>', html_content, re.I | re.DOTALL):
+    for level, text in _RE_HEADINGS.findall(html_content):
         result.headings.append({'level': level.lower(), 'text': strip_html_tags(text)})
-    
+
     # Links
-    for match in re.findall(r'<a[^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', html_content, re.I | re.DOTALL):
+    for match in _RE_ANCHOR.findall(html_content):
         result.links.append({'href': match[0], 'text': strip_html_tags(match[1])})
     
     return result
@@ -214,10 +268,10 @@ def extract_meta_tags(html_content: str) -> Dict[str, str]:
     if not html_content:
         return meta
     
-    for match in re.findall(r'<meta[^>]+>', html_content, re.I):
-        name_match = re.search(r'name=["\']([^"\']+)["\']', match, re.I)
-        property_match = re.search(r'property=["\']([^"\']+)["\']', match, re.I)
-        content_match = re.search(r'content=["\']([^"\']+)["\']', match, re.I)
+    for match in _RE_META_TAG.findall(html_content):
+        name_match = _RE_META_NAME.search(match)
+        property_match = _RE_META_PROPERTY.search(match)
+        content_match = _RE_META_CONTENT.search(match)
         
         key = (name_match or property_match)
         if key and content_match:
@@ -230,15 +284,64 @@ def extract_meta_tags(html_content: str) -> Dict[str, str]:
 # ============================================================================
 
 def sanitize_html(html_content: str) -> str:
-    """Sanitiza HTML eliminando scripts y styles."""
+    """
+    Sanitiza HTML usando BeautifulSoup para eliminar scripts y elementos peligrosos.
+    
+    A diferencia de la versión basada en regex, esta función analiza el DOM
+    para una limpieza selectiva de atributos y etiquetas sospechosas, manteniendo
+    el soporte para <style> que requiere el Design System de PcComponentes.
+    """
     if not html_content:
         return ""
-    
-    html = re.sub(r'<script[^>]*>.*?</script>', '', html_content, flags=re.DOTALL | re.I)
-    html = re.sub(r'<style[^>]*>.*?</style>', '', html, flags=re.DOTALL | re.I)
-    html = re.sub(r'<!--.*?-->', '', html, flags=re.DOTALL)
-    
-    return html.strip()
+        
+    if not _bs4_available:
+        logger.warning("BeautifulSoup no disponible para sanitización robusta. Usando fallback regex.")
+        # Fallback básico si bs4 no está (aunque debería estar según requirements.txt)
+        html = re.sub(r'<script[^>]*>.*?</script>', '', html_content, flags=re.DOTALL | re.I)
+        html = re.sub(r'<!--.*?-->', '', html, flags=re.DOTALL)
+        return html.strip()
+
+    try:
+        soup = BeautifulSoup(html_content, 'html.parser')
+        
+        # 1. Eliminar etiquetas prohibidas (Blacklist total)
+        # Nota: Preservamos <style> porque Raichu lo usa para el Design System
+        forbidden_tags = [
+            "script", "iframe", "object", "embed", "applet", 
+            "meta", "link", "base", "form", "input", "button"
+        ]
+        for tag in soup.find_all(forbidden_tags):
+            tag.decompose()
+            
+        # 2. Limpiar atributos de todas las etiquetas restantes
+        for tag in soup.find_all(True):
+            # Clonar lista de atributos para evitar problemas al iterar y borrar
+            attrs = list(tag.attrs.items())
+            for attr_name, attr_value in attrs:
+                # Eliminar manejadores de eventos (onmouseover, onclick, etc.)
+                if attr_name.lower().startswith('on'):
+                    del tag[attr_name]
+                # Eliminar atributos de formulario peligrosos en tags no prohibidos
+                elif attr_name.lower() in ['formaction', 'formmethod', 'formtarget']:
+                    del tag[attr_name]
+                # Sanitizar enlaces javascript:
+                elif attr_name.lower() == 'href' and str(attr_value).strip().lower().startswith('javascript:'):
+                    tag[attr_name] = '#'
+        
+        # Retornar el HTML procesado
+        # Usamos encode_contents y decode para evitar que añada tags html/body si no estaban
+        # Si el input era un fragmento, queremos un fragmento.
+        if '<html' in html_content.lower() or '<body' in html_content.lower():
+            return str(soup)
+        else:
+            # BeautifulSoup suele envolver en <html><body> si no están. 
+            # Si queremos solo el fragmento:
+            return "".join([str(tag) for tag in soup.contents])
+            
+    except Exception as e:
+        logger.error(f"Error durante la sanitización HTML: {e}")
+        # Fallback seguro: remover cualquier tag script por regex si falla el parser
+        return re.sub(r'<script[^>]*>.*?</script>', '', html_content, flags=re.DOTALL | re.I)
 
 def clean_html(html_content: str) -> str:
     """Alias para sanitize_html."""
@@ -266,28 +369,18 @@ def extract_html_content(content: str) -> str:
     content = content.strip()
     
     # Paso 2: Eliminar marcadores markdown al inicio
-    markdown_start_patterns = [
-        r'^```html\s*\n?',
-        r'^```HTML\s*\n?',
-        r'^```xml\s*\n?',
-        r'^```\s*\n?',
-    ]
-    for pattern in markdown_start_patterns:
-        content = re.sub(pattern, '', content, flags=re.IGNORECASE)
-    
+    for pattern in _RE_MD_START:
+        content = pattern.sub('', content)
+
     # Paso 3: Eliminar marcadores markdown al final
-    markdown_end_patterns = [
-        r'\n?```\s*$',
-        r'\n?```html\s*$',
-    ]
-    for pattern in markdown_end_patterns:
-        content = re.sub(pattern, '', content, flags=re.IGNORECASE)
+    for pattern in _RE_MD_END:
+        content = pattern.sub('', content)
     
     # Paso 4: Limpiar espacios de nuevo
     content = content.strip()
     
     # Paso 5: Si todavía hay marcadores en medio, extraer el contenido
-    html_match = re.search(r'```(?:html)?\s*(.*?)\s*```', content, re.DOTALL | re.IGNORECASE)
+    html_match = _RE_MD_INNER.search(content)
     if html_match:
         content = html_match.group(1).strip()
     
@@ -381,6 +474,39 @@ def validate_html_structure(html_content: str) -> Dict[str, bool]:
         'has_grid': has_grid,
     }
 
+def validate_cms_articles(html_content: str) -> Dict[str, bool]:
+    """
+    Validates the 3 required CMS article classes are present in the HTML.
+
+    Returns:
+        Dict with keys 'main', 'faqs', 'verdict' (True if present)
+        and 'all_present' (True if all 3 exist).
+    """
+    if not html_content:
+        return {'main': False, 'faqs': False, 'verdict': False, 'all_present': False, 'missing': ['main', 'faqs', 'verdict']}
+
+    html_lower = html_content.lower()
+    has_main = 'contentgenerator__main' in html_lower
+    has_faqs = 'contentgenerator__faqs' in html_lower
+    has_verdict = 'contentgenerator__verdict' in html_lower
+
+    missing = []
+    if not has_main:
+        missing.append('contentGenerator__main')
+    if not has_faqs:
+        missing.append('contentGenerator__faqs')
+    if not has_verdict:
+        missing.append('contentGenerator__verdict')
+
+    return {
+        'main': has_main,
+        'faqs': has_faqs,
+        'verdict': has_verdict,
+        'all_present': has_main and has_faqs and has_verdict,
+        'missing': missing,
+    }
+
+
 def validate_cms_structure(html_content: str) -> Tuple[bool, List[str], List[str]]:
     """Valida que el HTML cumpla con requisitos del CMS."""
     errors = []
@@ -472,7 +598,7 @@ def analyze_links(html_content: str) -> Dict:
         }
     
     # Buscar todos los enlaces <a href="...">...</a>
-    matches = re.findall(r'<a[^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', html_content, re.I | re.DOTALL)
+    matches = _RE_ANCHOR.findall(html_content)
     
     internal, external, pdp, blog = [], [], [], []
     
@@ -520,7 +646,7 @@ def get_heading_hierarchy(html_content: str) -> List[Dict[str, str]]:
     
     return [
         {'level': level.lower(), 'text': strip_html_tags(text)}
-        for level, text in re.findall(r'<(h[1-6])[^>]*>(.*?)</\1>', html_content, re.I | re.DOTALL)
+        for level, text in _RE_HEADINGS.findall(html_content)
     ]
 
 # ============================================================================
@@ -553,6 +679,7 @@ __all__ = [
     'extract_html_content',
     # Validación
     'validate_html_structure',
+    'validate_cms_articles',
     'validate_cms_structure',
     'validate_word_count_target',
     # Enlaces
@@ -567,52 +694,29 @@ __all__ = [
 # DETECCIÓN DE FRASES IA
 # ============================================================================
 
-# Frases prohibidas: si aparecen en el texto, es señal clara de escritura IA.
-# Cada tupla: (patrón regex, frase legible para mostrar al usuario)
-_AI_PHRASE_PATTERNS = [
-    (r'en el mundo actual', 'En el mundo actual...'),
-    (r'en la era digital', 'En la era digital...'),
-    (r'sin lugar a dudas', 'Sin lugar a dudas...'),
-    (r'es importante destacar', 'Es importante destacar...'),
-    (r'cabe mencionar que', 'Cabe mencionar que...'),
-    (r'es fundamental', 'Es fundamental...'),
-    (r'a la hora de', 'A la hora de...'),
-    (r'en lo que respecta', 'En lo que respecta...'),
-    (r'ofrece una experiencia', 'Ofrece una experiencia...'),
-    (r'brinda la posibilidad', 'Brinda la posibilidad...'),
-    (r'esto se traduce en', 'Esto se traduce en...'),
-    (r'lo que permite', 'Lo que permite...'),
-    (r'no es de extra[ñn]ar', 'No es de extrañar...'),
-    (r'en definitiva', 'En definitiva...'),
-    (r'cabe destacar', 'Cabe destacar...'),
-    (r'resulta especialmente', 'Resulta especialmente...'),
-    (r'en este sentido', 'En este sentido...'),
-]
-
-
 def detect_ai_phrases(html_content: str) -> List[Dict[str, str]]:
     """
     Detecta frases típicas de escritura IA en el contenido HTML.
-    
+
     Solo busca en el texto visible (no en HTML/CSS/atributos).
     Usa patrones de alta precisión (pocas frases pero muy fiables).
-    
+
     Args:
         html_content: HTML del contenido generado
-        
+
     Returns:
         Lista de dicts {'phrase': frase legible, 'context': fragmento donde aparece}
     """
     if not html_content:
         return []
-    
+
     # Extraer solo texto visible
     text = strip_html_tags(html_content)
     text_lower = text.lower()
-    
+
     found = []
-    for pattern, display_phrase in _AI_PHRASE_PATTERNS:
-        match = re.search(pattern, text_lower)
+    for compiled_re, display_phrase in _AI_PHRASE_COMPILED:
+        match = compiled_re.search(text_lower)
         if match:
             # Extraer contexto (±40 chars alrededor)
             start = max(0, match.start() - 40)
@@ -628,3 +732,28 @@ def detect_ai_phrases(html_content: str) -> List[Dict[str, str]]:
             })
     
     return found
+
+
+def detect_placeholders(html_content: str) -> List[str]:
+    """Detecta placeholders comunes de IA (ej: [Insertar imagen], (añadir enlace))."""
+    if not html_content:
+        return []
+    
+    text = strip_html_tags(html_content)
+    
+    # Patrones comunes de placeholders en corchetes o paréntesis
+    patterns = [
+        r'\[[\w\s]{4,50}\]',    # [Insertar imagen aquí]
+        r'\(?[\w\s]{4,30}\.\.\.\)?', # (Seguir escribiendo...)
+        r'\[imagen[\w\s]*\]',   # [Imagen de portada]
+        r'\[enlace[\w\s]*\]',   # [Enlace a categoría]
+        r'\(ver imagen\)',
+        r'\(introducir .*?\)',
+    ]
+    
+    placeholders = []
+    for pattern in patterns:
+        matches = re.findall(pattern, text, re.IGNORECASE)
+        placeholders.extend(matches)
+    
+    return list(set(placeholders))

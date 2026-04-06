@@ -29,6 +29,7 @@ from utils.html_utils import (
     validate_cms_structure,
     analyze_links,
     detect_ai_phrases,
+    detect_placeholders,
 )
 
 
@@ -124,6 +125,9 @@ def render_results_section(
         emoji = "✅" if composite >= 70 else "⚠️"
         st.markdown(f"**{emoji} Quality Score: {composite}/100**")
 
+    # Checklist pre-publicación (Task I2)
+    render_pre_publication_checklist(final_html, target_length)
+
     # Preview y HTML (tabs internos solo para formato de visualización)
     render_content_tab(
         html_content=final_html,
@@ -176,10 +180,13 @@ def render_content_tab(
         _render_cms_validation(html_content)
     
     # Preview del contenido renderizado
-    preview_tab1, preview_tab2, preview_tab3 = st.tabs(
-        ["🎨 Renderizado", "📄 HTML", "📑 Estructura"]
-    )
-    
+    _is_rewrite = st.session_state.get('mode') == 'rewrite' and is_final
+    _tab_labels = ["🎨 Renderizado", "📄 HTML", "📑 Estructura"]
+    if _is_rewrite:
+        _tab_labels.append("🔄 Comparación")
+    _tabs = st.tabs(_tab_labels)
+    preview_tab1, preview_tab2, preview_tab3 = _tabs[0], _tabs[1], _tabs[2]
+
     with preview_tab1:
         # Limpiar HTML de posibles marcadores markdown antes de renderizar
         clean_html = html_content
@@ -218,7 +225,41 @@ def render_content_tab(
     
     with preview_tab3:
         render_structure_analysis(html_content)
-    
+
+    # Comparison tab for rewrite mode
+    if _is_rewrite:
+        with _tabs[3]:
+            original_html = st.session_state.get('rewrite_original_html', '')
+            if original_html:
+                col_orig, col_new = st.columns(2)
+                original_wc = count_words_in_html(original_html)
+                final_wc = count_words_in_html(html_content)
+
+                with col_orig:
+                    st.markdown("**Original**")
+                    st.metric("Palabras", original_wc)
+                    st.text_area(
+                        "HTML Original",
+                        value=original_html,
+                        height=400,
+                        disabled=True,
+                        key="comparison_original_html",
+                    )
+
+                with col_new:
+                    st.markdown("**Reescrito**")
+                    st.metric("Palabras", final_wc, delta=final_wc - original_wc)
+                    st.text_area(
+                        "HTML Reescrito",
+                        value=html_content,
+                        height=400,
+                        disabled=True,
+                        key="comparison_rewrite_html",
+                    )
+            else:
+                st.info("No hay HTML original disponible para comparar. "
+                        "Asegúrate de pegar el HTML a reescribir en el paso correspondiente.")
+
     # Botones de acción
     action_cols = st.columns(2)
     
@@ -368,6 +409,55 @@ def _render_seo_summary(html_content: str, target_length: int) -> None:
                 f"**🤖 {n_ai} expresión{'es' if n_ai > 1 else ''} IA detectada{'s' if n_ai > 1 else ''}:** "
                 f"{phrases_display}"
             )
+
+
+def render_pre_publication_checklist(html_content: str, target_length: int) -> None:
+    """Checklist interactiva pre-publicación (Task I2)."""
+    with st.expander("✅ Checklist Pre-publicación", expanded=True):
+        st.caption("Verifica estos puntos críticos antes de publicar en el CMS.")
+        
+        col1, col2 = st.columns(2)
+        
+        # --- Datos para validación ---
+        config = st.session_state.get('last_config', {})
+        keyword = config.get('keyword', '')
+        word_count = count_words_in_html(html_content)
+        placeholders = detect_placeholders(html_content)
+        links_analysis = analyze_links(html_content)
+        internal_count = links_analysis.get('internal_links_count', 0)
+        
+        with col1:
+            st.markdown("**🤖 Validaciones Automáticas**")
+            
+            # 1. Keyword en H2
+            # Buscamos la keyword dentro de etiquetas H2 (aproximado)
+            has_kw_h2 = keyword.lower() in re.sub(r'<[^h2][^>]*>', '', html_content, flags=re.I).lower() if keyword else False
+            st.checkbox("Keyword en H2", value=has_kw_h2, disabled=True, 
+                        help=f"Busca '{keyword}' en las etiquetas H2.")
+            
+            # 2. Longitud
+            # Tolerancia 15%
+            len_ok = abs(word_count - target_length) / target_length <= 0.15 if target_length > 0 else True
+            st.checkbox(f"Longitud (~{target_length} palabras)", value=len_ok, disabled=True,
+                        help=f"Actual: {word_count} palabras. Objetivo: {target_length}. Tolerancia: 15%.")
+            
+            # 3. Sin placeholders
+            no_placeholders = len(placeholders) == 0
+            st.checkbox("Sin placeholders de IA", value=no_placeholders, disabled=True,
+                        help=f"Placeholders detectados: {', '.join(placeholders)}" if placeholders else "No se detectaron placeholders (ej: [Insertar imagen]).")
+            
+            # 4. Enlaces internos
+            # Al menos un enlace interno detectado
+            has_links = internal_count >= 1
+            st.checkbox("Enlaces internos", value=has_links, disabled=True,
+                        help=f"Se detectaron {internal_count} enlaces internos.")
+
+        with col2:
+            st.markdown("**✍️ Revisión Manual**")
+            st.checkbox("¿El tono es adecuado (experto y cercano)?", key="chk_manual_tone")
+            st.checkbox("¿Las imágenes tienen Alt Text descriptivo?", key="chk_manual_alt")
+            st.checkbox("¿Has revisado los destinos de los enlaces?", key="chk_manual_links")
+            st.checkbox("¿Los datos técnicos son correctos?", key="chk_manual_data")
 
 
 def _detect_visual_elements(html_lower: str) -> List[str]:

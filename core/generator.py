@@ -86,11 +86,13 @@ except ImportError as e:
 # ============================================================================
 
 try:
-    from config.settings import (
+    from core.config import (
         CLAUDE_API_KEY,
         CLAUDE_MODEL,
         MAX_TOKENS,
         TEMPERATURE,
+    )
+    from config.settings import (
         MAX_RETRIES,
         RETRY_DELAY,
     )
@@ -100,12 +102,13 @@ try:
     DEFAULT_MAX_RETRIES = MAX_RETRIES
     DEFAULT_RETRY_DELAY = RETRY_DELAY
 except ImportError:
+    # Fallback si no está core.config (legacy/standalone)
     import os
     CLAUDE_API_KEY = os.getenv('ANTHROPIC_API_KEY', os.getenv('CLAUDE_API_KEY', ''))
     DEFAULT_MODEL = 'claude-sonnet-4-20250514'
     MAX_TOKENS = 16000
     DEFAULT_TEMPERATURE = 0.7
-    DEFAULT_MAX_RETRIES = 5
+    DEFAULT_MAX_RETRIES = 3
     DEFAULT_RETRY_DELAY = 1.0
 
 

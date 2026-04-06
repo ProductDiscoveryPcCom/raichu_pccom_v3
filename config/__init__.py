@@ -1,6 +1,6 @@
 """
 Config package - PcComponentes Content Generator
-Versión 4.5.0
+Versión 5.1.0
 
 Autor: PcComponentes - Product Discovery & Content
 """
@@ -9,7 +9,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-__version__ = "4.5.0"
+__version__ = "5.1.0"
 
 # ============================================================================
 # IMPORTAR SETTINGS
@@ -77,7 +77,7 @@ except ImportError as e:
     TEMPERATURE = 0.7
     APP_NAME = "PcComponentes Content Generator"
     APP_TITLE = APP_NAME
-    APP_VERSION = "4.5.0"
+    APP_VERSION = "5.1.0"
     PAGE_ICON = "🚀"
     DEBUG_MODE = False
     GSC_VERIFICATION_ENABLED = False
@@ -175,9 +175,6 @@ ARCHETYPES = ARQUETIPOS
 # ============================================================================
 
 __all__ = [
-    # Versión
-    '__version__',
-    
     # Flags de disponibilidad
     '_settings_available',
     '_arquetipos_available',

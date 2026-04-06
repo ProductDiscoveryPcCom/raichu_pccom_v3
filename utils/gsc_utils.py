@@ -487,17 +487,40 @@ class TTLCache:
 # CACHÉ GLOBAL PARA GSC
 # ============================================================================
 
-# Instancia global del caché para datos GSC
-_gsc_cache = TTLCache(
+# Instancia global del caché para datos GSC — almacenada en st.session_state
+# para que persista entre reruns de Streamlit.
+_GSC_CACHE_SESSION_KEY = '_gsc_cache_instance'
+
+# Fallback module-level instance (used when Streamlit is not running, e.g. tests)
+_gsc_cache_fallback = TTLCache(
     ttl=DEFAULT_CACHE_TTL,
     max_size=DEFAULT_CACHE_MAX_SIZE,
     name="gsc"
 )
 
 
+def _get_gsc_cache_instance() -> TTLCache:
+    """Obtiene la instancia del caché GSC desde session_state (o fallback)."""
+    try:
+        import streamlit as st
+        if _GSC_CACHE_SESSION_KEY not in st.session_state:
+            st.session_state[_GSC_CACHE_SESSION_KEY] = TTLCache(
+                ttl=DEFAULT_CACHE_TTL,
+                max_size=DEFAULT_CACHE_MAX_SIZE,
+                name="gsc"
+            )
+        return st.session_state[_GSC_CACHE_SESSION_KEY]
+    except Exception:
+        return _gsc_cache_fallback
+
+
+# Module-level reference for backward compatibility (used by @cached decorator)
+_gsc_cache = _get_gsc_cache_instance()
+
+
 def get_gsc_cache() -> TTLCache:
     """Obtiene la instancia global del caché GSC."""
-    return _gsc_cache
+    return _get_gsc_cache_instance()
 
 
 def reset_gsc_cache(
@@ -506,23 +529,30 @@ def reset_gsc_cache(
 ) -> TTLCache:
     """
     Resetea el caché GSC con nueva configuración.
-    
+
     Args:
         ttl: Nuevo TTL (opcional)
         max_size: Nuevo tamaño máximo (opcional)
-        
+
     Returns:
         Nueva instancia del caché
     """
     global _gsc_cache
-    
-    _gsc_cache = TTLCache(
+
+    new_cache = TTLCache(
         ttl=ttl or DEFAULT_CACHE_TTL,
         max_size=max_size or DEFAULT_CACHE_MAX_SIZE,
         name="gsc"
     )
-    
-    return _gsc_cache
+
+    try:
+        import streamlit as st
+        st.session_state[_GSC_CACHE_SESSION_KEY] = new_cache
+    except Exception:
+        pass
+
+    _gsc_cache = new_cache
+    return new_cache
 
 
 # ============================================================================

@@ -1532,7 +1532,6 @@ def get_question_stats() -> Dict[str, Any]:
 # ============================================================================
 
 __all__ = [
-    '__version__',
     'DEFAULT_MIN_LENGTH',
     'DEFAULT_MAX_LENGTH', 
     'DEFAULT_CONTENT_LENGTH',

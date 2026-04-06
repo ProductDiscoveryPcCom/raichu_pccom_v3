@@ -56,6 +56,7 @@ try:
         INSTRUCCIONES_ANTI_IA,
         ANTI_IA_CHECKLIST_STAGE2,
         REGLAS_CRITICAS_COMUNES,
+        build_archetype_instructions,
     )
     _brand_tone_available = True
 except ImportError:
@@ -816,6 +817,14 @@ La keyword "{keyword}" DEBE aparecer de forma natural en el contenido:
                     sections.append("**Estructura recomendada:**")
                     for i, s in enumerate(structure, 1):
                         sections.append(f"  {i}. {s}")
+                
+                # QW-4: Instrucciones específicas del arquetipo (Single Source of Truth)
+                try:
+                    arq_instructions = build_archetype_instructions(arquetipo_codigo)
+                    if arq_instructions:
+                        sections.append(f"\n## 🎨 INSTRUCCIONES ESPECÍFICAS DEL ARQUETIPO\n{arq_instructions}")
+                except Exception:
+                    pass
             else:
                 sections.append(f"\n**Arquetipo:** {arquetipo_codigo}")
         except ImportError:
@@ -1124,12 +1133,11 @@ Eres un editor SEO senior de PcComponentes. Analiza el borrador y genera un info
 {draft_content[:12000]}
 ```
 
-## KEYWORD OBJETIVO
-"{keyword}"
-{"" if not secondary_keywords else chr(10) + "**Keywords secundarias:** " + ", ".join(secondary_keywords) + chr(10) + "Verifica que cada keyword secundaria aparece al menos 1 vez de forma natural."}
-
 ## OBJETIVO DEL CONTENIDO
 {objetivo if objetivo else 'Superar a la competencia'}
+
+## 🎯 KEYWORDS SECUNDARIAS (REESCRITURA)
+{"No hay keywords secundarias." if not secondary_keywords else "Verifica que cada una de estas keywords aparezca al menos 1 vez distribuida naturalmente:\n- " + "\n- ".join(secondary_keywords)}
 
 ## MODO DE REESCRITURA
 {rewrite_mode.upper()}
@@ -1143,16 +1151,21 @@ Eres un editor SEO senior de PcComponentes. Analiza el borrador y genera un info
 
 {competitor_analysis[:3000] if competitor_analysis else "(Sin referencia)"}
 
-{ANTI_IA_CHECKLIST_STAGE2 if _brand_tone_available else '''
-## ANTI-IA (CRÍTICO)
-- [ ] ¿Evita frases como "En el mundo actual...", "Sin lugar a dudas..."?
+- [ ] ¿El borrador incluye el comentario `<!-- META: ... -->` antes del `<style>`? (max 155 chars, con keyword)
+- [ ] ¿Evita frases como \"En el mundo actual...\", \"Sin lugar a dudas...\"?
 - [ ] ¿Evita adjetivos vacíos (increíble, revolucionario, impresionante)?
 - [ ] ¿Varía la estructura entre párrafos?
 - [ ] ¿El veredicto aporta valor nuevo?
-- [ ] ¿No contiene emojis?
-'''}
-{visual_minimum_check}
+
 {archetype_checklist}
+
+{"- [ ] ¿Se han mantenido intactos los enlaces OBLIGATORIOS?" if editorial_links or product_links or products else ""}
+{"- [ ] ¿Cumple con la longitud objetivo (" + str(min_length) + "-" + str(max_length) + " palabras)?" if target_length else ""}
+{"- [ ] ¿Ataca los puntos clave del análisis competitivo?" if competitor_analysis else ""}
+- [ ] ¿Respeta TODAS las instrucciones de reescritura del usuario?
+- [ ] ¿La estructura HTML5 es correcta (sections, articles, classes)?
+- [ ] ¿No contiene emojis?
+{visual_minimum_check}
 {_build_faq_verification(config.get('faq_questions', [])) if _build_faq_verification else ''}
 ---
 
@@ -1168,6 +1181,7 @@ Genera un JSON con esta estructura:
     "longitud_actual": número,
     "longitud_objetivo": {target_length},
     "dentro_de_rango": true/false,
+    "tiene_meta_description": false,
     "ajuste_necesario": "ninguno/aumentar/reducir"
   }},
 
