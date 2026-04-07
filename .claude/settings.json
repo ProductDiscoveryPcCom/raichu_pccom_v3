@@ -20,7 +20,16 @@
       "Bash(python -m pytest tests/test_fixes.py::TestN8NWebhookSecurity -v)",
       "Bash(python -m pytest tests/test_fixes.py -v)",
       "Bash(grep -rn \"range\\(5\\)\\\\|for.*in.*5\\\\|retries.*5\" '/c/Users/maximo.sanchez/OneDrive - PcComponentes/Escritorio/claude projects/raichu_pccom_v3/' --include=*.py)",
-      "Bash(find '/c/Users/maximo.sanchez/OneDrive - PcComponentes/Escritorio/claude projects/raichu_pccom_v3' -name *.py -path */core/* -o -name *.py -path */utils/* -o -name *.py -path */ui/*)"
+      "Bash(find '/c/Users/maximo.sanchez/OneDrive - PcComponentes/Escritorio/claude projects/raichu_pccom_v3' -name *.py -path */core/* -o -name *.py -path */utils/* -o -name *.py -path */ui/*)",
+      "Bash(python -m pytest tests/test_openai_merge.py -v)",
+      "Bash(python -m pytest tests/)",
+      "Bash(python -m pytest tests/ --collect-only -q)",
+      "Bash(python -m pytest tests/test_fixes.py tests/test_html_utils.py tests/test_modular.py --collect-only -q)",
+      "Bash(python -m pytest tests/ --collect-only)",
+      "Bash(python -m pytest tests/test_product_json.py -v)",
+      "Bash(python -c \"from version import __version__; print\\(__version__\\)\")",
+      "Bash(python -c \"import ui.rewrite; print\\(''import ok''\\); print\\(''_scrape_single_url:'', ui.rewrite._scrape_single_url.__doc__[:80]\\)\")",
+      "Bash(python -c \"import app; print\\(''''app import ok''''\\)\")"
     ]
   }
 }

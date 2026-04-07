@@ -4,7 +4,16 @@
       "Bash(wc -l prompts/new_content.py prompts/rewrite.py ui/inputs.py ui/results.py ui/rewrite.py ui/assistant.py utils/*.py)",
       "Bash(python -m pytest tests/test_modular.py tests/test_html_utils.py tests/test_arquetipos.py tests/test_prompts_new.py tests/test_prompts_rewrite.py tests/test_generator.py -v)",
       "Bash(python -m pytest ./tests/test_fixes.py -v --tb=short)",
-      "Bash(python -m pytest ./tests/test_fixes.py -k \"Compilation\" -v)"
+      "Bash(python -m pytest ./tests/test_fixes.py -k \"Compilation\" -v)",
+      "Bash(grep -r \"st\\\\.header\\\\|st\\\\.subheader\" ui/*.py)",
+      "Bash(grep -rn \"pass$\\\\|except:\" \"C:/Users/maximo.sanchez/OneDrive - PcComponentes/Escritorio/claude projects/raichu_pccom_v3/core\" --include=\"*.py\")",
+      "Bash(grep -n \"scroll\\\\|Scroll\\\\|posición\\\\|position\" ui/*.py)",
+      "Bash(grep -rn \"split\\('\\\\\\\\\\\\\\\\n'\\)\\\\|split\\('\\\\n'\\)\" \"C:/Users/maximo.sanchez/OneDrive - PcComponentes/Escritorio/claude projects/raichu_pccom_v3/utils/product_json_utils.py\")",
+      "Bash(grep -rn \"Ctrl\\\\|Enter\\\\|keyboard\\\\|shortcut\\\\|atajo\" ui/*.py)",
+      "Bash(grep -rn \"st\\\\.error\\\\|st\\\\.warning\\\\|st\\\\.info\\\\|st\\\\.success\" ui/*.py)",
+      "Bash(grep -rn \"empty\\\\|Empty\\\\|No results\\\\|No hay\\\\|no data\\\\|sin datos\\\\|placeholder\" ui/*.py)",
+      "Bash(grep -rn \"Cerrar\\\\|Close\\\\|Atrás\\\\|Back\\\\|Siguiente\\\\|Next\\\\|Anterior\\\\|Previous\" ui/*.py)",
+      "Bash(grep -rn \"st\\\\.divider\\\\|st\\\\.markdown.*---\" ui/*.py)"
     ]
   }
 }

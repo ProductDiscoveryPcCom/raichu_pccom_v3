@@ -381,17 +381,26 @@ except ImportError:
 
 
 @st.cache_resource
-def _get_cached_generator(_api_key: str, _model: str, _max_tokens: int = 8192, _temperature: float = 0.7) -> 'ContentGenerator':
+def _get_cached_generator(_api_key: str, model: str, max_tokens: int = 8192, temperature: float = 0.7) -> 'ContentGenerator':
     """Obtiene o crea un ContentGenerator cacheado.
 
     Evita recrear el cliente de Anthropic (y su connection pool) en cada
-    rerun. Se invalida automáticamente si cambian los parámetros.
+    rerun. Se invalida automáticamente si cambian model, max_tokens o
+    temperature.
+
+    P3.9: anteriormente los 4 parámetros tenían prefijo `_`, lo que en
+    `@st.cache_resource` significa "no incluir en la cache key". Resultado:
+    la cache key era constante y el generator nunca se invalidaba al
+    cambiar temperature, max_tokens ni model. Ahora solo `_api_key`
+    mantiene el prefijo (no se hashea, evitando exponer la key en
+    caches/logs internos de Streamlit); model, max_tokens y temperature
+    sí forman parte de la cache key.
     """
     return ContentGenerator(
         api_key=_api_key,
-        model=_model,
-        max_tokens=_max_tokens,
-        temperature=_temperature,
+        model=model,
+        max_tokens=max_tokens,
+        temperature=temperature,
     )
 
 
