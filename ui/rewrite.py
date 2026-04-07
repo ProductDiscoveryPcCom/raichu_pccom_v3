@@ -2002,50 +2002,41 @@ def _scrape_manual_urls(urls_input: str, keyword: str) -> None:
 
 
 def _scrape_single_url(url: str, position: int) -> Dict:
-    """Scrapea una URL individual."""
-    import requests
-    from bs4 import BeautifulSoup
-    
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html,application/xhtml+xml',
-        'Accept-Language': 'es-ES,es;q=0.9',
-    }
-    
-    response = requests.get(url, headers=headers, timeout=SCRAPE_TIMEOUT)
-    
-    if response.status_code != 200:
-        raise Exception(f"HTTP {response.status_code}")
-    
-    soup = BeautifulSoup(response.text, 'html.parser')
-    
-    title_tag = soup.find('title')
-    title = title_tag.get_text(strip=True) if title_tag else ''
-    
-    meta_desc = soup.find('meta', attrs={'name': 'description'})
-    description = meta_desc.get('content', '') if meta_desc else ''
-    
-    for element in soup(['script', 'style', 'nav', 'footer', 'header', 'aside']):
-        element.decompose()
-    
-    main = soup.find('main') or soup.find('article') or soup.find('body')
-    content = main.get_text(' ', strip=True) if main else ''
-    content = re.sub(r'\s+', ' ', content).strip()
-    
-    if len(content) > 8000:
-        content = content[:8000] + "..."
-    
+    """Scrapea una URL individual delegando en core.scraper.scrape_url.
+
+    P3.5: antes implementaba scraping con `requests` directo, sin retry,
+    duplicando lógica con `core/scraper.py`. Ahora reutiliza el scraper
+    central (timeouts unificados, retry, user-agent en config.settings).
+    Mantiene la forma del dict de retorno para no romper los call sites
+    en este módulo (`scrape_success`, `domain`, `position`, `ranking_position`).
+    """
+    from core.scraper import scrape_url as _core_scrape_url
+
+    result = _core_scrape_url(url, timeout=SCRAPE_TIMEOUT)
+
+    if not result.success:
+        raise Exception(result.error or f"Error al scrapear {url}")
+
+    content = result.content or ''
+    # P3.6: cap a 12000 chars (antes 8000). Con 5 competidores son 60k extra
+    # al prompt, asumibles. 15000 los llevaría a 75k.
+    if len(content) > 12000:
+        content = content[:12000] + "..."
+
+    title = (result.title or 'Sin título')[:200]
+    description = (result.meta_description or '')[:300]
+
     return {
         'url': url,
-        'title': title[:200] if title else 'Sin título',
+        'title': title,
         'domain': _extract_domain(url),
         'position': position,
         'ranking_position': position,
         'content': content,
         'word_count': len(content.split()),
-        'meta_description': description[:300] if description else '',
+        'meta_description': description,
         'scrape_success': True,
-        'error': None
+        'error': None,
     }
 
 
