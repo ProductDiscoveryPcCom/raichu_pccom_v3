@@ -116,8 +116,9 @@ def _parse_specifications(markdown: str) -> Dict[str, str]:
     for line in section.split('\n'):
         if line.startswith('|') and '---' not in line:
             parts = [p.strip() for p in line.split('|')[1:-1]]
-            if len(parts) == 2 and parts[0] and parts[0] != 'Clave':
-                specs[parts[0]] = parts[1]
+            # P3.4: aceptar tablas con >2 columnas (ej: | Clave | Valor | Unidad |)
+            if len(parts) >= 2 and parts[0] and parts[0] != 'Clave':
+                specs[parts[0]] = ' '.join(p for p in parts[1:] if p).strip()
     return specs
 
 
@@ -235,7 +236,8 @@ def _normalize_n8n_product(raw: Dict, markdown_data: Dict) -> Dict:
         "attributes": attributes,
         "images": [],
         "features": markdown_data.get("characteristics", {}),
-        "totalComments": 0,
+        # P3.2: leer del raw con doble fallback (snake_case y camelCase)
+        "totalComments": raw.get("total_comments", raw.get("totalComments", 0)),
         "advantages": markdown_data.get("advantages_text", ""),
         "disadvantages": markdown_data.get("disadvantages_text", ""),
         "comments": [],
