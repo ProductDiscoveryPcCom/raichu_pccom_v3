@@ -835,7 +835,12 @@ def render_merge_articles_input() -> List[Dict[str, Any]]:
                 f"¿Qué conservar de este artículo?",
                 key=f"merge_keep_{i}",
                 placeholder="Ej: La sección de comparativa, los datos técnicos...",
-                help="Indica qué partes únicas de este artículo deben incluirse en el fusionado"
+                help=(
+                    "Se pasa a Claude en el prompt de fusión como instrucción "
+                    "explícita para preservar esa sección del artículo en el "
+                    "contenido final. Si se deja vacío, Claude decide qué "
+                    "conservar en base al solape detectado."
+                )
             )
             
             if html and html.strip():
@@ -1367,7 +1372,10 @@ def render_alternative_products_section() -> List[Dict[str, Any]]:
                     f"Texto del enlace {i+1}",
                     key=f"alt_prod_anchor_{i}",
                     placeholder="Nombre del producto",
-                    help="Texto que se usará para enlazar"
+                    help=(
+                        "Texto ancla visible del enlace <a href> generado. "
+                        "Si se deja vacío, Claude usará el nombre del producto."
+                    )
                 )
             
             # Widget JSON con TABS
@@ -1512,7 +1520,11 @@ def render_posts_plps_links_section() -> List[Dict[str, Any]]:
                     f"Anchor text {i+1}",
                     key=f"rewrite_posts_anchor_{i}",
                     placeholder="Texto del enlace",
-                    help="Texto visible del enlace"
+                    help=(
+                        "Texto ancla que aparecerá en el HTML final dentro "
+                        "del <a href> hacia este post/PLP. Claude lo insertará "
+                        "en la sección contextual más relevante del contenido."
+                    )
                 )
             
             # Campos HTML según tipo (NUEVO v4.7.1)
@@ -1637,7 +1649,11 @@ def render_product_links_section() -> List[Dict[str, Any]]:
                     f"Anchor text {i+1}",
                     key=f"rewrite_prod_anchor_{i}",
                     placeholder="Texto del enlace",
-                    help="Texto visible"
+                    help=(
+                        "Texto ancla del enlace <a href> al PDP del producto. "
+                        "Si se deja vacío, Claude generará uno a partir del "
+                        "nombre del producto."
+                    )
                 )
             
             # Widget JSON

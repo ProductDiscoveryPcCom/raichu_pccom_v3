@@ -114,7 +114,16 @@ def render_results_section(
     # ================================================================
     st.markdown("---")
     st.subheader("✅ Contenido Generado")
-    
+
+    # P4.2: timestamp visible — útil al restaurar contenido al cambiar de modo
+    _ts = st.session_state.get('timestamp')
+    if _ts:
+        try:
+            _dt = datetime.strptime(_ts, "%Y%m%d_%H%M%S")
+            st.caption(f"Generado el {_dt.strftime('%d/%m/%Y a las %H:%M')}")
+        except (ValueError, TypeError):
+            st.caption(f"Generado: {_ts}")
+
     # Resumen SEO compacto
     _render_seo_summary(final_html, target_length)
 
@@ -264,14 +273,18 @@ def render_content_tab(
     action_cols = st.columns(2)
     
     with action_cols[0]:
-        # Nombre descriptivo: keyword + fecha
-        _dl_keyword = st.session_state.get('last_config', {}).get('keyword', '')
+        # P4.3: nombre descriptivo con keyword + arquetipo/modo + stage + HHMM
+        _last_cfg = st.session_state.get('last_config', {}) or {}
+        _dl_keyword = _last_cfg.get('keyword', '')
         _dl_keyword_slug = re.sub(r'[^a-zA-Z0-9]+', '-', _dl_keyword)[:40].strip('-') if _dl_keyword else 'contenido'
-        _dl_date = st.session_state.get('timestamp', datetime.now().strftime("%Y%m%d"))
+        # arquetipo en modo new; fallback al mode (rewrite no lo tiene en last_config)
+        _dl_arq = _last_cfg.get('arquetipo') or st.session_state.get('mode', 'doc')
+        _dl_arq_slug = re.sub(r'[^a-zA-Z0-9]+', '-', str(_dl_arq)).strip('-') or 'doc'
+        _dl_hhmm = datetime.now().strftime("%H%M")
         st.download_button(
             label="📥 Descargar HTML",
             data=html_content,
-            file_name=f"{_dl_keyword_slug}_{_dl_date}.html",
+            file_name=f"{_dl_keyword_slug}_{_dl_arq_slug}_stage{stage_number}_{_dl_hhmm}.html",
             mime="text/html",
             use_container_width=True,
         )

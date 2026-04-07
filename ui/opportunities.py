@@ -160,8 +160,8 @@ def render_opportunities_mode() -> None:
         st.info("No hay keywords que cumplan los filtros. Ajusta los parámetros.")
         return
 
-    # Calcular oportunidades
-    with st.spinner(f"Analizando {len(filtered)} keywords..."):
+    # Calcular oportunidades (P4.4: spinner contextual)
+    with st.spinner(f"Calculando scores de oportunidad para {len(filtered)} keywords de GSC..."):
         opportunities = []
         for record in filtered:
             opp = scorer.score_keyword(

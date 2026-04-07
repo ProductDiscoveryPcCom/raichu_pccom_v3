@@ -9,11 +9,26 @@ except ImportError:
     __version__ = "5.1.0"
 
 
+_MODE_LABELS = {
+    'new': '📝 Nuevo Contenido',
+    'rewrite': '🔄 Reescritura',
+    'verify': '🔍 Verificar',
+    'opportunities': '💡 Oportunidades',
+    'assistant': '💬 Asistente',
+}
+
+
 def render_sidebar():
     """Renderiza el sidebar con información de la app"""
     with st.sidebar:
         st.markdown("## Content Generator")
         st.markdown("**PcComponentes**")
+        st.markdown("---")
+
+        # P4.1: indicador del modo activo
+        current_mode = st.session_state.get('mode', 'new')
+        current_label = _MODE_LABELS.get(current_mode, '—')
+        st.markdown(f"**Modo activo:** {current_label}")
         st.markdown("---")
 
         st.markdown("### Funcionalidades")
