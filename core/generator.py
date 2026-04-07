@@ -655,15 +655,7 @@ class ContentGenerator:
         if not _anthropic_available:
             logger.warning("Anthropic SDK no disponible")
 
-        # P3.9 (TEMPORAL — restaurar tras verificar invalidación de cache):
-        # log de instanciación con todos los params para confirmar que
-        # @st.cache_resource invalida correctamente en app.py.
-        logger.info(
-            "ContentGenerator inicializado: model=%s, max_tokens=%d, temperature=%.2f",
-            model,
-            max_tokens,
-            temperature,
-        )
+        logger.info(f"ContentGenerator inicializado con modelo {model}")
     
     def generate(
         self,
