@@ -338,22 +338,38 @@ def _merge_json_analyses(claude: Dict, openai: Dict) -> str:
     claude_score = claude.get('puntuacion_general', 0)
     openai_score = openai.get('puntuacion_general', 0)
     if isinstance(claude_score, dict):
-        claude_score = claude_score.get('general', claude_score.get('total', 0))
+        if 'general' in claude_score or 'total' in claude_score:
+            claude_score = claude_score.get('general', claude_score.get('total', 0))
+        else:
+            logger.warning(
+                "puntuacion_general dict shape inesperado (claude): %s",
+                list(claude_score.keys()),
+            )
+            claude_score = 0
     if isinstance(openai_score, dict):
-        openai_score = openai_score.get('general', openai_score.get('total', 0))
+        if 'general' in openai_score or 'total' in openai_score:
+            openai_score = openai_score.get('general', openai_score.get('total', 0))
+        else:
+            logger.warning(
+                "puntuacion_general dict shape inesperado (openai): %s",
+                list(openai_score.keys()),
+            )
+            openai_score = 0
     claude_score = claude_score if isinstance(claude_score, (int, float)) else 0
     openai_score = openai_score if isinstance(openai_score, (int, float)) else 0
-    min_score = min(claude_score, openai_score) if claude_score and openai_score else claude_score or openai_score
+    # P3.1: usar min real (no fallback con `or`) para no perder señal cuando un score es 0
+    scores = [s for s in (claude_score, openai_score) if isinstance(s, (int, float))]
+    min_score = min(scores) if scores else 0
 
-    # Combinar frases de IA detectadas
+    # Combinar frases de IA detectadas (preservar orden de inserción para reproducibilidad)
     claude_ai = claude.get('tono', {}).get('frases_ia_detectadas', [])
     openai_ai = openai.get('tono', {}).get('frases_ia_detectadas', [])
-    all_ai_phrases = list(set(claude_ai + openai_ai))
+    all_ai_phrases = list(dict.fromkeys(claude_ai + openai_ai))
 
-    # Combinar enlaces faltantes
+    # Combinar enlaces faltantes (preservar orden)
     claude_missing = claude.get('enlaces', {}).get('faltantes', [])
     openai_missing = openai.get('enlaces', {}).get('faltantes', [])
-    all_missing = list(set(claude_missing + openai_missing))
+    all_missing = list(dict.fromkeys(claude_missing + openai_missing))
 
     # Construir análisis fusionado
     merged = dict(claude)  # Base de Claude
