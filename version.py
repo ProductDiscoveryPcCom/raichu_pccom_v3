@@ -16,7 +16,7 @@ _VERSION_FILE = Path(__file__).parent / "VERSION"
 
 try:
     __version__ = _VERSION_FILE.read_text().strip()
-except FileNotFoundError:
+except (FileNotFoundError, OSError):  # P3.8: tolerar PermissionError y otros OSError
     __version__ = "5.1.0"  # Fallback
 
 __all__ = ["__version__"]
