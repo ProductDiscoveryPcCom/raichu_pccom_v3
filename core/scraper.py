@@ -23,6 +23,7 @@ from typing import Dict, List, Optional, Any, Tuple, Union
 from dataclasses import dataclass, field
 from urllib.parse import urlparse, urljoin
 from enum import Enum
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -799,28 +800,28 @@ def scrape_pdp_data(
 def scrape_competitor_urls(
     urls: List[str],
     timeout: Optional[float] = None,
-    max_concurrent: int = 1
+    max_concurrent: int = 4
 ) -> List[Dict[str, Any]]:
     """
-    Scrapea múltiples URLs de competidores.
-    
+    Scrapea múltiples URLs de competidores en paralelo.
+
     Args:
         urls: Lista de URLs a scrapear
         timeout: Timeout por URL (opcional)
-        max_concurrent: Número máximo de requests concurrentes (futuro)
-        
+        max_concurrent: Número máximo de requests concurrentes
+
     Returns:
-        Lista de dicts con datos de cada competidor
+        Lista de dicts con datos de cada competidor (orden preservado)
     """
-    results = []
+    if not urls:
+        return []
+
     scraper = get_scraper()
-    
-    for url in urls:
+
+    def _scrape_one(url: str) -> Dict[str, Any]:
         logger.info(f"Scrapeando competidor: {url}")
-        
         result = scraper.scrape_url(url, extract_content=True, timeout=timeout)
-        
-        competitor_data = {
+        return {
             'url': url,
             'success': result.success,
             'title': result.title if result.success else '',
@@ -829,44 +830,85 @@ def scrape_competitor_urls(
             'error': result.error,
             'response_time': result.response_time,
         }
-        
-        results.append(competitor_data)
-        
-        # Pequeña pausa entre requests para no sobrecargar
-        if len(urls) > 1:
-            time.sleep(0.5)
-    
-    successful = sum(1 for r in results if r['success'])
+
+    # Fast path: single URL, no need for thread pool
+    if len(urls) == 1:
+        results = [_scrape_one(urls[0])]
+    else:
+        results = [None] * len(urls)
+        with ThreadPoolExecutor(max_workers=min(max_concurrent, len(urls))) as executor:
+            future_to_idx = {
+                executor.submit(_scrape_one, url): i
+                for i, url in enumerate(urls)
+            }
+            for future in as_completed(future_to_idx):
+                idx = future_to_idx[future]
+                try:
+                    results[idx] = future.result()
+                except Exception as e:
+                    logger.warning(f"Scraping exception for {urls[idx]}: {e}")
+                    results[idx] = {
+                        'url': urls[idx],
+                        'success': False,
+                        'title': '',
+                        'content': '',
+                        'word_count': 0,
+                        'error': f"Thread exception: {type(e).__name__}: {e}",
+                        'response_time': 0.0,
+                    }
+
+    successful = sum(1 for r in results if r and r['success'])
     logger.info(f"Scraping completado: {successful}/{len(urls)} URLs exitosas")
-    
+
     return results
 
 
 def scrape_multiple_urls(
     urls: List[str],
-    timeout: Optional[float] = None
+    timeout: Optional[float] = None,
+    max_concurrent: int = 4
 ) -> List[ScrapeResult]:
     """
-    Scrapea múltiples URLs y retorna resultados.
-    
+    Scrapea múltiples URLs en paralelo y retorna resultados.
+
     Args:
         urls: Lista de URLs
         timeout: Timeout por URL (opcional)
-        
+        max_concurrent: Número máximo de requests concurrentes
+
     Returns:
-        Lista de ScrapeResult
+        Lista de ScrapeResult (orden preservado)
     """
+    if not urls:
+        return []
+
     scraper = get_scraper()
-    results = []
-    
-    for url in urls:
-        result = scraper.scrape_url(url, timeout=timeout)
-        results.append(result)
-        
-        # Pausa entre requests
-        if len(urls) > 1:
-            time.sleep(0.3)
-    
+
+    def _scrape_one(url: str) -> ScrapeResult:
+        return scraper.scrape_url(url, timeout=timeout)
+
+    # Fast path: single URL
+    if len(urls) == 1:
+        return [_scrape_one(urls[0])]
+
+    results = [None] * len(urls)
+    with ThreadPoolExecutor(max_workers=min(max_concurrent, len(urls))) as executor:
+        future_to_idx = {
+            executor.submit(_scrape_one, url): i
+            for i, url in enumerate(urls)
+        }
+        for future in as_completed(future_to_idx):
+            idx = future_to_idx[future]
+            try:
+                results[idx] = future.result()
+            except Exception as e:
+                logger.warning(f"Scraping exception for {urls[idx]}: {e}")
+                results[idx] = ScrapeResult(
+                    success=False,
+                    url=urls[idx],
+                    error=f"Thread exception: {type(e).__name__}: {e}",
+                )
+
     return results
 
 

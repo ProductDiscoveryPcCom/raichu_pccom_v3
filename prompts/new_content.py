@@ -1574,6 +1574,11 @@ _GROUP_CHECKLISTS_STAGE2 = {
 
 # --- Archetype-specific overrides for individual checks (QW-1b) ---
 _ARCHETYPE_SPECIFIC_CHECKS_STAGE2 = {
+    # ── product_verdict ──────────────────────────────────────────────
+    'ARQ-1': [  # Artículos SEO con Enlaces Internos
+        "¿Los enlaces internos están distribuidos a lo largo del texto (no concentrados en un solo bloque)?",
+        "¿Cada enlace interno tiene un anchor text descriptivo y relevante (no genérico tipo 'haz clic aquí')?",
+    ],
     'ARQ-4': [  # Review / Análisis de Producto
         "¿El veredicto final incluye una puntuación o valoración explícita (número, estrellas, o escala)?",
     ],
@@ -1581,17 +1586,164 @@ _ARCHETYPE_SPECIFIC_CHECKS_STAGE2 = {
         "¿Hay una declaración explícita de ganador con justificación?",
         "¿La tabla comparativa central usa la clase CSS .comparison-table?",
     ],
+    'ARQ-6': [  # Guía de Compra
+        "¿Existe una sección de 'Errores comunes al comprar' con al menos 3 errores concretos?",
+        "¿Los rangos de precio están definidos con cifras concretas (ej: '<100€', '100-300€', '>300€')?",
+        "¿Cada rango de precio incluye al menos un producto recomendado específico?",
+    ],
     'ARQ-7': [  # Roundup / Mejores X (Ranking)
         "¿Los productos están numerados del 1 al N con ranking explícito?",
         "¿Incluye badges diferenciadores ('Mejor en general', 'Mejor calidad-precio')?",
         "¿Usa el componente `.grid` para la presentación de productos resumen?",
     ],
+    'ARQ-20': [  # Black Friday / Cyber Monday
+        "¿Se incluyen fechas y horarios concretos del evento (inicio, fin, Cyber Monday)?",
+        "¿Existe una sección diferenciada de 'ofertas flash' o 'exclusivas' separada de las ofertas generales?",
+        "¿Hay una sección de preparación o consejos para comprar durante el evento?",
+    ],
+    'ARQ-25': [  # Consolas y Gaming Portátil
+        "¿Incluye una sección de juegos exclusivos para cada plataforma mencionada?",
+        "¿La comparativa entre consolas cubre al menos: rendimiento, catálogo, precio y portabilidad?",
+    ],
+    'ARQ-33': [  # Movilidad y Gadgets
+        "¿Se menciona la compatibilidad de ecosistema (iOS/Android/etc.) y su impacto en la elección?",
+        "¿Incluye sección de accesorios complementarios con productos concretos?",
+    ],
+    # ── step_by_step ─────────────────────────────────────────────────
+    'ARQ-2': [  # Guía Paso a Paso
+        "¿Se diferencia correctamente entre herramienta/material (check-list) y paso del proceso (lista ordenada)?",
+    ],
+    'ARQ-11': [  # Solución de Problemas / Troubleshooting
+        "¿Las soluciones están ordenadas de más probable/sencilla a menos probable/compleja?",
+        "¿Existe una sección de 'Cuándo buscar ayuda profesional' con criterios claros?",
+        "¿Incluye una sección de prevención futura separada de las soluciones?",
+    ],
+    'ARQ-13': [  # Configuración y Setup
+        "¿Incluye una sección de verificación/prueba de funcionamiento tras la configuración?",
+        "¿Existe una sección de configuración avanzada claramente separada de la configuración inicial?",
+    ],
+    # ── educational ──────────────────────────────────────────────────
+    'ARQ-3': [  # Explicación / Educativo
+        "¿Incluye una sección de 'Ventajas y desventajas' o 'Pros y contras' del concepto explicado?",
+        "¿Se abordan mitos o malentendidos comunes si el campo 'mitos_comunes' fue proporcionado?",
+    ],
+    'ARQ-9': [  # Mejores Productos por Precio
+        "¿Están las recomendaciones organizadas explícitamente por rangos de precio (Económica, Gama media, Premium)?",
+        "¿Se identifica un 'sweet spot' o mejor equilibrio calidad-precio con justificación?",
+        "¿Los precios concretos (€) acompañan a cada producto mencionado?",
+    ],
+    'ARQ-12': [  # Especificaciones Técnicas Explicadas
+        "¿Incluye una tabla o glosario con las especificaciones principales y sus valores recomendados?",
+        "¿Cada spec explicada incluye su impacto práctico en el rendimiento o experiencia de uso?",
+        "¿Se desmontan mitos técnicos o specs de marketing engañosas si aplica?",
+    ],
+    'ARQ-14': [  # Optimización y Mejora
+        "¿Las optimizaciones están organizadas por nivel de dificultad (quick wins, intermedia, avanzada)?",
+        "¿Se incluyen métricas o formas de medir el resultado de las optimizaciones?",
+    ],
+    'ARQ-15': [  # Mantenimiento y Cuidados
+        "¿Las tareas de mantenimiento están organizadas por frecuencia (diario/semanal, mensual, anual)?",
+        "¿Incluye una sección de 'señales de problemas' que indican mantenimiento urgente?",
+    ],
     'ARQ-16': [  # Novedades y Lanzamientos
         "¿Sigue estructura de pirámide invertida (Qué, Quién, Cuándo y Precio en los 2 primeros párrafos)?",
         "¿Menciona fechas concretas de disponibilidad o lanzamiento?",
     ],
-    'ARQ-2': [  # Guía Paso a Paso
-        "¿Se diferencia correctamente entre herramienta/material (check-list) y paso del proceso (lista ordenada)?",
+    'ARQ-22': [  # Requisitos de Videojuegos
+        "¿Incluye tabla con requisitos mínimos Y recomendados del juego?",
+        "¿Existe una sección de optimización de ajustes gráficos con impacto en rendimiento?",
+        "¿Se recomiendan configuraciones de hardware concretas (modelos específicos) para el juego?",
+    ],
+    'ARQ-24': [  # Periféricos Gaming
+        "¿Se explican las características técnicas clave del periférico (ej: tipo de switch, sensor, driver)?",
+        "¿Incluye sección de combinaciones o setup de periféricos recomendado?",
+    ],
+    'ARQ-26': [  # Workstation Profesional
+        "¿Las recomendaciones están segmentadas por disciplina profesional (ej: edición vídeo vs 3D vs CAD)?",
+        "¿Se menciona software específico y su relación con los componentes recomendados?",
+    ],
+    'ARQ-28': [  # Productividad y Software
+        "¿El software está organizado por categorías funcionales (gestión tareas, notas, automatización, etc.)?",
+        "¿Incluye un 'stack recomendado' final con herramientas que se integran entre sí?",
+    ],
+    'ARQ-29': [  # Seguridad y Privacidad
+        "¿Incluye un checklist de seguridad accionable que el usuario pueda seguir?",
+        "¿Las amenazas descritas son actuales y concretas (no genéricas)?",
+    ],
+    'ARQ-30': [  # Redes y Conectividad
+        "¿Incluye una sección de configuración paso a paso del equipamiento de red?",
+        "¿Existe sección de troubleshooting para problemas comunes de conectividad?",
+    ],
+    'ARQ-32': [  # Fotografía y Vídeo
+        "¿Las recomendaciones están segmentadas por nivel de usuario (principiante, aficionado, profesional)?",
+        "¿Se cubren tanto equipamiento de captura (cámaras/objetivos) como post-producción (software/hardware)?",
+    ],
+    'ARQ-34': [  # Sostenibilidad y Eficiencia Energética
+        "¿Se mencionan certificaciones de eficiencia concretas (Energy Star, 80 Plus, etc.)?",
+        "¿Incluye datos cuantificables de consumo energético o ahorro (vatios, kWh, € de ahorro)?",
+    ],
+    # ── grid_recommendations ─────────────────────────────────────────
+    'ARQ-8': [  # Lista de Recomendaciones
+        "¿Se explican los criterios de selección usados ANTES de presentar las recomendaciones?",
+        "¿Incluye sección de 'tips para elegir' más allá de la lista de productos?",
+    ],
+    'ARQ-10': [  # Productos para Perfil Específico
+        "¿Se define claramente el perfil de usuario objetivo y sus necesidades específicas al inicio?",
+        "¿Incluye una sección de 'errores a evitar' específicos para este perfil de usuario?",
+        "¿Existe una propuesta de kit o setup completo recomendado para el perfil?",
+    ],
+    'ARQ-18': [  # Eventos y Ferias Tech
+        "¿Se identifica el evento por nombre, fecha y edición?",
+        "¿Incluye sección de 'cuándo llegan los productos' con estimaciones de disponibilidad?",
+        "¿Hay una sección de sorpresas o decepciones del evento?",
+    ],
+    'ARQ-23': [  # Streaming y Creación de Contenido
+        "¿Incluye sección de configuración de software (OBS u otro) con ajustes concretos?",
+        "¿Las recomendaciones de kit están segmentadas por nivel de creador (principiante, intermedio, profesional)?",
+        "¿Se cubren los cuatro pilares: hardware, software, iluminación y sonido?",
+    ],
+    'ARQ-27': [  # Teletrabajo y Home Office
+        "¿Se incluye sección de ergonomía y salud (postura, descansos, iluminación)?",
+        "¿Las recomendaciones cubren tanto mobiliario como tecnología?",
+        "¿Existe kit recomendado segmentado por presupuesto?",
+    ],
+    'ARQ-31': [  # Hogar Inteligente / Smart Home
+        "¿Se mencionan los ecosistemas principales (Alexa, Google Home, HomeKit) con sus pros y contras?",
+        "¿Incluye sección de seguridad y privacidad del smart home?",
+        "¿Existe un 'kit de inicio' concreto con productos específicos?",
+    ],
+    # ── promo ────────────────────────────────────────────────────────
+    'ARQ-19': [  # Ofertas y Promociones
+        "¿Se incluyen códigos de descuento si fueron proporcionados en los datos?",
+        "¿Las ofertas están organizadas por categoría o tipo de producto?",
+    ],
+    # ── gaming_multicomponent ────────────────────────────────────────
+    'ARQ-21': [  # Setup Gaming Completo
+        "¿Se especifican juegos objetivo y la resolución/FPS que el setup logrará?",
+        "¿Existe una tabla o resumen del setup completo con todos los componentes y precio total?",
+    ],
+    # ── trends ───────────────────────────────────────────────────────
+    'ARQ-17': [  # Tendencias del Sector
+        "¿Incluye sección de 'cómo prepararse' con consejos accionables para el usuario?",
+        "¿Las tendencias mencionan un horizonte temporal estimado (cuándo serán mainstream)?",
+    ],
+    # ── external_text ────────────────────────────────────────────────
+    'ARQ-35': [  # Nota de Prensa
+        "¿Sigue estructura de pirámide invertida (Quién+Qué+Cuándo en el primer párrafo)?",
+        "¿Incluye al menos una declaración entrecomillada del portavoz?",
+        "¿Incluye boilerplate corporativo de PcComponentes al final?",
+        "¿El tono es institucional y en tercera persona (sin 'nosotros', 'nuestro')?",
+    ],
+    'ARQ-36': [  # Contenido para Web de Afiliados
+        "¿Incluye una tabla resumen rápida al inicio (producto + valoración + precio + enlace)?",
+        "¿Cada producto analizado tiene sección de pros/contras y CTA individual?",
+        "¿Existe sección final de '¿Cuál elegir?' con recomendación por perfil de usuario?",
+    ],
+    'ARQ-37': [  # Guest Posting
+        "¿Las menciones a PcComponentes son máximo 2-3 y están integradas contextualmente (no forzadas)?",
+        "¿El titular NO contiene la marca PcComponentes?",
+        "¿Incluye bio del autor al final con mención/enlace a PcComponentes?",
+        "¿El tono es neutral y divulgativo (sin lenguaje comercial ni CTAs directos)?",
     ],
 }
 
