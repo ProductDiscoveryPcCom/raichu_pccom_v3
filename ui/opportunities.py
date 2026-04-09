@@ -64,9 +64,13 @@ def render_opportunities_mode() -> None:
         if api_configured:
             _render_api_connect()
         else:
-            st.warning(
-                "⚠️ **No hay datos de GSC disponibles.** "
-                "Configura la API de GSC en los secrets o sube un CSV."
+            st.markdown(
+                '<div style="text-align:center;padding:2rem 1rem;color:#666;">'
+                '<p style="font-size:2rem;margin-bottom:0.5rem;">📊</p>'
+                '<p style="font-size:1.1rem;font-weight:600;">No hay datos de GSC disponibles</p>'
+                '<p>Conecta la API de Google Search Console o sube un CSV para empezar.</p>'
+                '</div>',
+                unsafe_allow_html=True,
             )
 
         _render_csv_upload()
@@ -903,36 +907,8 @@ def _render_csv_upload() -> None:
         "**Importante:** La columna `page` (URL) es obligatoria para filtrar por blog."
     )
 
-    uploaded = st.file_uploader(
-        "CSV de GSC", type=['csv', 'tsv'],
-        key='opp_csv_upload',
-        help="Formato: page, query, clicks, impressions, ctr, position"
-    )
-
-    if uploaded:
-        try:
-            import pandas as pd
-            content = uploaded.getvalue().decode('utf-8')
-            sep = ';' if content.count(';') > content.count(',') else ','
-
-            import io
-            df = pd.read_csv(io.StringIO(content), sep=sep)
-            df.columns = df.columns.str.lower().str.strip()
-
-            # Normalizar: GSC exporta "page" pero internamente usamos "url"
-            if 'page' in df.columns and 'url' not in df.columns:
-                df['url'] = df['page']
-
-            if 'url' not in df.columns and 'page' not in df.columns:
-                st.warning(
-                    "⚠️ El CSV no tiene columna `page` o `url`. "
-                    "Sin URLs no se podrán filtrar las oportunidades del blog."
-                )
-
-            csv_path = "gsc_keywords.csv"
-            df.to_csv(csv_path, index=False)
-            st.success(f"✅ {len(df)} keywords cargadas. Recarga la página para ver oportunidades.")
-            st.rerun()
-        except Exception as e:
-            logger.error(f"Error procesando CSV: {e}")
-            st.error("❌ Error procesando el archivo CSV. Verifica el formato.")
+    try:
+        from utils.gsc_utils import render_gsc_csv_upload
+        render_gsc_csv_upload(key_prefix="opp", label="CSV de GSC")
+    except ImportError:
+        st.warning("Módulo gsc_utils no disponible para carga de CSV.")

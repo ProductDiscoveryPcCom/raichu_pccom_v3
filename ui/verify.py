@@ -70,7 +70,11 @@ def render_verify_mode() -> None:
                     df = load_gsc_keywords_csv()
 
                     if df is None or (hasattr(df, 'empty') and df.empty):
-                        st.warning("\u26a0\ufe0f No se pudieron cargar los datos de GSC")
+                        st.warning(
+                            "⚠️ **GSC no disponible.** "
+                            "Continúa sin verificación o sube un CSV."
+                        )
+                        _render_verify_csv_upload()
                         return
 
                     matches = search_existing_content(keyword)
@@ -80,16 +84,22 @@ def render_verify_mode() -> None:
 
                 except Exception as e:
                     logger.error(f"Error en verificación GSC: {e}")
-                    st.error("\u274c Error al verificar contenido existente. Revisa los logs para más detalles.")
+                    st.warning(
+                        "⚠️ **No se pudo verificar en GSC.** "
+                        "Continúa sin verificación o sube un CSV."
+                    )
+                    _render_verify_csv_upload()
 
         else:
-            st.error("""
-            \u274c **Módulo GSC no disponible**
-
-            Para usar esta funcionalidad necesitas:
-            1. El archivo `utils/gsc_utils.py` con las funciones de búsqueda
-            2. Credenciales de GSC API configuradas en Secrets, o un CSV con datos de GSC
-            """)
+            st.markdown(
+                '<div style="text-align:center;padding:2rem 1rem;color:#666;">'
+                '<p style="font-size:2rem;margin-bottom:0.5rem;">🔍</p>'
+                '<p style="font-size:1.1rem;font-weight:600;">Verificación no disponible</p>'
+                '<p>Conecta GSC o sube un CSV para verificar keywords.</p>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+            _render_verify_csv_upload()
 
 
 def _render_verify_guide() -> None:
@@ -247,3 +257,18 @@ def render_verify_results(keyword: str, matches: List[Dict], summary: Dict) -> N
                 st.error(recommendation)
             else:
                 st.warning(recommendation)
+
+
+def _render_verify_csv_upload() -> None:
+    """Widget de CSV upload para el modo verificar (usa render_gsc_csv_upload compartido)."""
+    try:
+        from utils.gsc_utils import render_gsc_csv_upload
+    except ImportError:
+        return
+
+    with st.expander("📤 Subir CSV de Google Search Console", expanded=False):
+        st.caption(
+            "Exporta desde Google Search Console → Rendimiento → Exportar (CSV). "
+            "Columnas necesarias: query, clicks, impressions, ctr, position."
+        )
+        render_gsc_csv_upload(key_prefix="verify", label="CSV de GSC")

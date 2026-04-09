@@ -21,6 +21,12 @@ from typing import Dict, List, Tuple, Optional
 
 logger = logging.getLogger(__name__)
 
+# Arquetipos (para P4.12 config summary)
+try:
+    from config.arquetipos import ARQUETIPOS as _ARQUETIPOS
+except Exception:
+    _ARQUETIPOS = {}
+
 # Importar utilidades
 from utils.html_utils import (
     count_words_in_html,
@@ -134,6 +140,9 @@ def render_results_section(
         emoji = "✅" if composite >= 70 else "⚠️"
         st.markdown(f"**{emoji} Quality Score: {composite}/100**")
 
+    # Config summary (P4.12)
+    _render_config_summary(final_html, target_length)
+
     # Checklist pre-publicación (Task I2)
     render_pre_publication_checklist(final_html, target_length)
 
@@ -165,6 +174,15 @@ def render_results_section(
     # 5. DETALLES DE GENERACIÓN (debug, colapsado)
     # ================================================================
     _render_debug_stages(draft_html, analysis_json, mode)
+
+    # ================================================================
+    # 6. EXPORT ALL (ZIP) — P4.6
+    # ================================================================
+    render_export_all_button(
+        draft_html=draft_html,
+        analysis_json=analysis_json,
+        final_html=final_html
+    )
 
 
 # ============================================================================
@@ -364,6 +382,52 @@ def render_content_tab(
 # ============================================================================
 # RESUMEN SEO COMPACTO (nuevo v5.0)
 # ============================================================================
+
+def _render_config_summary(final_html: str, target_length: int) -> None:
+    """Expander colapsable con la configuración aplicada en la generación (P4.12)."""
+    _cfg = st.session_state.get('last_config', {})
+    _meta = st.session_state.get('generation_metadata', {})
+
+    if not _cfg and not _meta:
+        return
+
+    with st.expander("📋 Configuración aplicada", expanded=False):
+        cols = st.columns(2)
+
+        with cols[0]:
+            keyword = _cfg.get('keyword') or _meta.get('keyword', '—')
+            st.markdown(f"**Keyword:** {keyword}")
+
+            arq_code = _cfg.get('arquetipo_codigo') or _cfg.get('arquetipo') or _meta.get('arquetipo', '')
+            if arq_code:
+                arq_data = _ARQUETIPOS.get(arq_code)
+                arq_name = arq_data.get('name', arq_code) if arq_data else arq_code
+                st.markdown(f"**Arquetipo:** {arq_name} (`{arq_code}`)")
+
+            mode = _meta.get('mode', st.session_state.get('mode', ''))
+            mode_labels = {'new': 'Nuevo', 'rewrite': 'Reescritura', 'assistant': 'Asistente'}
+            if mode:
+                st.markdown(f"**Modo:** {mode_labels.get(mode, mode)}")
+
+        with cols[1]:
+            actual_words = count_words_in_html(final_html)
+            st.markdown(f"**Longitud:** {actual_words:,} / {target_length:,} palabras")
+
+            ve = _cfg.get('visual_elements', [])
+            if ve:
+                st.markdown(f"**Elementos visuales:** {', '.join(ve)}")
+
+            products = _cfg.get('products', [])
+            if products:
+                st.markdown(f"**Productos:** {len(products)}")
+
+        sec_kw = _cfg.get('secondary_keywords', [])
+        if sec_kw:
+            display = ', '.join(sec_kw[:8])
+            if len(sec_kw) > 8:
+                display += f" (+{len(sec_kw) - 8} más)"
+            st.markdown(f"**Keywords secundarias:** {display}")
+
 
 def _render_seo_summary(html_content: str, target_length: int) -> None:
     """Resumen rápido: palabras, headings, elementos visuales, enlaces."""
@@ -1937,11 +2001,14 @@ def render_export_all_button(
         st.markdown("---")
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        zip_content = export_all_stages(draft_html, analysis_json, final_html)
-        
+
+        with st.spinner("Generando ZIP..."):
+            zip_content = export_all_stages(draft_html, analysis_json, final_html)
+
+        size_kb = len(zip_content) / 1024
+
         st.download_button(
-            label=f"📦 Descargar Todo ({available_stages} etapas)",
+            label=f"📦 ZIP de {available_stages} etapas (~{size_kb:.0f} KB)",
             data=zip_content,
             file_name=f"content_generator_all_stages_{timestamp}.zip",
             mime="application/zip",

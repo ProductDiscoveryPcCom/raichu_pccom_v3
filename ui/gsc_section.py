@@ -66,11 +66,17 @@ def render_gsc_verification_section(
     try:
         gsc_data = load_gsc_data(csv_path)
     except Exception as e:
-        st.warning(f"⚠️ No se pudieron cargar los datos de GSC: {e}")
+        st.warning(
+            f"⚠️ **No se pudieron cargar datos de GSC:** {e}\n\n"
+            "Sube un CSV en la sección de Oportunidades."
+        )
         gsc_data = None
 
     if not gsc_data or not gsc_data.get('data'):
-        st.warning("⚠️ No se pudieron cargar los datos de Google Search Console. La verificación no está disponible.")
+        st.warning(
+            "⚠️ **GSC no disponible.** "
+            "Sube un CSV en la sección de Oportunidades."
+        )
         return None
     
     # Mostrar disclaimer de freshness

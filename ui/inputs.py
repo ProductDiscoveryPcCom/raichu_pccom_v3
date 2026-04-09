@@ -405,7 +405,8 @@ def render_keyword_input(
         label=label,
         value=saved_value,
         key=key,
-        placeholder="Ej: mejores monitores gaming 2025"
+        placeholder="Ej: mejores monitores gaming 2025",
+        label_visibility="collapsed"
     )
     
     if keyword:
@@ -437,7 +438,8 @@ def render_url_input(
         label=label,
         value=saved_value,
         key=key,
-        placeholder="https://www.pccomponentes.com/..."
+        placeholder="https://www.pccomponentes.com/...",
+        label_visibility="collapsed"
     )
     if url:
         result = validate_url(url, require_pccomponentes=require_pccomponentes)
@@ -487,7 +489,8 @@ def render_product_url_with_fetch(
         value=saved_value,
         key=f"{key}_url",
         placeholder="https://www.pccomponentes.com/...",
-        help="Pega la URL de un producto de PcComponentes"
+        help="Pega la URL de un producto de PcComponentes",
+        label_visibility="collapsed"
     )
     
     # ========================================================================
@@ -509,7 +512,8 @@ def render_product_url_with_fetch(
             height=150,
             key=f"{key}_json_paste",
             placeholder='{"id": "...", "name": "...", ...}',
-            help="Pega el JSON directamente desde el workflow de n8n"
+            help="Pega el JSON directamente desde el workflow de n8n",
+            label_visibility="collapsed"
         )
         
         if pasted_json and pasted_json.strip():
@@ -605,7 +609,8 @@ def render_product_url_with_fetch(
                     value="",
                     key=f"{key}_manual_id",
                     placeholder="Ej: 6917499",
-                    help="Si la extracción automática del ID falla, introdúcelo manualmente."
+                    help="Si la extracción automática del ID falla, introdúcelo manualmente.",
+                    label_visibility="collapsed"
                 )
             
             with col2:

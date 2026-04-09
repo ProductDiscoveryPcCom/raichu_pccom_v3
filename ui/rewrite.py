@@ -727,7 +727,8 @@ def render_single_article_input() -> List[Dict[str, Any]]:
         "URL del artículo original",
         key="rewrite_single_url",
         placeholder="https://www.pccomponentes.com/blog/...",
-        help="URL actual del artículo (para referencia)"
+        help="URL actual del artículo (para referencia)",
+        label_visibility="collapsed"
     )
     
     # Título del artículo
@@ -735,7 +736,8 @@ def render_single_article_input() -> List[Dict[str, Any]]:
         "Título del artículo",
         key="rewrite_single_title",
         placeholder="Título actual del artículo",
-        help="Título H1 del artículo actual"
+        help="Título H1 del artículo actual",
+        label_visibility="collapsed"
     )
     
     # HTML del artículo
@@ -748,7 +750,8 @@ def render_single_article_input() -> List[Dict[str, Any]]:
   <h1>Título del artículo...</h1>
   <p>Contenido...</p>
 </article>""",
-        help="Pega el código HTML completo del artículo"
+        help="Pega el código HTML completo del artículo",
+        label_visibility="collapsed"
     )
     
     # Guardar en session state
@@ -811,7 +814,8 @@ def render_merge_articles_input() -> List[Dict[str, Any]]:
                     f"URL del artículo {i+1}",
                     key=f"merge_url_{i}",
                     placeholder="https://www.pccomponentes.com/...",
-                    help="URL actual del artículo"
+                    help="URL actual del artículo",
+                    label_visibility="collapsed"
                 )
             
             with col2:
@@ -819,7 +823,8 @@ def render_merge_articles_input() -> List[Dict[str, Any]]:
                     f"Título {i+1}",
                     key=f"merge_title_{i}",
                     placeholder="Título del artículo",
-                    help="Título H1"
+                    help="Título H1",
+                    label_visibility="collapsed"
                 )
             
             html = st.text_area(
@@ -827,7 +832,8 @@ def render_merge_articles_input() -> List[Dict[str, Any]]:
                 height=150,
                 key=f"merge_html_{i}",
                 placeholder="<article>...</article>",
-                help="Código HTML del artículo"
+                help="Código HTML del artículo",
+                label_visibility="collapsed"
             )
             
             # Notas sobre qué conservar de este artículo
@@ -840,7 +846,8 @@ def render_merge_articles_input() -> List[Dict[str, Any]]:
                     "explícita para preservar esa sección del artículo en el "
                     "contenido final. Si se deja vacío, Claude decide qué "
                     "conservar en base al solape detectado."
-                )
+                ),
+                label_visibility="collapsed"
             )
             
             if html and html.strip():
@@ -948,7 +955,8 @@ def render_disambiguate_input() -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
         "URL del contenido conflictivo",
         key="disambiguate_conflict_url",
         placeholder="https://www.pccomponentes.com/...",
-        help="URL del contenido que está canibalizando"
+        help="URL del contenido que está canibalizando",
+        label_visibility="collapsed"
     )
     
     conflict_html = st.text_area(
@@ -956,7 +964,8 @@ def render_disambiguate_input() -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
         height=200,
         key="disambiguate_conflict_html",
         placeholder="<article>...</article>",
-        help="Pega el HTML del contenido que causa el conflicto"
+        help="Pega el HTML del contenido que causa el conflicto",
+        label_visibility="collapsed"
     )
     
     html_contents = []
@@ -987,7 +996,8 @@ def render_disambiguate_input() -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
 - Añadir más contenido educativo sobre especificaciones
 - Incluir comparativas detalladas
 - Eliminar listados de productos y CTAs de compra""",
-            help="Indica cómo debe diferenciarse el post de la PLP"
+            help="Indica cómo debe diferenciarse el post de la PLP",
+            label_visibility="collapsed"
         )
     else:
         disambiguate_instructions = st.text_area(
@@ -999,15 +1009,17 @@ def render_disambiguate_input() -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
 - Reducir contenido informativo extenso
 - Destacar ofertas y CTAs de compra
 - Mantener solo specs esenciales para filtrar""",
-            help="Indica cómo debe diferenciarse la PLP del post"
+            help="Indica cómo debe diferenciarse la PLP del post",
+            label_visibility="collapsed"
         )
-    
+
     # URL de la otra pieza (opcional)
     other_url = st.text_input(
         f"URL de la {'PLP' if output_type == 'post' else 'Post'} que debe diferenciarse",
         key="disambiguate_other_url",
         placeholder="https://www.pccomponentes.com/...",
-        help="URL del otro contenido para asegurar que no se solapen"
+        help="URL del otro contenido para asegurar que no se solapen",
+        label_visibility="collapsed"
     )
     
     disambiguation_config = {
@@ -1187,7 +1199,8 @@ def render_main_product_section() -> Optional[Dict[str, Any]]:
             "🔗 URL del Producto Principal",
             key="rewrite_main_product_url",
             placeholder="https://www.pccomponentes.com/...",
-            help="URL del producto en PcComponentes"
+            help="URL del producto en PcComponentes",
+            label_visibility="collapsed"
         )
     
     with col2:
@@ -1224,7 +1237,8 @@ def render_main_product_section() -> Optional[Dict[str, Any]]:
             height=150,
             key="rewrite_main_product_json_paste",
             placeholder='{"id": "...", "name": "...", ...}',
-            help="Pega el JSON directamente desde el workflow de n8n"
+            help="Pega el JSON directamente desde el workflow de n8n",
+            label_visibility="collapsed"
         )
         
         if pasted_json and pasted_json.strip():
@@ -1364,7 +1378,8 @@ def render_alternative_products_section() -> List[Dict[str, Any]]:
                     f"URL del producto {i+1}",
                     key=f"alt_prod_url_{i}",
                     placeholder="https://www.pccomponentes.com/producto",
-                    help="URL del producto alternativo"
+                    help="URL del producto alternativo",
+                    label_visibility="collapsed"
                 )
             
             with col2:
@@ -1375,7 +1390,8 @@ def render_alternative_products_section() -> List[Dict[str, Any]]:
                     help=(
                         "Texto ancla visible del enlace <a href> generado. "
                         "Si se deja vacío, Claude usará el nombre del producto."
-                    )
+                    ),
+                    label_visibility="collapsed"
                 )
             
             # Widget JSON con TABS
@@ -1405,7 +1421,8 @@ def render_alternative_products_section() -> List[Dict[str, Any]]:
                     "Pegar JSON",
                     height=100,
                     key=f"alt_prod_json_paste_{i}",
-                    placeholder='{"id": "...", "name": "...", ...}'
+                    placeholder='{"id": "...", "name": "...", ...}',
+                    label_visibility="collapsed"
                 )
                 
                 if pasted_json and pasted_json.strip():
@@ -1512,7 +1529,8 @@ def render_posts_plps_links_section() -> List[Dict[str, Any]]:
                     f"URL {i+1}",
                     key=f"rewrite_posts_url_{i}",
                     placeholder="https://www.pccomponentes.com/...",
-                    help="URL del post, guía, categoría o PLP"
+                    help="URL del post, guía, categoría o PLP",
+                    label_visibility="collapsed"
                 )
             
             with col2:
@@ -1524,7 +1542,8 @@ def render_posts_plps_links_section() -> List[Dict[str, Any]]:
                         "Texto ancla que aparecerá en el HTML final dentro "
                         "del <a href> hacia este post/PLP. Claude lo insertará "
                         "en la sección contextual más relevante del contenido."
-                    )
+                    ),
+                    label_visibility="collapsed"
                 )
             
             # Campos HTML según tipo (NUEVO v4.7.1)
@@ -1558,7 +1577,8 @@ def render_posts_plps_links_section() -> List[Dict[str, Any]]:
                     height=100,
                     key=f"rewrite_posts_top_{i}",
                     placeholder=EDITORIAL_TYPE_OPTIONS[EditorialType.PLP]["placeholder_top"],
-                    help="Texto que aparece ANTES del listado de productos"
+                    help="Texto que aparece ANTES del listado de productos",
+                    label_visibility="collapsed"
                 )
                 
                 bottom_text = st.text_area(
@@ -1566,7 +1586,8 @@ def render_posts_plps_links_section() -> List[Dict[str, Any]]:
                     height=100,
                     key=f"rewrite_posts_bottom_{i}",
                     placeholder=EDITORIAL_TYPE_OPTIONS[EditorialType.PLP]["placeholder_bottom"],
-                    help="Texto que aparece DESPUÉS del listado de productos"
+                    help="Texto que aparece DESPUÉS del listado de productos",
+                    label_visibility="collapsed"
                 )
                 
                 html_content_data['top_text'] = top_text
@@ -1641,7 +1662,8 @@ def render_product_links_section() -> List[Dict[str, Any]]:
                     f"URL del producto {i+1}",
                     key=f"rewrite_prod_url_{i}",
                     placeholder="https://www.pccomponentes.com/producto",
-                    help="URL del PDP"
+                    help="URL del PDP",
+                    label_visibility="collapsed"
                 )
             
             with col2:
@@ -1653,7 +1675,8 @@ def render_product_links_section() -> List[Dict[str, Any]]:
                         "Texto ancla del enlace <a href> al PDP del producto. "
                         "Si se deja vacío, Claude generará uno a partir del "
                         "nombre del producto."
-                    )
+                    ),
+                    label_visibility="collapsed"
                 )
             
             # Widget JSON
@@ -1684,7 +1707,8 @@ def render_product_links_section() -> List[Dict[str, Any]]:
                     "Pegar JSON aquí",
                     height=120,
                     key=f"rewrite_prod_json_paste_{i}",
-                    placeholder='{"id": "...", "name": "...", ...}'
+                    placeholder='{"id": "...", "name": "...", ...}',
+                    label_visibility="collapsed"
                 )
                 
                 if pasted_json and pasted_json.strip():
@@ -1864,7 +1888,8 @@ def render_keyword_input() -> Tuple[str, bool]:
             "Keyword principal *",
             placeholder="Ej: mejor portátil gaming 2025",
             help="Keyword específica para la que quieres crear/mejorar contenido",
-            key="rewrite_keyword_input"
+            key="rewrite_keyword_input",
+            label_visibility="collapsed"
         )
     
     with col2:
@@ -1948,7 +1973,8 @@ def render_manual_competitors_input(keyword: str) -> None:
 https://competitor2.com/guide
 https://competitor3.com/review""",
         height=150,
-        help="Introduce las URLs de los competidores que rankean para tu keyword"
+        help="Introduce las URLs de los competidores que rankean para tu keyword",
+        label_visibility="collapsed"
     )
     
     st.session_state.manual_urls_input = urls_input
@@ -2199,7 +2225,8 @@ def render_rewrite_configuration(keyword: str, rewrite_mode: str) -> Dict:
                     "El artículo actual está desactualizado y le faltan modelos nuevos.",
         help="Combina tu objetivo (qué lograr) con cualquier contexto útil (datos internos, perspectiva única, etc.)",
         height=120,
-        key="rewrite_objective_input"
+        key="rewrite_objective_input",
+        label_visibility="collapsed"
     )
     # Mapear a 'context' para backward compat (el prompt usa ambos)
     config['context'] = ''  # Ya no necesitamos campo separado

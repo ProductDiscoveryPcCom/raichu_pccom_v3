@@ -1874,6 +1874,75 @@ def analyze_keyword_coverage(keyword: str) -> Dict[str, Any]:
 
 
 # ============================================================================
+# UI — CSV UPLOAD WIDGET (reutilizable)
+# ============================================================================
+
+def render_gsc_csv_upload(
+    key_prefix: str = "gsc",
+    label: str = "CSV de GSC",
+) -> bool:
+    """Widget reutilizable para subir un CSV de Google Search Console.
+
+    Encapsula: file_uploader, detección de separador (;/,), parseo con
+    pandas, normalización de columnas, guardado como ``gsc_keywords.csv``
+    y ``st.rerun()``.
+
+    Args:
+        key_prefix: Prefijo para la key del file_uploader (evita colisiones
+            cuando se usa en varias páginas a la vez).
+        label: Etiqueta visible del file_uploader.
+
+    Returns:
+        ``True`` si se cargó un archivo correctamente, ``False`` en caso
+        contrario.
+    """
+    try:
+        import streamlit as st
+    except ImportError:
+        return False
+
+    uploaded = st.file_uploader(
+        label,
+        type=["csv", "tsv"],
+        key=f"{key_prefix}_csv_upload",
+        help="Formato: page/query, clicks, impressions, ctr, position",
+    )
+
+    if not uploaded:
+        return False
+
+    try:
+        import pandas as pd
+        import io as _io
+
+        content = uploaded.getvalue().decode("utf-8")
+        sep = ";" if content.count(";") > content.count(",") else ","
+
+        df = pd.read_csv(_io.StringIO(content), sep=sep)
+        df.columns = df.columns.str.lower().str.strip()
+
+        # Normalizar: GSC exporta "page" pero internamente usamos "url"
+        if "page" in df.columns and "url" not in df.columns:
+            df["url"] = df["page"]
+
+        if "url" not in df.columns and "page" not in df.columns:
+            st.warning(
+                "El CSV no tiene columna `page` o `url`. "
+                "Sin URLs no se podrán filtrar las oportunidades del blog."
+            )
+
+        csv_path = "gsc_keywords.csv"
+        df.to_csv(csv_path, index=False)
+        st.success(f"{len(df)} keywords cargadas. Recarga la página para continuar.")
+        st.rerun()
+        return True  # pragma: no cover – rerun interrupts execution
+    except Exception as e:
+        logger.error("Error procesando CSV de GSC: %s", e)
+        st.error("Error procesando el archivo CSV. Verifica el formato.")
+        return False
+
+
+# ============================================================================
 # EXPORTS
 # ============================================================================
 
@@ -1951,4 +2020,7 @@ __all__ = [
     
     # Función de fecha recomendada
     'get_recommended_update_date',
+
+    # UI — CSV upload widget
+    'render_gsc_csv_upload',
 ]
