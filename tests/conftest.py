@@ -86,14 +86,3 @@ def rewrite_config():
         "product_links": [],
         "alternative_products": [],
     }
-
-
-# Exclude bulk-generated test files that require Streamlit runtime
-collect_ignore_glob = [
-    "test_fixes.py",
-    "test_design_system.py",
-    "test_tables.py",
-    "test_ux_ui_functionality.py",
-    "test_v51_modules.py",
-    "test_visual_elements_and_serp.py",
-]

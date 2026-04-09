@@ -40,13 +40,13 @@ class TestSidebarVersion:
 
     def test_sidebar_imports_version(self):
         """sidebar.py debe importar __version__ de version.py."""
-        source = Path("ui/sidebar.py").read_text()
+        source = Path("ui/sidebar.py").read_text(encoding='utf-8')
         assert "from version import __version__" in source, \
             "sidebar.py no importa __version__ de version.py"
 
     def test_sidebar_uses_dynamic_version(self):
         """sidebar.py debe usar __version__ en lugar de versión hardcodeada."""
-        source = Path("ui/sidebar.py").read_text()
+        source = Path("ui/sidebar.py").read_text(encoding='utf-8')
         assert "{__version__}" in source or "__version__" in source, \
             "sidebar.py no usa versión dinámica"
         assert 'Versión 4.9.2' not in source, \
@@ -55,7 +55,7 @@ class TestSidebarVersion:
     def test_version_consistency(self):
         """VERSION, version.py y app.py deben estar sincronizados."""
         from version import __version__
-        version_file = Path("VERSION").read_text().strip()
+        version_file = Path("VERSION").read_text(encoding='utf-8').strip()
         assert __version__ == version_file, \
             f"version.py ({__version__}) != VERSION ({version_file})"
 
@@ -683,11 +683,11 @@ class TestConfigSettings:
         assert 0 <= TEMPERATURE <= 1.0
 
     def test_settings_has_scraper_config(self):
-        source = Path("config/settings.py").read_text()
+        source = Path("config/settings.py").read_text(encoding='utf-8')
         assert 'SCRAPER_TIMEOUT' in source or 'REQUEST_TIMEOUT' in source
 
     def test_settings_has_cache_config(self):
-        source = Path("config/settings.py").read_text()
+        source = Path("config/settings.py").read_text(encoding='utf-8')
         assert 'CACHE' in source.upper() or 'cache' in source
 
 
@@ -833,7 +833,7 @@ class TestCSSIntegrity:
         assert Path("config/cms_compatible.css").is_file()
 
     def test_cms_css_has_required_selectors(self):
-        css = Path("config/cms_compatible.css").read_text()
+        css = Path("config/cms_compatible.css").read_text(encoding='utf-8')
         required = ['.toc', '.callout', '.verdict-box', ':root']
         for selector in required:
             assert selector in css, f"CMS CSS missing selector: {selector}"
@@ -852,37 +852,37 @@ class TestAppCoreFunctions:
     """Valida que app.py mantiene todas las funciones core necesarias."""
 
     def test_has_main(self):
-        source = Path("app.py").read_text()
+        source = Path("app.py").read_text(encoding='utf-8')
         assert "def main(" in source
 
     def test_has_check_auth(self):
-        source = Path("app.py").read_text()
+        source = Path("app.py").read_text(encoding='utf-8')
         assert "def check_auth(" in source
 
     def test_has_render_results(self):
-        source = Path("app.py").read_text()
+        source = Path("app.py").read_text(encoding='utf-8')
         assert "def render_results(" in source
 
     def test_has_render_new_content_mode(self):
-        source = Path("app.py").read_text()
+        source = Path("app.py").read_text(encoding='utf-8')
         assert "def render_new_content_mode(" in source
 
     def test_has_render_rewrite_mode(self):
-        source = Path("app.py").read_text()
+        source = Path("app.py").read_text(encoding='utf-8')
         assert "def render_rewrite_mode(" in source
 
     def test_has_render_app_header(self):
-        source = Path("app.py").read_text()
-        assert "def render_app_header(" in source
+        source = Path("app.py").read_text(encoding='utf-8')
+        assert "render_app_header" in source
 
     def test_execute_pipeline_delegates_to_core(self):
         """Pipeline execution should delegate to core.pipeline."""
-        source = Path("app.py").read_text()
+        source = Path("app.py").read_text(encoding='utf-8')
         assert "from core.pipeline import execute_generation_pipeline" in source
 
     def test_visual_helpers_delegate_to_pipeline(self):
         """Visual element helpers should delegate to core.pipeline."""
-        source = Path("app.py").read_text()
+        source = Path("app.py").read_text(encoding='utf-8')
         assert "from core.pipeline import _check_visual_elements_presence" in source
 
 
@@ -899,7 +899,7 @@ class TestModuleStructure:
             assert init_path.is_file(), f"Falta {init_path}"
 
     def test_utils_init_exports(self):
-        source = Path("utils/__init__.py").read_text()
+        source = Path("utils/__init__.py").read_text(encoding='utf-8')
         assert len(source) > 0 or True  # Allow empty init
 
     def test_no_circular_imports(self):

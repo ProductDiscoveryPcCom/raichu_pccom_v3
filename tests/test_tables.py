@@ -32,7 +32,7 @@ def _get_fallback_css():
 
 def _get_cms_css():
     css_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'cms_compatible.css')
-    with open(css_path) as f:
+    with open(css_path, encoding='utf-8') as f:
         return f.read()
 
 

@@ -247,7 +247,7 @@ class TestDetectionPatterns:
 
     @pytest.fixture(scope="class")
     def pipeline_src(self):
-        return open('core/pipeline.py').read()
+        return open('core/pipeline.py', encoding='utf-8').read()
 
     @pytest.fixture(scope="class")
     def detect_block(self, pipeline_src):
@@ -655,24 +655,24 @@ class TestAutoRetryPrompt:
 
     def test_auto_retry_function_exists(self):
         """_auto_retry_missing_elements debe existir en core/pipeline.py."""
-        src = open("core/pipeline.py").read()
+        src = open("core/pipeline.py", encoding='utf-8').read()
         assert 'def _auto_retry_missing_elements(' in src
 
     def test_retry_uses_visual_instructions(self):
         """El retry debe usar _build_stage3_visual_instructions para los templates."""
-        src = open("core/pipeline.py").read()
+        src = open("core/pipeline.py", encoding='utf-8').read()
         assert '_build_stage3_visual_instructions' in src
 
     def test_retry_has_strict_rules(self):
         """El prompt de retry debe tener reglas de no-modificación."""
-        src = open("core/pipeline.py").read()
+        src = open("core/pipeline.py", encoding='utf-8').read()
         idx = src.index('def _auto_retry_missing_elements')
         block = src[idx:idx + 3000]
         assert 'NO modifiques' in block or 'NO elimines' in block
 
     def test_retry_limited_to_3_elements(self):
         """_check_visual_elements_presence solo hace retry si ≤3 faltantes."""
-        src = open("core/pipeline.py").read()
+        src = open("core/pipeline.py", encoding='utf-8').read()
         idx = src.index('def _check_visual_elements_presence')
         block = src[idx:idx + 1000]
         assert '<= 3' in block or '≤ 3' in block
@@ -685,7 +685,7 @@ class TestRefinementContext:
     """Verifica que el prompt de refinamiento incluye contexto de generación."""
 
     def _get_refinement_block(self):
-        src = open("ui/results.py").read()
+        src = open("ui/results.py", encoding='utf-8').read()
         idx = src.index('def _execute_refinement')
         return src[idx:idx + 4000]
 
@@ -918,7 +918,7 @@ class TestRefinementToneExamples:
     """Verifica que el refinement prompt incluye ejemplos de tono."""
 
     def _get_refinement_block(self):
-        src = open("ui/results.py").read()
+        src = open("ui/results.py", encoding='utf-8').read()
         idx = src.index('def _execute_refinement')
         return src[idx:idx + 5000]
 

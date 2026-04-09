@@ -29,7 +29,26 @@
       "Bash(python -m pytest tests/test_product_json.py -v)",
       "Bash(python -c \"from version import __version__; print\\(__version__\\)\")",
       "Bash(python -c \"import ui.rewrite; print\\(''import ok''\\); print\\(''_scrape_single_url:'', ui.rewrite._scrape_single_url.__doc__[:80]\\)\")",
-      "Bash(python -c \"import app; print\\(''''app import ok''''\\)\")"
+      "Bash(python -c \"import app; print\\(''''app import ok''''\\)\")",
+      "Bash(pytest tests/ --collect-only)",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Bash(python -c \"import tests.$f\")",
+      "Bash(done)",
+      "Bash(python -m pytest tests/test_fixes.py --collect-only --no-header)",
+      "Bash(python -m pytest tests/$f.py --collect-only --no-header)",
+      "Bash(python -m pytest tests/test_fixes.py -q --tb=line)",
+      "Bash(python -m pytest tests/test_tables.py -q --tb=line)",
+      "Bash(python -m pytest tests/test_v51_modules.py -q --tb=line)",
+      "Bash(python -m pytest tests/test_ux_ui_functionality.py -q --tb=line)",
+      "Bash(python -m pytest tests/test_visual_elements_and_serp.py -q --tb=line)",
+      "Bash(python -m pytest tests/test_tables.py -q --tb=short)",
+      "Bash(python -m pytest tests/test_ux_ui_functionality.py -q --tb=short -x)",
+      "Bash(python -m pytest tests/test_ux_ui_functionality.py -q --tb=short -k \"not UnicodeDecodeError\")",
+      "Bash(python -m pytest tests/test_ux_ui_functionality.py::TestAppCoreFunctions -q --tb=short)",
+      "Bash(python -m pytest tests/test_visual_elements_and_serp.py -q --tb=short -k \"not TestDetectionPatterns\")",
+      "Bash(python -m pytest tests/test_visual_elements_and_serp.py::TestAutoRetryPrompt::test_auto_retry_function_exists --tb=short)",
+      "Bash(python -m pytest tests/test_visual_elements_and_serp.py::TestRefinementContext::test_reads_generation_metadata --tb=short)"
     ]
   }
 }
