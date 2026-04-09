@@ -48,7 +48,8 @@
       "Bash(python -m pytest tests/test_ux_ui_functionality.py::TestAppCoreFunctions -q --tb=short)",
       "Bash(python -m pytest tests/test_visual_elements_and_serp.py -q --tb=short -k \"not TestDetectionPatterns\")",
       "Bash(python -m pytest tests/test_visual_elements_and_serp.py::TestAutoRetryPrompt::test_auto_retry_function_exists --tb=short)",
-      "Bash(python -m pytest tests/test_visual_elements_and_serp.py::TestRefinementContext::test_reads_generation_metadata --tb=short)"
+      "Bash(python -m pytest tests/test_visual_elements_and_serp.py::TestRefinementContext::test_reads_generation_metadata --tb=short)",
+      "Bash(python -m pytest tests/ -v)"
     ]
   }
 }
