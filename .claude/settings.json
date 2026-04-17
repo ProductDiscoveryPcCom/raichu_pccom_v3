@@ -49,7 +49,19 @@
       "Bash(python -m pytest tests/test_visual_elements_and_serp.py -q --tb=short -k \"not TestDetectionPatterns\")",
       "Bash(python -m pytest tests/test_visual_elements_and_serp.py::TestAutoRetryPrompt::test_auto_retry_function_exists --tb=short)",
       "Bash(python -m pytest tests/test_visual_elements_and_serp.py::TestRefinementContext::test_reads_generation_metadata --tb=short)",
-      "Bash(python -m pytest tests/ -v)"
+      "Bash(python -m pytest tests/ -v)",
+      "Bash(ls -1 core/*.py)",
+      "Bash(sed 's/\\\\.py//')",
+      "Bash(python3 -c \"import sys; sys.path.insert\\(0, ''/c/Users/maximo.sanchez/OneDrive - PcComponentes/Escritorio/claude projects/raichu_pccom_v3''\\); from config.arquetipos import ARQUETIPOS; print\\(f''Total arquetipos: {len\\(ARQUETIPOS\\)}''\\); [print\\(f''{k}: structure={len\\(v.get\\(\"\"structure\"\", []\\)\\)} | preguntas={len\\(v.get\\(\"\"preguntas_guia\"\", []\\)\\)} | visual={\"\"visual_elements\"\" in v}''\\) for k, v in sorted\\(ARQUETIPOS.items\\(\\)\\)]\")",
+      "Bash(ls -1 utils/*.py)",
+      "Bash(grep -h \"^def \" tests/test_*.py)",
+      "Bash(sed 's/def //')",
+      "Bash(sed 's/\\(.*\\)//')",
+      "Bash(python3:*)",
+      "Bash(grep -l \"def test\" tests/*.py)",
+      "Bash(xargs -I {} basename {})",
+      "Bash(python -c \"import sys; sys.path.insert\\(0, ''.''\\); from utils.html_utils import sanitize_html; print\\(''sanitize_html works''\\)\")",
+      "Bash(python -m pytest tests/ -v --tb=no)"
     ]
   }
 }

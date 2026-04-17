@@ -158,8 +158,9 @@ try:
         get_content_coverage_summary,
     )
     _gsc_available = True
-except ImportError:
+except ImportError as e:
     _gsc_available = False
+    logger.warning(f"No se pudo importar gsc_utils: {e}")
     def get_gsc_data_date(): return None
     def is_gsc_data_stale(days=7): return True
     def check_cannibalization(kw, **kwargs): return []

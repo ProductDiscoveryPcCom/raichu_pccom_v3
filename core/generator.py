@@ -292,7 +292,13 @@ def call_claude_api(
             }
             
             if system_prompt:
-                kwargs["system"] = system_prompt
+                kwargs["system"] = [
+                    {
+                        "type": "text",
+                        "text": system_prompt,
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ]
             
             response = client.messages.create(**kwargs)
             

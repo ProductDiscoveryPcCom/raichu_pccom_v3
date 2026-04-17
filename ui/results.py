@@ -36,6 +36,7 @@ from utils.html_utils import (
     analyze_links,
     detect_ai_phrases,
     detect_placeholders,
+    sanitize_html,
 )
 
 
@@ -222,8 +223,8 @@ def render_content_tab(
             clean_html = re.sub(r'^```\s*\n?', '', clean_html.strip())
             clean_html = re.sub(r'\n?```\s*$', '', clean_html.strip())
 
-        # Defense-in-depth: strip <script> tags from generated content
-        clean_html = re.sub(r'<script[^>]*>.*?</script>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
+        # Defense-in-depth: sanitize generated content (scripts, event handlers, etc.)
+        clean_html = sanitize_html(clean_html)
 
         if '<style>' not in clean_html.lower():
             clean_html = _get_basic_css() + clean_html
@@ -373,8 +374,8 @@ def render_content_tab(
                     else:
                         st.error(f"❌ Error al publicar: {result.error}")
                 except Exception as e:
-                    logger.error(f"Error de publicación: {e}")
-                    st.error("❌ Error de publicación. Revisa la configuración del CMS.")
+                    logger.exception(f"Error de publicación: {e}")
+                    st.error(f"❌ Error de publicación: {e}")
     except Exception:
         pass  # No hay config de CMS, no mostrar botón
 

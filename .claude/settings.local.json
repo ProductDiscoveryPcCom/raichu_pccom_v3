@@ -13,7 +13,9 @@
       "Bash(grep -rn \"st\\\\.error\\\\|st\\\\.warning\\\\|st\\\\.info\\\\|st\\\\.success\" ui/*.py)",
       "Bash(grep -rn \"empty\\\\|Empty\\\\|No results\\\\|No hay\\\\|no data\\\\|sin datos\\\\|placeholder\" ui/*.py)",
       "Bash(grep -rn \"Cerrar\\\\|Close\\\\|Atrás\\\\|Back\\\\|Siguiente\\\\|Next\\\\|Anterior\\\\|Previous\" ui/*.py)",
-      "Bash(grep -rn \"st\\\\.divider\\\\|st\\\\.markdown.*---\" ui/*.py)"
+      "Bash(grep -rn \"st\\\\.divider\\\\|st\\\\.markdown.*---\" ui/*.py)",
+      "Bash(python:*)",
+      "Bash(awk NR>=1550 && NR<=1620 *)"
     ]
   }
 }

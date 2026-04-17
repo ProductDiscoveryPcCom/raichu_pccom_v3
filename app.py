@@ -94,8 +94,9 @@ except ImportError:
     try:
         from brand_tone import get_system_prompt_base
         _brand_tone_available = True
-    except ImportError:
+    except ImportError as e:
         _brand_tone_available = False
+        logger.warning(f"No se pudo importar brand_tone: {e}")
         def get_system_prompt_base():
             return None
 
@@ -162,7 +163,8 @@ except ImportError:
 # Utilidades HTML
 try:
     from utils.html_utils import count_words_in_html
-except ImportError:
+except ImportError as e:
+    logger.warning(f"No se pudo importar html_utils.count_words_in_html: {e}")
     def count_words_in_html(html: str) -> int:
         import re
         text = re.sub(r'<[^>]+>', ' ', html)
@@ -171,7 +173,8 @@ except ImportError:
 # extract_html_content: usar la de core.generator si está disponible, sino fallback local
 try:
     from core.generator import extract_html_content
-except ImportError:
+except ImportError as e:
+    logger.warning(f"No se pudo importar core.generator.extract_html_content: {e}")
     def extract_html_content(content: str) -> str:
         """Fallback: Extrae HTML limpio eliminando marcadores markdown."""
         import re
@@ -518,8 +521,8 @@ def render_assistant_mode() -> None:
                     _handle_assistant_generation(params)
                 
             except Exception as e:
-                logger.error(f"Error en asistente: {e}")
-                st.error("❌ Error del asistente. Por favor, inténtalo de nuevo.")
+                logger.exception(f"Error en asistente: {e}")
+                st.error(f"❌ Error del asistente: {e}")
 
 
 def _handle_assistant_generation(params: Dict[str, str]) -> None:

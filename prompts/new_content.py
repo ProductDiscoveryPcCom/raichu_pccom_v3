@@ -1488,7 +1488,7 @@ El HTML debe empezar DIRECTAMENTE con <style>:
 9. Incluye TODOS los enlaces proporcionados con su anchor text exacto
 10. **EMOJIS:** No usar emojis en el contenido generado.
 11. **FECHAS:** NO incluyas años concretos (2024, 2025, 2026) en títulos ni encabezados salvo que la keyword del usuario ya incluya un año.
-11. **ELEMENTOS VISUALES:** Si arriba se listaron elementos visuales (tablas, callouts, FAQs, grid, etc.), TODOS deben aparecer en el HTML generado. Un elemento solicitado pero ausente es un error grave.
+12. **ELEMENTOS VISUALES:** Si arriba se listaron elementos visuales (tablas, callouts, FAQs, grid, etc.), TODOS deben aparecer en el HTML generado. Un elemento solicitado pero ausente es un error grave.
 
 **Genera el HTML ahora:**
 """

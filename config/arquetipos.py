@@ -1212,7 +1212,7 @@ ARQUETIPOS: Dict[str, Dict[str, Any]] = {
         "default_length": 800,
         "min_length": 500,
         "max_length": 1200,
-        "visual_elements": [],
+        "visual_elements": ["toc", "callout"],
         "campos_especificos": [
             "tipo_comunicado",
             "noticia_principal",
@@ -1318,7 +1318,7 @@ ARQUETIPOS: Dict[str, Dict[str, Any]] = {
         "default_length": 1200,
         "min_length": 800,
         "max_length": 2000,
-        "visual_elements": [],
+        "visual_elements": ["toc"],
         "campos_especificos": [
             "medio_destino",
             "url_medio",
