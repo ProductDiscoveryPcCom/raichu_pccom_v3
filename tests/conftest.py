@@ -13,7 +13,7 @@ def sample_arquetipo():
     return copy.deepcopy(ARQUETIPOS["ARQ-1"])
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def sample_html():
     """Realistic 3-article CMS HTML with all required elements."""
     return (
@@ -38,7 +38,7 @@ def sample_html():
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def sample_html_with_ai_phrases():
     """HTML with AI-detectable phrases injected."""
     return (
@@ -51,7 +51,7 @@ def sample_html_with_ai_phrases():
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def markdown_wrapped_html():
     """HTML wrapped in markdown code fences."""
     return '```html\n<div class="test"><p>Hello world</p></div>\n```'

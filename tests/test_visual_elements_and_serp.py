@@ -247,15 +247,18 @@ class TestDetectionPatterns:
 
     @pytest.fixture(scope="class")
     def pipeline_src(self):
+        """class-scoped: lectura de disco read-only reutilizada por N tests parametrizados."""
         return open('core/pipeline.py', encoding='utf-8').read()
 
     @pytest.fixture(scope="class")
     def detect_block(self, pipeline_src):
+        """class-scoped: slice inmutable de pipeline_src, reutilizado por N tests parametrizados."""
         idx = pipeline_src.index('def _detect_missing_visual_elements')
         return pipeline_src[idx:idx+4000]
 
     @pytest.fixture(scope="class")
     def names_block(self, pipeline_src):
+        """class-scoped: slice inmutable de pipeline_src, reutilizado por N tests parametrizados."""
         idx = pipeline_src.index('def _get_visual_element_names')
         return pipeline_src[idx:idx+3000]
 
