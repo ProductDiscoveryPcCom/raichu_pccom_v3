@@ -20,6 +20,7 @@ Este módulo proporciona:
 Autor: PcComponentes - Product Discovery & Content
 """
 
+import random
 import re
 import time
 import logging
@@ -127,6 +128,17 @@ AVAILABLE_MODELS = {
 MAX_RETRY_DELAY = 60.0
 BACKOFF_MULTIPLIER = 2.0
 OVERLOADED_INITIAL_DELAY = 5.0  # Delay más largo para 529 (API overloaded)
+RETRY_JITTER_RATIO = 0.1  # Hasta 10% extra para evitar thundering herd
+
+
+def _sleep_with_jitter(delay: float, jitter_ratio: float = RETRY_JITTER_RATIO) -> None:
+    """Sleep `delay` segundos + jitter [0, delay*jitter_ratio] para evitar
+    que múltiples clientes (Streamlit Cloud multi-usuario) reintenten
+    simultáneamente y disparen rate-limits sincronizados."""
+    if delay <= 0:
+        return
+    jitter = random.uniform(0, delay * jitter_ratio)
+    time.sleep(delay + jitter)
 
 MODEL_TOKEN_LIMITS = {
     'claude-sonnet-4-20250514': 200000,
@@ -323,13 +335,13 @@ def call_claude_api(
         except RateLimitError as e:
             last_error = e
             logger.warning(f"Rate limit alcanzado, esperando {current_delay}s...")
-            time.sleep(current_delay)
+            _sleep_with_jitter(current_delay)
             current_delay = min(current_delay * BACKOFF_MULTIPLIER, MAX_RETRY_DELAY)
-        
+
         except APIConnectionError as e:
             last_error = e
             logger.warning(f"Error de conexión, reintentando en {current_delay}s...")
-            time.sleep(current_delay)
+            _sleep_with_jitter(current_delay)
             current_delay = min(current_delay * BACKOFF_MULTIPLIER, MAX_RETRY_DELAY)
         
         except BadRequestError as e:
@@ -343,12 +355,12 @@ def call_claude_api(
                 last_error = e
                 overload_delay = max(current_delay, OVERLOADED_INITIAL_DELAY)
                 logger.warning(f"API sobrecargada (529), esperando {overload_delay}s...")
-                time.sleep(overload_delay)
+                _sleep_with_jitter(overload_delay)
                 current_delay = min(overload_delay * BACKOFF_MULTIPLIER, MAX_RETRY_DELAY)
             elif e.status_code >= 500:
                 last_error = e
                 logger.warning(f"Error del servidor ({e.status_code}), reintentando en {current_delay}s...")
-                time.sleep(current_delay)
+                _sleep_with_jitter(current_delay)
                 current_delay = min(current_delay * BACKOFF_MULTIPLIER, MAX_RETRY_DELAY)
             else:
                 raise GenerationError(f"Error de API ({e.status_code}): {str(e)}", {"status_code": e.status_code})

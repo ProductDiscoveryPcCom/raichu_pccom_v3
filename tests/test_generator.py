@@ -4,6 +4,7 @@ No live API calls.
 """
 from core.generator import (
     GenerationResult,
+    _sleep_with_jitter,
     extract_html_content,
     validate_response,
 )
@@ -100,3 +101,67 @@ def test_validate_response_empty():
     assert result["word_count"] == 0
     assert "No se detectó contenido HTML" in result["warnings"]
     assert any("Contenido muy corto" in w for w in result["warnings"])
+
+
+# ---------------------------------------------------------------------------
+# _sleep_with_jitter (R2.1)
+# ---------------------------------------------------------------------------
+
+def test_sleep_with_jitter_within_bounds(monkeypatch):
+    """Jitter debe estar en [delay, delay*1.1] cuando jitter_ratio=0.1."""
+    captured = {}
+
+    def fake_uniform(a, b):
+        captured["uniform_args"] = (a, b)
+        return b  # peor caso: jitter máximo
+
+    def fake_sleep(seconds):
+        captured["slept"] = seconds
+
+    monkeypatch.setattr("core.generator.random.uniform", fake_uniform)
+    monkeypatch.setattr("core.generator.time.sleep", fake_sleep)
+
+    _sleep_with_jitter(10.0)
+
+    assert captured["uniform_args"] == (0, 1.0)
+    assert 10.0 <= captured["slept"] <= 11.0
+
+
+def test_sleep_with_jitter_zero_delay(monkeypatch):
+    """delay=0 no debe llamar a time.sleep ni a random.uniform."""
+    called = {"sleep": False, "uniform": False}
+
+    def fake_sleep(seconds):
+        called["sleep"] = True
+
+    def fake_uniform(a, b):
+        called["uniform"] = True
+        return 0
+
+    monkeypatch.setattr("core.generator.time.sleep", fake_sleep)
+    monkeypatch.setattr("core.generator.random.uniform", fake_uniform)
+
+    _sleep_with_jitter(0)
+
+    assert called["sleep"] is False
+    assert called["uniform"] is False
+
+
+def test_sleep_with_jitter_custom_ratio(monkeypatch):
+    """jitter_ratio personalizado modifica el upper bound."""
+    captured = {}
+
+    def fake_uniform(a, b):
+        captured["range"] = (a, b)
+        return 0.0
+
+    def fake_sleep(s):
+        captured["slept"] = s
+
+    monkeypatch.setattr("core.generator.random.uniform", fake_uniform)
+    monkeypatch.setattr("core.generator.time.sleep", fake_sleep)
+
+    _sleep_with_jitter(8.0, jitter_ratio=0.25)
+
+    assert captured["range"] == (0, 2.0)
+    assert captured["slept"] == 8.0
