@@ -25,13 +25,14 @@ Raichu v5.1.0 cerró con éxito las olas P0/P1/P2/P3/P4 (ver §5). El proyecto e
 
 | Eje | S1 | S2 | S3 | Total abiertos |
 |-----|----|----|----|----------------|
-| Performance y coste de API | 1 (R1.1) | 3 | 1 | 5 |
+| Performance y coste de API | 0 | 1 | 1 | 2 |
 | Calidad de output y prompts | 0 | 2 | 2 | 4 |
 | UX / Streamlit / session state | 0 | 1 | 2 | 3 |
 | Seguridad / tests / deuda técnica | 0 | 3 | 3 | 6 |
-| **Total** | **1** | **9** | **8** | **18** |
+| **Total** | **0** | **7** | **8** | **15** |
 
 **Cerrados en Fase 1 (2026-04-29):** R1.2, R1.3, R1.4, R1.5, R1.6, R1.7, R3.5 (7 items).
+**Cerrados en Fase 2 (2026-05-08):** R1.1, R2.1, R2.3 (3 items).
 
 **Esfuerzo agregado estimado:** ~8-11 días de ingeniería.
 
@@ -170,7 +171,10 @@ time.sleep(current_delay + jitter)
 
 ---
 
-### R2.3 — Scraper sin circuit breaker por host ⬜
+### R2.3 — Scraper sin circuit breaker por host ✅ DONE (2026-05-08)
+**Cambio:** `WebScraper` mantiene estado por host (`_HostState` con `failure_count` y `opened_at`) protegido por `threading.Lock` (necesario porque `scrape_competitors` ya usa ThreadPoolExecutor). Tras `cb_threshold=3` fallos consecutivos de Timeout/ConnectionError, el circuito abre durante `cb_cooldown=300s`. Solo errores de red abren el circuito; HTTP 5xx no (puede ser ruido legítimo). `_make_request` levanta nueva `CircuitBreakerError` antes de tocar la red; `scrape_url` la captura y devuelve `ScrapeResult(success=False, error="circuit_breaker: …", metadata={"circuit_breaker": True, ...})` para no romper el contrato. 10 tests en [tests/test_scraper_circuit_breaker.py](../tests/test_scraper_circuit_breaker.py) cubren helpers, threadsafety (100 hilos) y ruta integración con monkeypatch.
+
+
 **Eje:** Performance · **Esfuerzo:** M · **Archivo:** [core/scraper.py:326-346](../core/scraper.py#L326-L346)
 
 Si competidor host está caído, cada scrape reintenta 3× individualmente. No hay fail-fast tras N errores consecutivos.

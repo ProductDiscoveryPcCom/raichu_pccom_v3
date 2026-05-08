@@ -17,6 +17,7 @@ Autor: PcComponentes - Product Discovery & Content
 """
 
 import re
+import threading
 import time
 import logging
 from typing import Dict, List, Optional, Any, Tuple, Union
@@ -80,6 +81,11 @@ DEFAULT_MAX_RETRIES = 3
 DEFAULT_RETRY_DELAY = 1.0
 MAX_RETRY_DELAY = 30.0
 BACKOFF_MULTIPLIER = 2.0
+
+# Circuit breaker (R2.3): tras N fallos de red consecutivos contra el mismo
+# host, abrimos el circuito durante COOLDOWN segundos para fail-fast.
+CIRCUIT_BREAKER_THRESHOLD = 3
+CIRCUIT_BREAKER_COOLDOWN = 300.0  # 5 minutos
 
 # ALIAS PARA COMPATIBILIDAD CON core/__init__.py
 REQUEST_TIMEOUT: int = SETTINGS_TIMEOUT if _settings_available else DEFAULT_TIMEOUT
@@ -192,6 +198,23 @@ class RetryExhaustedError(ScraperError):
     pass
 
 
+class CircuitBreakerError(ScraperError):
+    """Circuito abierto para un host: fail-fast hasta que termine el cooldown."""
+
+    def __init__(self, message: str, url: str = "", remaining: float = 0.0,
+                 host: str = "", details: Optional[Dict] = None):
+        super().__init__(message, url, details)
+        self.remaining = remaining
+        self.host = host
+
+
+@dataclass
+class _HostState:
+    """Estado del circuit breaker por host (R2.3)."""
+    failure_count: int = 0
+    opened_at: Optional[float] = None  # timestamp si el circuito está abierto
+
+
 # ============================================================================
 # ENUMS Y DATA CLASSES
 # ============================================================================
@@ -284,20 +307,24 @@ class WebScraper:
         timeout: Union[int, float, TimeoutConfig] = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
         headers: Optional[Dict[str, str]] = None,
-        config: Optional[ScraperConfig] = None
+        config: Optional[ScraperConfig] = None,
+        cb_threshold: int = CIRCUIT_BREAKER_THRESHOLD,
+        cb_cooldown: float = CIRCUIT_BREAKER_COOLDOWN,
     ):
         """
         Inicializa el scraper.
-        
+
         Args:
             timeout: Timeout en segundos o TimeoutConfig
             max_retries: Número máximo de reintentos
             headers: Headers HTTP personalizados
             config: Configuración completa (sobrescribe otros parámetros)
+            cb_threshold: Fallos consecutivos por host antes de abrir el circuito
+            cb_cooldown: Segundos en cooldown antes de reintentar tras abrir
         """
         if not _requests_available:
             raise ImportError("El módulo 'requests' es requerido. Instálalo con: pip install requests")
-        
+
         # Usar config si se proporciona, sino construir desde parámetros
         if config:
             self._config = config
@@ -308,20 +335,80 @@ class WebScraper:
             else:
                 timeout = max(MIN_TIMEOUT, min(float(timeout), MAX_TIMEOUT))
                 timeout_config = TimeoutConfig.from_seconds(timeout)
-            
+
             self._config = ScraperConfig(
                 timeout=timeout_config,
                 retry=RetryConfig(max_retries=max_retries),
                 headers={**DEFAULT_HEADERS, **(headers or {})}
             )
-        
+
         # Crear sesión con retry automático
         self._session = self._create_session()
-        
+
+        # Circuit breaker state (R2.3)
+        self._host_state: Dict[str, _HostState] = {}
+        self._host_lock = threading.Lock()
+        self._cb_threshold = cb_threshold
+        self._cb_cooldown = cb_cooldown
+
         logger.info(
             f"WebScraper inicializado: timeout={self._config.timeout.read}s, "
-            f"max_retries={self._config.retry.max_retries}"
+            f"max_retries={self._config.retry.max_retries}, "
+            f"cb_threshold={cb_threshold}, cb_cooldown={cb_cooldown}s"
         )
+
+    # ------------------------------------------------------------------
+    # Circuit breaker helpers (R2.3)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _host_of(url: str) -> str:
+        try:
+            return urlparse(url).netloc.lower()
+        except Exception:
+            return ""
+
+    def _check_circuit(self, host: str) -> Optional[float]:
+        """Si el circuito está abierto, devuelve segundos restantes; si no, None.
+
+        Si el cooldown ya expiró, resetea el estado y permite la petición.
+        """
+        if not host:
+            return None
+        with self._host_lock:
+            state = self._host_state.get(host)
+            if state is None or state.opened_at is None:
+                return None
+            elapsed = time.time() - state.opened_at
+            if elapsed >= self._cb_cooldown:
+                # Cooldown expirado: reset y permitir un intento de prueba.
+                state.opened_at = None
+                state.failure_count = 0
+                return None
+            return self._cb_cooldown - elapsed
+
+    def _record_failure(self, host: str) -> None:
+        if not host:
+            return
+        with self._host_lock:
+            state = self._host_state.setdefault(host, _HostState())
+            state.failure_count += 1
+            if state.failure_count >= self._cb_threshold and state.opened_at is None:
+                state.opened_at = time.time()
+                logger.warning(
+                    f"Circuit breaker ABIERTO para {host} tras "
+                    f"{state.failure_count} fallos consecutivos. "
+                    f"Cooldown {self._cb_cooldown:.0f}s."
+                )
+
+    def _record_success(self, host: str) -> None:
+        if not host:
+            return
+        with self._host_lock:
+            state = self._host_state.get(host)
+            if state is not None:
+                state.failure_count = 0
+                state.opened_at = None
     
     def _create_session(self) -> 'requests.Session':
         """Crea una sesión de requests con retry configurado."""
@@ -383,7 +470,17 @@ class WebScraper:
         
         # Realizar petición con manejo de errores específico
         try:
-            response = self._make_request(validated_url, request_timeout)
+            try:
+                response = self._make_request(validated_url, request_timeout)
+            except CircuitBreakerError as cb:
+                logger.info(f"Circuit breaker activo para {cb.host}: {cb.remaining:.0f}s restantes")
+                return ScrapeResult(
+                    success=False,
+                    url=validated_url,
+                    error=f"circuit_breaker: {cb.host} en cooldown ({cb.remaining:.0f}s)",
+                    response_time=time.time() - start_time,
+                    metadata={"circuit_breaker": True, "host": cb.host, "remaining": cb.remaining},
+                )
             
             # Verificar tamaño de respuesta
             content_length = int(response.headers.get('content-length', 0))
@@ -499,18 +596,27 @@ class WebScraper:
         """
         last_error = None
         current_delay = self._config.retry.retry_delay
-        
+        host = self._host_of(url)
+
+        # Circuit breaker check (R2.3): fail-fast si el host está en cooldown
+        remaining = self._check_circuit(host)
+        if remaining is not None:
+            raise CircuitBreakerError(
+                f"Host {host} no responde — esperando {remaining:.0f}s antes de reintentar",
+                url=url, remaining=remaining, host=host,
+            )
+
         for attempt in range(1, self._config.retry.max_retries + 1):
             try:
                 logger.debug(f"Intento {attempt}/{self._config.retry.max_retries}: {url}")
-                
+
                 response = self._session.get(
                     url,
                     timeout=timeout,
                     verify=self._config.verify_ssl,
                     allow_redirects=self._config.follow_redirects,
                 )
-                
+
                 # Si es un error recuperable y no es el último intento
                 if response.status_code in self._config.retry.retry_on_status:
                     if attempt < self._config.retry.max_retries:
@@ -523,12 +629,16 @@ class WebScraper:
                             self._config.retry.max_delay
                         )
                         continue
-                
+
+                # Éxito (incluye 4xx no retryables) — resetea el contador.
+                # Solo timeouts/conexión cuentan como circuit-failure: HTTP 5xx
+                # puede ser ruido legítimo y no debería abrir el circuito.
+                self._record_success(host)
                 return response
-            
+
             except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
                 last_error = e
-                
+
                 if attempt < self._config.retry.max_retries:
                     logger.warning(
                         f"Error en intento {attempt}, reintentando en {current_delay}s: {e}"
@@ -539,12 +649,14 @@ class WebScraper:
                         self._config.retry.max_delay
                     )
                 else:
+                    self._record_failure(host)
                     raise
-        
+
         # Si llegamos aquí, se agotaron los reintentos
         if last_error:
+            self._record_failure(host)
             raise last_error
-        
+
         raise RetryExhaustedError(f"Reintentos agotados para {url}", url)
     
     def _validate_url(self, url: str) -> str:
