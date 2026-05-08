@@ -19,7 +19,8 @@ import re
 import time
 import logging
 import traceback
-from typing import Dict, List, Any, Optional, Tuple
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import streamlit as st
 
@@ -94,6 +95,47 @@ def _classify_error(error: Exception) -> Tuple[str, str]:
 
     # Default
     return ("unknown", f"Error inesperado: {type(error).__name__}. Intenta de nuevo o contacta soporte.")
+
+
+# ============================================================================
+# STAGE 2 PARALLEL EXECUTION (R1.1)
+# ============================================================================
+
+def _run_parallel_stage2(
+    claude_callable: Callable[[], Any],
+    openai_callable: Optional[Callable[[], Any]],
+    dual_enabled: bool,
+) -> Tuple[Tuple[bool, Any, Optional[BaseException], float],
+           Optional[Tuple[bool, Any, Optional[BaseException], float]]]:
+    """Ejecuta los análisis de Stage 2 (Claude y OpenAI) en paralelo.
+
+    Cada callable se invoca en un worker thread. Las excepciones se capturan
+    y se devuelven en el payload (no se propagan). El caller (pipeline) hace
+    la orquestación de UI/session_state en el hilo principal.
+
+    Returns:
+        ((claude_ok, claude_result, claude_err, claude_t),
+         (openai_ok, openai_result, openai_err, openai_t) | None)
+    """
+    def _wrap(fn: Callable[[], Any]) -> Tuple[bool, Any, Optional[BaseException], float]:
+        t0 = time.time()
+        try:
+            return (True, fn(), None, time.time() - t0)
+        except BaseException as e:  # noqa: BLE001 — capturamos para no romper el otro worker
+            return (False, None, e, time.time() - t0)
+
+    if not dual_enabled or openai_callable is None:
+        # Solo Claude — sin overhead de threadpool
+        return _wrap(claude_callable), None
+
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        claude_fut = ex.submit(_wrap, claude_callable)
+        openai_fut = ex.submit(_wrap, openai_callable)
+        claude_payload = claude_fut.result()
+        openai_payload = openai_fut.result()
+
+    return claude_payload, openai_payload
+
 
 # ============================================================================
 # IMPORTS LAZY (se cargan al ejecutar, no al importar el módulo)
@@ -654,53 +696,74 @@ Formato tu respuesta de manera clara y accionable."""
                 config=rewrite_config,
             )
 
-        # --- Análisis de Claude ---
-        status_widget.write("🔍 Claude analizando el borrador...")
+        # --- Análisis dual en paralelo (R1.1): Claude + OpenAI ---
         system_prompt = get_system_prompt_base() if _brand_tone_available else None
-        result = generator.generate(stage2_prompt, system_prompt=system_prompt)
 
-        if not result.success:
-            status_widget.write(f"⚠️ Análisis Claude parcial: {result.error}")
+        if dual_enabled:
+            status_widget.write(f"🔍 Claude + OpenAI ({OPENAI_MODEL}) analizando en paralelo...")
+        else:
+            status_widget.write("🔍 Claude analizando el borrador...")
+
+        def _claude_worker():
+            return generator.generate(stage2_prompt, system_prompt=system_prompt)
+
+        def _openai_worker():
+            return openai_client.generate_dual_analysis(
+                prompt=stage2_prompt,
+                model=OPENAI_MODEL,
+            )
+
+        claude_payload, openai_payload = _run_parallel_stage2(
+            claude_callable=_claude_worker,
+            openai_callable=_openai_worker if dual_enabled else None,
+            dual_enabled=dual_enabled,
+        )
+
+        # --- Procesar resultado de Claude ---
+        claude_ok, claude_result, claude_err, claude_t = claude_payload
+        if not claude_ok or (claude_result is not None and not claude_result.success):
+            err_msg = str(claude_err) if claude_err else getattr(claude_result, 'error', 'desconocido')
+            status_widget.write(f"⚠️ Análisis Claude parcial: {err_msg}")
             claude_analysis = '{"problemas_encontrados": [], "correcciones": [], "nota": "Análisis no disponible — Stage 2 parcial"}'
         else:
-            claude_analysis = result.content
-            status_widget.write("✅ Análisis Claude completado")
+            claude_analysis = claude_result.content
+            status_widget.write(f"✅ Análisis Claude completado ({claude_t:.1f}s)")
 
-        # --- Análisis de OpenAI (corrección dual) ---
-        if dual_enabled:
-            status_widget.write(f"🔍 OpenAI ({OPENAI_MODEL}) revisando el borrador...")
-            try:
-                ok, openai_analysis, openai_meta = openai_client.generate_dual_analysis(
-                    prompt=stage2_prompt,
-                    model=OPENAI_MODEL,
-                )
-
+        # --- Procesar resultado de OpenAI ---
+        if dual_enabled and openai_payload is not None:
+            openai_ok_outer, openai_result, openai_err, openai_t = openai_payload
+            if not openai_ok_outer:
+                # Excepción no capturada por openai_client (ej. rate_limit, network)
+                _err_type, _err_msg = _classify_error(openai_err) if openai_err else ("unknown", "error desconocido")
+                if _err_type.startswith('rate_limit'):
+                    logger.warning(f"OpenAI dual correction rate limited: {openai_err}")
+                    st.warning(f"⚠️ {_err_msg}")
+                else:
+                    logger.warning(f"OpenAI dual correction error: {openai_err}")
+                    st.warning(f"⚠️ Error en corrección dual OpenAI: {_err_msg}. Continuando solo con Claude.")
+                st.session_state.analysis_json = claude_analysis
+            else:
+                ok, openai_analysis, openai_meta = openai_result
                 if ok:
                     status_widget.write(
                         f"✅ Análisis OpenAI completado "
                         f"({openai_meta.get('tokens', 0)} tokens, "
-                        f"{openai_meta.get('time', 0)}s)"
+                        f"{openai_t:.1f}s)"
                     )
                     st.session_state.analysis_json = openai_client.merge_dual_analyses(
                         claude_analysis=claude_analysis,
                         openai_analysis=openai_analysis,
                     )
-                    logger.info("Corrección dual completada: análisis fusionados")
+                    logger.info(
+                        f"Corrección dual completada en paralelo: "
+                        f"claude={claude_t:.1f}s openai={openai_t:.1f}s "
+                        f"wall={max(claude_t, openai_t):.1f}s"
+                    )
                 else:
                     status_widget.write(
                         f"⚠️ OpenAI no disponible: {openai_meta.get('error', 'desconocido')}. "
                         "Continuando solo con análisis de Claude."
                     )
-                    st.session_state.analysis_json = claude_analysis
-            except Exception as e:
-                _err_type, _err_msg = _classify_error(e)
-                if _err_type.startswith('rate_limit'):
-                    logger.warning(f"OpenAI dual correction rate limited: {e}")
-                    st.warning(f"⚠️ {_err_msg}")
-                    st.session_state.analysis_json = claude_analysis
-                else:
-                    logger.warning(f"OpenAI dual correction error: {e}")
-                    st.warning(f"⚠️ Error en corrección dual OpenAI: {_err_msg}. Continuando solo con Claude.")
                     st.session_state.analysis_json = claude_analysis
         else:
             st.session_state.analysis_json = claude_analysis

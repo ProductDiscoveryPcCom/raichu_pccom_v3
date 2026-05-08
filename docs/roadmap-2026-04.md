@@ -41,7 +41,10 @@ Raichu v5.1.0 cerró con éxito las olas P0/P1/P2/P3/P4 (ver §5). El proyecto e
 
 ## 2. Items abiertos — S1 (Crítico)
 
-### R1.1 — Stage 2 Claude+OpenAI secuencial ⬜
+### R1.1 — Stage 2 Claude+OpenAI secuencial ✅ DONE (2026-05-08)
+**Cambio:** Nuevo helper `_run_parallel_stage2(claude_callable, openai_callable, dual_enabled)` a nivel módulo en [core/pipeline.py:99-138](../core/pipeline.py#L99-L138) que orquesta un `ThreadPoolExecutor(max_workers=2)`. Cada worker captura sus propias excepciones y devuelve `(ok, result, err, elapsed)`; los `status_widget.write` y la mutación de `st.session_state` se mantienen en el hilo principal. La semántica de fallback (Claude solo cuando OpenAI falla) se preserva byte a byte. Log de Stage 2 reporta `claude=Xs openai=Ys wall=max`. Tests en [tests/test_pipeline_stage2_parallel.py](../tests/test_pipeline_stage2_parallel.py).
+
+
 **Eje:** Performance · **Esfuerzo:** M · **Archivo:** [core/pipeline.py:660-704](../core/pipeline.py#L660-L704)
 
 Claude y OpenAI se ejecutan en serie en Stage 2. Con prompts ~4-8K tokens cada uno, suma **60-120s de latencia innecesaria** por generación.
