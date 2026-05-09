@@ -18,6 +18,13 @@ _MODE_RESULT_KEYS = [
     'draft_html', 'analysis_json', 'final_html',
     'rewrite_analysis', 'content_history', 'generation_metadata',
     'last_config', 'timestamp',
+    # R2.6: aislar también contexto de verify/opportunities/feedback
+    'gsc_analysis',
+    'gsc_opportunities_data',
+    '_post_gen_checks',
+    '_refinement_feedback',
+    '_translation_feedback',
+    '_batch_translation_feedback',
 ]
 
 
@@ -125,6 +132,7 @@ def clear_session_state() -> None:
         'rewrite_competitors_data',
         'rewrite_gsc_analysis',
         'rewrite_links',
+        'rewrite_original_html',
         'semrush_response',
         'show_manual_fallback',
         # Widgets de reescritura
@@ -144,8 +152,26 @@ def clear_session_state() -> None:
         'main_instructions',
     ]
 
+    # --- Datos de GSC y oportunidades ---
+    gsc_keys = [
+        'gsc_data_date',
+        'gsc_analysis',
+        'gsc_opportunities_data',
+    ]
+
+    # --- Feedback y prefills entre modos ---
+    feedback_keys = [
+        '_post_gen_checks',
+        '_refinement_feedback',
+        '_translation_feedback',
+        '_batch_translation_feedback',
+        'prefill_keyword',
+        'prefill_url',
+        'prefill_analysis_context',
+    ]
+
     # Combinar todas las keys a limpiar
-    all_keys_to_clear = generation_keys + rewrite_keys + form_keys
+    all_keys_to_clear = generation_keys + rewrite_keys + form_keys + gsc_keys + feedback_keys
 
     # Limpiar cada key
     for key in all_keys_to_clear:
@@ -181,6 +207,12 @@ def clear_session_state() -> None:
             '_link_count', '_count',
             # Resultados guardados por modo
             '_saved_results_',
+            # Traducciones dinámicas por idioma
+            'translated_html_',
+            # Estado de borrado pendiente en widgets
+            '_pending_delete_',
+            # Flags de "ya generó en este modo"
+            '_has_generated_',
         ]):
             keys_to_delete.append(key)
 
