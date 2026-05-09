@@ -221,7 +221,6 @@ def check_configuration(
     # Log para debug
     if errors:
         logger.error(f"Errores de configuración: {errors}")
-        logger.debug(f"CLAUDE_API_KEY presente: {bool(CLAUDE_API_KEY)}")
         logger.debug(f"CLAUDE_MODEL: {CLAUDE_MODEL}")
     else:
         logger.info("Configuración verificada correctamente")
