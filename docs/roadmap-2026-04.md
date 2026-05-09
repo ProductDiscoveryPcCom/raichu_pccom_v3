@@ -25,15 +25,16 @@ Raichu v5.1.0 cerró con éxito las olas P0/P1/P2/P3/P4 (ver §5). El proyecto e
 
 | Eje | S1 | S2 | S3 | Total abiertos |
 |-----|----|----|----|----------------|
-| Performance y coste de API | 0 | 1 | 1 | 2 |
+| Performance y coste de API | 0 | 1 | 0 | 1 |
 | Calidad de output y prompts | 0 | 2 | 2 | 4 |
-| UX / Streamlit / session state | 0 | 1 | 2 | 3 |
-| Seguridad / tests / deuda técnica | 0 | 0 | 3 | 3 |
-| **Total** | **0** | **4** | **8** | **12** |
+| UX / Streamlit / session state | 0 | 0 | 1 | 1 |
+| Seguridad / tests / deuda técnica | 0 | 0 | 0 | 0 |
+| **Total** | **0** | **3** | **3** | **6** |
 
 **Cerrados en Fase 1 (2026-04-29):** R1.2, R1.3, R1.4, R1.5, R1.6, R1.7, R3.5 (7 items).
 **Cerrados en Fase 2 (2026-05-08):** R1.1, R2.1, R2.3 (3 items).
 **Cerrados en Fase 3 (2026-05-09):** R2.7, R2.8, R2.9 (3 items).
+**Cerrados en Fase 5 (2026-05-09):** R2.6, R3.1, R3.4, R3.6, R3.7, R3.8 (6 items).
 
 **Esfuerzo agregado estimado:** ~8-11 días de ingeniería.
 
@@ -210,7 +211,10 @@ Todos los 34 arquetipos tienen `guiding_questions`, pero calidad varía:
 
 ---
 
-### R2.6 — Mode isolation incompleto ⬜
+### R2.6 — Mode isolation incompleto ✅ DONE (2026-05-09)
+**Cambio:** [core/session.py:17-29](../core/session.py#L17-L29) — `_MODE_RESULT_KEYS` ampliado con 6 keys (`gsc_analysis`, `gsc_opportunities_data`, `_post_gen_checks`, `_refinement_feedback`, `_translation_feedback`, `_batch_translation_feedback`). `_save_mode_results` / `_restore_mode_results` ahora aíslan también el contexto de verify/opportunities/feedback. Ninguna de las keys añadidas contiene credenciales (verificado). Nuevo archivo [tests/test_session_mode_isolation.py](../tests/test_session_mode_isolation.py) — primer test del codebase que ejercita `st.session_state` directamente vía un `FakeSessionState` dict-like (4 tests, ~1s). Commit `a3f46cb`.
+
+
 **Eje:** UX · **Esfuerzo:** S · **Archivo:** [core/session.py:17-21](../core/session.py#L17-L21)
 
 `_MODE_RESULT_KEYS` excluye `gsc_analysis`, `_post_gen_checks` y feedback keys. Contexto de "verify" bleed-ea a "new".
@@ -260,7 +264,10 @@ Tests importan `core.generator`, `core.scraper`, `utils.serp_research` sin mocke
 
 ## 4. Items abiertos — S3 (Mejora)
 
-### R3.1 — OpenAI fallback verbose ⬜
+### R3.1 — OpenAI fallback verbose ✅ DONE (2026-05-09)
+**Cambio:** Las dos quejas principales del audit ya estaban resueltas tras R1.1 (paralelización Stage 2): `merge_dual_analyses` solo se invoca cuando ambos providers triunfan ([core/pipeline.py:753](../core/pipeline.py#L753)) — sin copia innecesaria; el doble logging desapareció con la nueva orquestación. Único pulido pendiente: el path "OpenAI devolvió ok=False" solo escribía en `status_widget` pero no en `logger`. Añadido `logger.warning` en [core/pipeline.py:763](../core/pipeline.py#L763) para que Streamlit Cloud capture todos los fallback paths consistentemente. Commit `3e14e08`.
+
+
 **Eje:** Performance · **Esfuerzo:** S · **Archivo:** [core/pipeline.py:695-704](../core/pipeline.py#L695-L704)
 
 Si OpenAI falla, Claude se usa pero 2× logging + JSON merge innecesario (copia).
@@ -291,7 +298,10 @@ if include_mini_stories and not has_feedback:
 
 ---
 
-### R3.4 — Error messages genéricos sin logging ⬜
+### R3.4 — Error messages genéricos sin logging ✅ DONE (2026-05-09)
+**Cambio:** 5 bloques `except ImportError:` en [app.py](../app.py) (`ui.inputs`, `ui.rewrite`, `ui.results`, `ui.sidebar`, `ui.assistant`, `ui.verify`) actualizados a `except ImportError as e:` con `logger.error(f"...: {e}")` (warning para los cosméticos como sidebar/results, error para los críticos de modo). Añadido `logger.error` antes del `st.error` en runtime cuando `ContentGenerator` es None en `render_assistant_mode` ([app.py:418](../app.py#L418)) — ese caso no es ImportError local sino fallo de instanciación posterior. `prompts.rewrite` ([app.py:84-87](../app.py#L84-L87)) y `ui.opportunities` ([app.py:816-818](../app.py#L816-L818)) ya tenían el patrón correcto. Commit `ecd6865`.
+
+
 **Eje:** UX · **Esfuerzo:** S · **Archivos:** [app.py:220,299,414,811](../app.py#L220)
 
 7 locations con `st.error("❌ El módulo X no está disponible")` sin `logger.error(f"Import failed: {e}")`. Difícil debuggear fallos en Streamlit Cloud.
@@ -310,7 +320,10 @@ Seteado al cachear HTML pre-rewrite, pero no en `clear_session_state()`. Al camb
 
 ---
 
-### R3.6 — PyYAML/types-PyYAML en requirements sin uso ⬜
+### R3.6 — PyYAML/types-PyYAML en requirements sin uso ✅ DONE (2026-05-09)
+**Cambio:** Verificación previa con `grep` confirmó 0 matches de `import yaml`/`from yaml` en *.py (incluido tests/). `requirements.txt` no contenía `pyyaml` (solo `types-PyYAML` en [requirements-dev.txt:33](../requirements-dev.txt#L33)). Eliminada esa línea — `types-PyYAML` es type-stub puro, solo útil para mypy cuando hay imports de yaml. Suite: 922 → 922 verde. Commit `2c91666`.
+
+
 **Eje:** Deuda · **Esfuerzo:** S · **Archivo:** `requirements.txt:42-43`
 
 Verificado: no hay `import yaml` en codebase. +500KB bundle innecesario.
@@ -319,7 +332,10 @@ Verificado: no hay `import yaml` en codebase. +500KB bundle innecesario.
 
 ---
 
-### R3.7 — HTMLParser stub duplicado ⬜
+### R3.7 — HTMLParser stub duplicado ✅ DONE (2026-05-09) — verificación retroactiva
+**Cambio:** Verificado que [utils/__init__.py:53](../utils/__init__.py#L53) ya implementaba el fix (`from html.parser import HTMLParser`) desde antes de Fase 5. El audit estaba stale. Sin commit de código.
+
+
 **Eje:** Deuda · **Esfuerzo:** S · **Archivo:** [utils/__init__.py:53-58](../utils/__init__.py#L53-L58)
 
 Fallback `HTMLParser` custom duplica stdlib. Si `html_utils` import falla, el fallback es un stub incompleto.
@@ -328,7 +344,10 @@ Fallback `HTMLParser` custom duplica stdlib. Si `html_utils` import falla, el fa
 
 ---
 
-### R3.8 — `sanitize_html` con `except Exception` muy amplio ⬜
+### R3.8 — `sanitize_html` con `except Exception` muy amplio ✅ DONE (2026-05-09)
+**Cambio:** [utils/html_utils.py](../utils/html_utils.py) — import de `ParserRejectedMarkup` añadido al bloque bs4 (con sentinel `class ParserRejectedMarkup(Exception)` cuando bs4 no está, para que el `except` sea well-defined en tiempo de import). Nuevo helper `_regex_fallback_sanitize()` usado por los **dos** paths de fallback (bs4 ausente + bs4 falla en runtime). Cubre los mismos tags que el path bs4 (`script, iframe, object, embed, applet, svg, meta, link, base, form, input, button`) + comentarios HTML + event handlers `on*=` en tres variantes de comillas. `except Exception` estrechado a `(ParserRejectedMarkup, AttributeError, ValueError)` para que bugs reales propaguen. Limitación documentada: el regex no neutraliza `javascript:`/`data:` en `href`/`src` — solo bs4 lo hace; defense-in-depth, no defensa primaria. Nuevo archivo [tests/test_html_sanitization_fallback.py](../tests/test_html_sanitization_fallback.py) — 17 tests parametrizados sobre vectores XSS forzando el fallback vía monkeypatch. Cobertura `utils/html_utils.py`: 93% → 95%. Commit `a0dfe81`.
+
+
 **Eje:** Deuda · **Esfuerzo:** S · **Archivo:** [utils/html_utils.py:341-344](../utils/html_utils.py#L341-L344)
 
 `except Exception` swallows errores. Regex fallback solo remueve `<script>` — miss `<iframe>`, `onerror=`, `onclick=`.
