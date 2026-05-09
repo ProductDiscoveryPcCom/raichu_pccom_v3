@@ -311,7 +311,8 @@ ANTI_IA_CHECKLIST_STAGE2 = """
 - [ ] ¿El veredicto es un párrafo redaccional con opinión propia (NO un resumen con viñetas)?
 - [ ] ¿Suena a persona real o a texto generado por IA?
 - [ ] ¿No contiene emojis?
-- [ ] ¿Evita años concretos en títulos/encabezados (salvo que la keyword lo requiera)?
+- [ ] ¿Evita años concretos en títulos/encabezados? **Excepciones permitidas:** (a) la keyword incluye el año, (b) el arquetipo es de novedades/lanzamientos/ofertas/eventos temporales (ej: ARQ-16 Lanzamientos, ARQ-19 Ofertas, ARQ-20 Black Friday/eventos comerciales), (c) el contenido informa sobre disponibilidad o fechas concretas (preventa, lanzamiento, fin de oferta).
+- [ ] ¿Evita lenguaje de urgencia ("¡Última oportunidad!", "¡No te lo pierdas!", "¡Ahora o nunca!")? **Excepción:** arquetipos promocionales (ARQ-19, ARQ-20) pueden usar urgencia moderada cuando hay una fecha real de fin de oferta.
 """
 
 # ============================================================================
@@ -327,7 +328,7 @@ REGLAS_CRITICAS_COMUNES = """
 - El veredicto NO debe repetir lo ya dicho — escríbelo como opinión redaccional en prosa, nunca como resumen con bullets
 - Estructuras repetitivas párrafo tras párrafo
 - No usar emojis en el contenido generado.
-- No usar años concretos (2024, 2025, 2026) en títulos/encabezados salvo que la keyword ya lo incluya
+- No usar años concretos (2024, 2025, 2026) en títulos/encabezados salvo que: (a) la keyword ya lo incluya, (b) el arquetipo sea de lanzamientos/ofertas/eventos temporales (ARQ-16, ARQ-19, ARQ-20), o (c) la noticia/oferta tenga fecha concreta y relevante para el lector
 
 ##  RECORDATORIO DE TONO PCCOMPONENTES
 - **Expertos sin pedantes:** Explica sin tecnicismos innecesarios
