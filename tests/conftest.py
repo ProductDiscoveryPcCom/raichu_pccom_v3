@@ -3,6 +3,7 @@ Shared fixtures for Raichu test suite.
 """
 import copy
 import pytest
+from unittest.mock import MagicMock
 
 from config.arquetipos import ARQUETIPOS
 
@@ -86,3 +87,102 @@ def rewrite_config():
         "product_links": [],
         "alternative_products": [],
     }
+
+
+# ============================================================================
+# Mocks SDK-level opt-in (R2.8)
+#
+# Regla: parchear por sitio de uso, no por modulo de origen. Los modulos hacen
+# `from anthropic import Anthropic` y `from openai import OpenAI`, lo que
+# copia el binding al namespace consumidor. Para `requests` (importado como
+# modulo), un solo monkeypatch sobre `requests.Session` cubre a todos los
+# consumidores porque los modulos comparten el mismo objeto.
+# ============================================================================
+
+
+@pytest.fixture
+def mock_anthropic_client(monkeypatch):
+    """Stub del cliente Anthropic parcheado en core.generator.
+
+    Uso:
+        def test_xxx(mock_anthropic_client):
+            mock_anthropic_client.set_response("texto sintetico")
+            from core.generator import ContentGenerator
+            gen = ContentGenerator(api_key="dummy")
+            ...
+    """
+    client = MagicMock()
+    response = MagicMock()
+    response.content = [MagicMock(text="default response")]
+    response.usage = MagicMock(input_tokens=100, output_tokens=200)
+    response.stop_reason = "end_turn"
+    client.messages.create.return_value = response
+
+    def set_response(text, input_tokens=100, output_tokens=200):
+        response.content = [MagicMock(text=text)]
+        response.usage.input_tokens = input_tokens
+        response.usage.output_tokens = output_tokens
+
+    client.set_response = set_response
+
+    monkeypatch.setattr("core.generator.Anthropic", lambda *a, **kw: client)
+    return client
+
+
+@pytest.fixture
+def mock_openai_client(monkeypatch):
+    """Stub del cliente OpenAI parcheado en core.openai_client.
+
+    Resetea ademas el singleton interno (_client, _api_key) para que el
+    siguiente get_client() reconstruya el cliente con el mock.
+    """
+    client = MagicMock()
+    response = MagicMock()
+    response.choices = [MagicMock(message=MagicMock(content="default openai response"))]
+    response.usage = MagicMock(prompt_tokens=100, completion_tokens=200, total_tokens=300)
+    response.model = "gpt-4.1-2025-04-14"
+    response.choices[0].finish_reason = "stop"
+    client.chat.completions.create.return_value = response
+
+    def set_response(text, prompt_tokens=100, completion_tokens=200):
+        response.choices[0].message.content = text
+        response.usage.prompt_tokens = prompt_tokens
+        response.usage.completion_tokens = completion_tokens
+        response.usage.total_tokens = prompt_tokens + completion_tokens
+
+    client.set_response = set_response
+
+    monkeypatch.setattr("core.openai_client.OpenAI", lambda *a, **kw: client)
+    monkeypatch.setattr("core.openai_client._client", None)
+    monkeypatch.setattr("core.openai_client._api_key", "dummy-key")
+    return client
+
+
+@pytest.fixture
+def mock_requests_session(monkeypatch):
+    """Stub de requests.Session() compartido para scraper/semrush/cms_publisher/serp_research.
+
+    `requests` es un modulo unico: parchear `requests.Session` afecta a todos
+    los `import requests` del proyecto.
+
+    Devuelve un MagicMock con `.map_url(url, status_code, body)` para registrar
+    respuestas. URLs no registradas elevan en `.raise_for_status()`.
+    """
+    routes = {}
+
+    def get(url, *args, **kwargs):
+        spec = routes.get(url)
+        if spec is None:
+            resp = MagicMock(status_code=404, text="", content=b"")
+            resp.raise_for_status.side_effect = Exception(f"unmocked URL: {url}")
+            return resp
+        resp = MagicMock(status_code=spec[0], text=spec[1], content=spec[1].encode())
+        resp.raise_for_status.return_value = None
+        return resp
+
+    session = MagicMock()
+    session.get.side_effect = get
+    session.map_url = lambda url, status_code, body: routes.update({url: (status_code, body)})
+
+    monkeypatch.setattr("requests.Session", lambda *a, **kw: session)
+    return session
