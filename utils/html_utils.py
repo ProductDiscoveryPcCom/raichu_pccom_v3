@@ -9,11 +9,13 @@ CAMBIOS v1.2.0:
 Autor: PcComponentes - Product Discovery & Content
 """
 
+import html as _html_module
 import re
 import logging
 from typing import Dict, List, Tuple, Optional, Any
 from html.parser import HTMLParser as BaseHTMLParser
 from dataclasses import dataclass, field
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +26,15 @@ __version__ = "1.2.0"
 # ============================================================================
 
 try:
-    from bs4 import BeautifulSoup
+    from bs4 import BeautifulSoup, ParserRejectedMarkup
     _bs4_available = True
 except ImportError:
     _bs4_available = False
+    # Sentinel para que el except del fallback no rompa cuando bs4 no está.
+    # Como _bs4_available es False, el bloque try/except de sanitize_html nunca
+    # se ejecuta — esto solo evita NameError en tiempo de import.
+    class ParserRejectedMarkup(Exception):
+        pass
 
 def is_bs4_available() -> bool:
     """Verifica si BeautifulSoup está disponible."""
@@ -283,6 +290,63 @@ def extract_meta_tags(html_content: str) -> Dict[str, str]:
 # FUNCIONES DE LIMPIEZA
 # ============================================================================
 
+_DANGEROUS_URL_SCHEMES = frozenset({'javascript', 'vbscript', 'data', 'file', 'about'})
+
+
+def _has_dangerous_scheme(value: str) -> bool:
+    """
+    Detecta esquemas de URL peligrosos (javascript:, vbscript:, data:, ...).
+
+    Robusto frente a:
+    - Variación de mayúsculas/minúsculas: `JavaScriPt:`
+    - HTML entities decimales/hex: `java&#x0A;script:`, `java&#10;script:`
+    - Whitespace y caracteres de control intercalados
+    """
+    if not value:
+        return False
+    decoded = _html_module.unescape(str(value))
+    cleaned = re.sub(r'[\s\x00-\x1f\x7f]+', '', decoded).lower()
+    try:
+        scheme = urlparse(cleaned).scheme
+    except (ValueError, AttributeError):
+        return False
+    return scheme in _DANGEROUS_URL_SCHEMES
+
+
+def _regex_fallback_sanitize(html_content: str) -> str:
+    """Fallback de sanitización solo con regex — usado cuando bs4 falla o no está.
+
+    Cubre: <script>, <iframe>, <object>, <embed>, <applet>, <svg>, <meta>,
+    <link>, <base>, <form>, <input>, <button>, comentarios, y event handlers
+    inline (onclick, onerror, onload, etc.). NO neutraliza esquemas peligrosos
+    en atributos URL (javascript:, data:, ...) — solo bs4 lo hace de forma
+    fiable. Defense-in-depth, no defensa primaria; bs4 es el path principal.
+    """
+    dangerous_tags = [
+        'script', 'iframe', 'object', 'embed', 'applet', 'svg',
+        'meta', 'link', 'base', 'form', 'input', 'button',
+    ]
+    html = html_content
+    for tag in dangerous_tags:
+        # <tag ...>...</tag>
+        html = re.sub(
+            rf'<{tag}\b[^>]*>.*?</{tag}>',
+            '', html, flags=re.DOTALL | re.I,
+        )
+        # <tag ... /> o <tag ...> sin cierre (self-closing o malformed)
+        html = re.sub(
+            rf'<{tag}\b[^>]*/?>',
+            '', html, flags=re.I,
+        )
+    # Comentarios HTML
+    html = re.sub(r'<!--.*?-->', '', html, flags=re.DOTALL)
+    # Event handlers inline (on*=) — match attr completo, comillas o sin ellas
+    html = re.sub(r'\s+on\w+\s*=\s*"[^"]*"', '', html, flags=re.I)
+    html = re.sub(r"\s+on\w+\s*=\s*'[^']*'", '', html, flags=re.I)
+    html = re.sub(r'\s+on\w+\s*=\s*[^\s>]+', '', html, flags=re.I)
+    return html.strip()
+
+
 def sanitize_html(html_content: str) -> str:
     """
     Sanitiza HTML usando BeautifulSoup para eliminar scripts y elementos peligrosos.
@@ -296,10 +360,7 @@ def sanitize_html(html_content: str) -> str:
         
     if not _bs4_available:
         logger.warning("BeautifulSoup no disponible para sanitización robusta. Usando fallback regex.")
-        # Fallback básico si bs4 no está (aunque debería estar según requirements.txt)
-        html = re.sub(r'<script[^>]*>.*?</script>', '', html_content, flags=re.DOTALL | re.I)
-        html = re.sub(r'<!--.*?-->', '', html, flags=re.DOTALL)
-        return html.strip()
+        return _regex_fallback_sanitize(html_content)
 
     try:
         soup = BeautifulSoup(html_content, 'html.parser')
@@ -324,9 +385,14 @@ def sanitize_html(html_content: str) -> str:
                 # Eliminar atributos de formulario peligrosos en tags no prohibidos
                 elif attr_name.lower() in ['formaction', 'formmethod', 'formtarget']:
                     del tag[attr_name]
-                # Sanitizar enlaces javascript:
-                elif attr_name.lower() == 'href' and str(attr_value).strip().lower().startswith('javascript:'):
-                    tag[attr_name] = '#'
+                # Sanitizar atributos URL con esquemas peligrosos (javascript:, vbscript:, data:, ...)
+                # Cubre case variation y HTML entities (e.g. java&#x0A;script:)
+                elif attr_name.lower() in ('href', 'src', 'action', 'xlink:href', 'poster', 'background') \
+                        and _has_dangerous_scheme(attr_value):
+                    if attr_name.lower() in ('href', 'action'):
+                        tag[attr_name] = '#'
+                    else:
+                        del tag[attr_name]
         
         # Retornar el HTML procesado
         # Usamos encode_contents y decode para evitar que añada tags html/body si no estaban
@@ -338,10 +404,9 @@ def sanitize_html(html_content: str) -> str:
             # Si queremos solo el fragmento:
             return "".join([str(tag) for tag in soup.contents])
             
-    except Exception as e:
-        logger.error(f"Error durante la sanitización HTML: {e}")
-        # Fallback seguro: remover cualquier tag script por regex si falla el parser
-        return re.sub(r'<script[^>]*>.*?</script>', '', html_content, flags=re.DOTALL | re.I)
+    except (ParserRejectedMarkup, AttributeError, ValueError) as e:
+        logger.error(f"Error durante la sanitización HTML (bs4): {e}")
+        return _regex_fallback_sanitize(html_content)
 
 def clean_html(html_content: str) -> str:
     """Alias para sanitize_html."""
