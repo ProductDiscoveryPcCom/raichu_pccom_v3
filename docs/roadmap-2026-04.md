@@ -28,11 +28,12 @@ Raichu v5.1.0 cerró con éxito las olas P0/P1/P2/P3/P4 (ver §5). El proyecto e
 | Performance y coste de API | 0 | 1 | 1 | 2 |
 | Calidad de output y prompts | 0 | 2 | 2 | 4 |
 | UX / Streamlit / session state | 0 | 1 | 2 | 3 |
-| Seguridad / tests / deuda técnica | 0 | 3 | 3 | 6 |
-| **Total** | **0** | **7** | **8** | **15** |
+| Seguridad / tests / deuda técnica | 0 | 0 | 3 | 3 |
+| **Total** | **0** | **4** | **8** | **12** |
 
 **Cerrados en Fase 1 (2026-04-29):** R1.2, R1.3, R1.4, R1.5, R1.6, R1.7, R3.5 (7 items).
 **Cerrados en Fase 2 (2026-05-08):** R1.1, R2.1, R2.3 (3 items).
+**Cerrados en Fase 3 (2026-05-09):** R2.7, R2.8, R2.9 (3 items).
 
 **Esfuerzo agregado estimado:** ~8-11 días de ingeniería.
 
@@ -218,7 +219,10 @@ Todos los 34 arquetipos tienen `guiding_questions`, pero calidad varía:
 
 ---
 
-### R2.7 — Test coverage pobre en html_utils.py ⬜
+### R2.7 — Test coverage pobre en html_utils.py ✅ DONE (2026-05-09)
+**Cambio:** [tests/test_html_utils.py](../tests/test_html_utils.py) ampliado de 11 a 96 tests (+85). Cobertura de [utils/html_utils.py](../utils/html_utils.py) sube de 37% a 93%. Tests nuevos: `_has_dangerous_scheme` (19 parametrizados, R1.6), `sanitize_html` (17 bypasses XSS — case, encoding, schemes, event handlers, blacklist tags, formaction, svg — más preservación de `<style>` y atributos seguros), `detect_placeholders` (6 patrones + clean + empty), `extract_content_structure`/`extract_content`/`extract_text`/`extract_meta_tags`, `validate_cms_articles` (complete/missing/empty), `validate_cms_structure` (5 ramas), `validate_word_count_target` (within/out/zero), `analyze_links` (clasificación PDP/blog/externo + empty), `get_heading_hierarchy`, HTMLParser custom class, aliases (`get_word_count`, `strip_tags`, `get_parser`, `get_bs4_parser`, `is_bs4_available`), edge cases de `extract_html_content` (text before/after, inner block, unclosed fence, nested backticks documentado como limitación), false positives de `detect_ai_phrases`. Las 23 líneas restantes son fallbacks de excepción sin valor realista. Commit `20ababc`.
+
+
 **Eje:** Tests · **Esfuerzo:** M · **Archivo:** [tests/test_html_utils.py](../tests/test_html_utils.py)
 
 12 funciones de test para 40+ utility functions. Missing:
@@ -230,7 +234,10 @@ Todos los 34 arquetipos tienen `guiding_questions`, pero calidad varía:
 
 ---
 
-### R2.8 — Tests sin mocks de APIs externas ⬜
+### R2.8 — Tests sin mocks de APIs externas ✅ DONE (2026-05-09)
+**Cambio:** Añadidas 3 fixtures opt-in SDK-level en [tests/conftest.py:90-189](../tests/conftest.py#L90-L189): `mock_anthropic_client` (parchea `core.generator.Anthropic`), `mock_openai_client` (parchea `core.openai_client.OpenAI` + resetea singleton interno), `mock_requests_session` (parchea `requests.Session` global; el módulo `requests` es singleton, así que un solo patch cubre scraper/semrush/cms_publisher/serp_research). Cada fixture devuelve un `MagicMock` con helpers `set_response()` / `map_url()`. Regla "patch where used, not where defined": para `from x import Y`, parchear el namespace consumidor. Path `core.pipeline.Anthropic` descartado tras verificar que pipeline solo importa clases de error (las llamadas SDK viven en `ContentGenerator`). 10 smoke tests en [tests/test_mocks_smoke.py](../tests/test_mocks_smoke.py) verifican el wiring. Patrón documentado en [.claude/rules/tests.md](../.claude/rules/tests.md). Paso 0 (auditoría sin keys): 827 tests ya pasaban sin keys → 0 tests para sweep ligero. Tests legacy con monkeypatch ad-hoc (test_pipeline_stage2_parallel.py, test_scraper_circuit_breaker.py) intactos por decisión explícita. Suite final: 922 passed in 6.99s sin API keys. Commit `6668980`.
+
+
 **Eje:** Tests · **Esfuerzo:** M · **Archivo:** `tests/`
 
 Tests importan `core.generator`, `core.scraper`, `utils.serp_research` sin mockear Anthropic/OpenAI/SerpAPI. Si CI no tiene API keys, tests pasan auth validation pero skip real calls silenciosamente.
@@ -239,7 +246,10 @@ Tests importan `core.generator`, `core.scraper`, `utils.serp_research` sin mocke
 
 ---
 
-### R2.9 — Fixtures `scope="session"` causan bleed ⬜
+### R2.9 — Fixtures `scope="session"` causan bleed ✅ DONE (2026-05-09)
+**Cambio:** Las 3 fixtures `scope="session"` en [tests/conftest.py:16-57](../tests/conftest.py#L16-L57) (`sample_html`, `sample_html_with_ai_phrases`, `markdown_wrapped_html`) migradas a `scope="function"` (default). Eran strings literales inmutables, el scope no aportaba perf y violaba la recomendación pytest. Las 3 fixtures `scope="class"` en [tests/test_visual_elements_and_serp.py:248-260](../tests/test_visual_elements_and_serp.py#L248-L260) (`pipeline_src`, `detect_block`, `names_block`) **se mantienen** con docstring justificando el scope: leen `core/pipeline.py` desde disco y devuelven slices read-only reutilizados por tests parametrizados (perf real, sin estado mutable). Verificación: 827 passed en `pytest tests/ -p no:randomly` y modo normal (mismos resultados, sin dependencia oculta de orden). Commit `eebbc09`.
+
+
 **Eje:** Tests · **Esfuerzo:** S · **Archivo:** [tests/conftest.py](../tests/conftest.py)
 
 `test_ux_ui_functionality.py` usa session-scoped fixtures. Si orden cambia, fixtures de distintos modos se mezclan.
