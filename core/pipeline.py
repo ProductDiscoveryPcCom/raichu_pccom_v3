@@ -760,6 +760,9 @@ Formato tu respuesta de manera clara y accionable."""
                         f"wall={max(claude_t, openai_t):.1f}s"
                     )
                 else:
+                    logger.warning(
+                        f"OpenAI dual correction returned ok=False: {openai_meta.get('error', 'desconocido')}"
+                    )
                     status_widget.write(
                         f"⚠️ OpenAI no disponible: {openai_meta.get('error', 'desconocido')}. "
                         "Continuando solo con análisis de Claude."
