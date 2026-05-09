@@ -1053,23 +1053,26 @@ def _format_visual_elements_instructions(visual_elements: Optional[List[str]]) -
     
     lines = []
     lines.append("\n## 🎨 ELEMENTOS VISUALES A INCLUIR")
-    lines.append("El usuario ha solicitado estos elementos. Inclúyelos donde corresponda:\n")
-    
+    lines.append(
+        "Estos elementos son **OBLIGATORIOS** en el output final. Stage 2 marcará su ausencia "
+        "como ERROR CRÍTICO y Stage 3 los creará si faltan. Inclúyelos desde el borrador:\n"
+    )
+
     # Instrucciones contextuales por componente
     # (cuándo y dónde usar cada uno — no duplica el HTML template)
     _USAGE_HINTS = {
-        'toc': "Colócala después del H2 principal, antes del primer <section>.",
+        'toc': "OBLIGATORIO. Colócala después del H2 principal, antes del primer <section>. Sin TOC, el output será marcado como ERROR CRÍTICO en Stage 2.",
         'table': "Úsala para comparar productos o características de forma visual.",
         'light_table': "Usa la Light Table (CSS Grid) cuando necesites más control de columnas o filas alternas.",
         'comparison_table': "Ideal para comparar 2-3 productos lado a lado con columna destacada.",
         'callout': "Usa callouts para tips, advertencias o información clave. 1-3 por artículo.",
         'callout_promo': "Para destacar ofertas especiales, promociones o campañas. Máximo 1 por artículo.",
         'callout_alert': "Para avisos urgentes, fechas límite o alertas críticas. Máximo 1 por artículo. Fondo naranja con borde oscuro.",
-        'verdict': "OBLIGATORIO al final del artículo. Escríbelo como un párrafo redaccional con opinión propia, no como un resumen con viñetas. Usa un tono conversacional: como si le dijeras a un amigo 'mira, la verdad es que...'. Evita listas, bullets o estructuras rígidas dentro del veredicto. El H2 puede ser 'Nuestro veredicto', 'Entonces, ¿merece la pena?' o similar — no siempre 'Nuestro veredicto'.",
+        'verdict': "OBLIGATORIO al final del artículo. Sin veredicto, el output será marcado como ERROR CRÍTICO en Stage 2. Escríbelo como un párrafo redaccional con opinión propia, no como un resumen con viñetas. Usa un tono conversacional: como si le dijeras a un amigo 'mira, la verdad es que...'. Evita listas, bullets o estructuras rígidas dentro del veredicto. El H2 puede ser 'Nuestro veredicto', 'Entonces, ¿merece la pena?' o similar — no siempre 'Nuestro veredicto'.",
         'grid': "Para mostrar múltiples productos o características en rejilla de 2-3 columnas.",
         'badges': "Para tags de categorías, filtros o etiquetas inline dentro de secciones.",
         'buttons': "Para CTAs de producto — usar dentro de grids, cards o al final de secciones.",
-        'faqs': "Sección de preguntas frecuentes al final del artículo. 4-8 preguntas relevantes. Dentro de <article class='contentGenerator__faqs'>.",
+        'faqs': "OBLIGATORIO. Sección de preguntas frecuentes al final del artículo, 4-8 preguntas relevantes, dentro de <article class='contentGenerator__faqs'>. Sin FAQs, el output será marcado como ERROR CRÍTICO en Stage 2.",
         'intro_box': "Párrafo introductorio destacado con fondo gris. Va antes de la TOC. Resume la propuesta de valor.",
         'check_list': "Lista con checkmarks (✓) naranja. Para requisitos, compatibilidades o verificaciones.",
         'specs_list': "Ficha técnica con pares clave-valor en filas. Para especificaciones de producto.",
