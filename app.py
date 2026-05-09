@@ -104,32 +104,32 @@ except ImportError:
 try:
     from ui.inputs import render_content_inputs
     _inputs_available = True
-except ImportError:
-    logger.warning("No se pudo importar ui.inputs")
+except ImportError as e:
+    logger.error(f"No se pudo importar ui.inputs: {e}")
     _inputs_available = False
     render_content_inputs = None
 
 try:
     from ui.rewrite import render_rewrite_section
     _rewrite_ui_available = True
-except ImportError:
-    logger.warning("No se pudo importar ui.rewrite")
+except ImportError as e:
+    logger.error(f"No se pudo importar ui.rewrite: {e}")
     _rewrite_ui_available = False
     render_rewrite_section = None
 
 try:
     from ui.results import render_results_section
     _results_available = True
-except ImportError:
-    logger.warning("No se pudo importar ui.results")
+except ImportError as e:
+    logger.warning(f"No se pudo importar ui.results: {e}")
     _results_available = False
     render_results_section = None
 
 try:
     from ui.sidebar import render_sidebar
     _sidebar_available = True
-except ImportError:
-    logger.warning("No se pudo importar ui.sidebar")
+except ImportError as e:
+    logger.warning(f"No se pudo importar ui.sidebar: {e}")
     _sidebar_available = False
     render_sidebar = None
 
@@ -144,8 +144,8 @@ try:
         parse_generation_params,
     )
     _assistant_available = True
-except ImportError:
-    logger.warning("No se pudo importar ui.assistant")
+except ImportError as e:
+    logger.error(f"No se pudo importar ui.assistant: {e}")
     _assistant_available = False
 
 # OpenAI para corrección dual
@@ -373,7 +373,8 @@ def _render_rewrite_guide() -> None:
 try:
     from ui.verify import render_verify_mode
     _verify_ui_available = True
-except ImportError:
+except ImportError as e:
+    logger.error(f"No se pudo importar ui.verify: {e}")
     _verify_ui_available = False
     render_verify_mode = None
 
@@ -415,6 +416,7 @@ def render_assistant_mode() -> None:
         return
     
     if not _generator_available or ContentGenerator is None:
+        logger.error("ContentGenerator no instanciado en modo asistente — revisar API key de Claude e import de core.generator")
         st.error("❌ ContentGenerator no disponible. Se requiere la API de Claude.")
         return
     
