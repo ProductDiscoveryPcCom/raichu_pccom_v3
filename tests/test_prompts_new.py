@@ -137,6 +137,80 @@ def test_stage1_uses_real_when_feedback_present():
     assert "PERFILES DE USO" not in prompt
 
 
+# ============================================================================
+# R2.4: Stage 2 condensado y validaciones críticas preservadas
+# ============================================================================
+
+_STAGE2_CRITICAL_MARKERS = [
+    # Estructura CMS (R1.3 follow-up — no debe perderse)
+    "contentGenerator__main",
+    "contentGenerator__faqs",
+    "contentGenerator__verdict",
+    # Anti-IA referenciado vía constante canónica
+    "ANTI-IA",
+    # Excepciones por arquetipo R1.4 (provienen de ANTI_IA_CHECKLIST_STAGE2)
+    "ARQ-16",
+    "ARQ-19",
+    "ARQ-20",
+    # Keyword/SEO
+    "primeras 100 palabras",
+    "densidad",
+    # Output JSON estructurado
+    "json",
+]
+
+
+def test_stage2_preserves_critical_validations(sample_arquetipo):
+    """R2.4: Stage 2 condensado debe seguir mencionando los markers críticos."""
+    draft = "<article class='contentGenerator__main'><p>Demo.</p></article>"
+    prompt = build_new_content_correction_prompt_stage2(
+        draft_content=draft,
+        target_length=1500,
+        keyword="portatil gaming",
+        visual_elements=["toc", "table"],
+        arquetipo_code=sample_arquetipo["code"],
+        arquetipo_structure=sample_arquetipo["structure"],
+    )
+    missing = [m for m in _STAGE2_CRITICAL_MARKERS if m.lower() not in prompt.lower()]
+    assert not missing, f"Stage 2 perdió markers críticos: {missing}"
+
+
+def test_stage2_prompt_under_token_budget():
+    """R2.4: Stage 2 condensado debe estar bajo presupuesto razonable.
+
+    Aproximación: len // 4 ≈ tokens. Threshold conservador (5000) que detecta
+    regresiones grandes pero permite inputs grandes (draft hasta 12000 chars).
+    """
+    draft = "<article>" + ("Texto de relleno. " * 200) + "</article>"
+    prompt = build_new_content_correction_prompt_stage2(
+        draft_content=draft,
+        target_length=1500,
+        keyword="monitor gaming",
+        links_to_verify=[{"anchor": "review", "url": "https://x"}],
+        visual_elements=["toc", "table", "callout"],
+    )
+    approx_tokens = len(prompt) // 4
+    assert approx_tokens < 5000, f"Stage 2 demasiado grande: ~{approx_tokens} tokens"
+
+
+def test_stage2_uses_canonical_anti_ia_checklist():
+    """R2.4: Stage 2 inyecta el checklist anti-IA canónico de brand_tone.py."""
+    from prompts.brand_tone import ANTI_IA_CHECKLIST_STAGE2
+    prompt = build_new_content_correction_prompt_stage2(
+        draft_content="<article>x</article>", keyword="test",
+    )
+    # Una frase específica que sólo aparece en el checklist canónico
+    assert "Cabe mencionar" in prompt
+    # Debe contener el bloque (puede estar normalizado por f-string, comprueba subset)
+    assert "Excepciones permitidas" in prompt
+
+
+def test_get_css_styles_uses_module_constant():
+    """R2.4: get_css_styles() retorna la constante cacheada al import."""
+    from prompts.new_content import get_css_styles, _CACHED_CSS_FOR_PROMPT_NO_ARGS
+    assert get_css_styles() is _CACHED_CSS_FOR_PROMPT_NO_ARGS
+
+
 def test_stage1_omits_engagement_block_when_arquetipo_not_in_set():
     """Si el arquetipo NO está en ARQUETIPOS_CON_MINI_STORIES, se usa el bloque mínimo."""
     # ARQ-2 (Guía Paso a Paso) no está en el set

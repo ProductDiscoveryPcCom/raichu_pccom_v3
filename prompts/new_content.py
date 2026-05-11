@@ -138,13 +138,13 @@ Ejemplo INCORRECTO (no hacer): "María, 24 años, nos cuenta: 'Este portátil me
 try:
     from prompts.brand_tone import (
         get_tone_instructions, get_system_prompt_base, EJEMPLOS_TONO_STAGE3,
-        build_archetype_instructions
+        build_archetype_instructions, ANTI_IA_CHECKLIST_STAGE2,
     )
 except ImportError:
     try:
         from brand_tone import (
             get_tone_instructions, get_system_prompt_base, EJEMPLOS_TONO_STAGE3,
-            build_archetype_instructions
+            build_archetype_instructions, ANTI_IA_CHECKLIST_STAGE2,
         )
     except ImportError:
         # Fallback inline si no existen las funciones
@@ -153,6 +153,7 @@ except ImportError:
         def get_system_prompt_base() -> str:
             return "Eres un redactor SEO experto de PcComponentes."
         EJEMPLOS_TONO_STAGE3 = ""
+        ANTI_IA_CHECKLIST_STAGE2 = ""
         def build_archetype_instructions(arquetipo_code: str) -> str:
             return ""
 
@@ -1948,16 +1949,13 @@ def build_new_content_correction_prompt_stage2(
 # CHECKLIST DE VERIFICACIÓN
 
 ## 1. TONO DE MARCA PCCOMPONENTES
-- [ ] ¿Suena a PcComponentes? (cercano, experto, con chispa)
-- [ ] ¿Tutea al lector de forma natural?
-- [ ] ¿Es honesto sobre pros y contras?
+- [ ] ¿Suena a PcComponentes? (cercano, experto, con chispa, tutea con naturalidad)
 - [ ] ¿Tiene personalidad o suena genérico?
+- [ ] ¿Es honesto sobre pros y contras?
 
 ## 2. ANTI-IA (CRÍTICO)
-- [ ] ¿Evita "En el mundo actual...", "Sin lugar a dudas..."?
-- [ ] ¿Evita adjetivos vacíos (increíble, revolucionario)?
-- [ ] ¿Varía la estructura de los párrafos?
-- [ ] ¿El veredicto aporta valor o solo resume?
+Aplica el checklist canónico de anti-IA (incluye excepciones de años/urgencia para arquetipos promocionales ARQ-16/19/20):
+{ANTI_IA_CHECKLIST_STAGE2}
 
 ## 3. ESTRUCTURA HTML
 - [ ] ¿Empieza con <style> (NO con ```html)?
@@ -2277,9 +2275,17 @@ def build_system_prompt() -> str:
     return get_system_prompt_base()
 
 
+# R2.4: constante a nivel módulo, evaluada una vez al import.
+# Caso "sin args" (todos los componentes) — usado por get_css_styles() y por
+# cualquier consumidor que necesite el CSS canónico completo. Cachear así evita
+# re-evaluar el tree-shaking + minify en cada llamada. Preferimos constante a
+# @lru_cache porque es más explícita y no enmascara hot-reload en dev.
+_CACHED_CSS_FOR_PROMPT_NO_ARGS = _get_css_for_prompt()
+
+
 def get_css_styles() -> str:
     """Retorna el CSS minificado (usa design_system si disponible)."""
-    return _get_css_for_prompt()
+    return _CACHED_CSS_FOR_PROMPT_NO_ARGS
 
 
 def get_element_template(name: str) -> str:
