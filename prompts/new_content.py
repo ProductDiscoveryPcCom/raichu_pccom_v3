@@ -77,6 +77,63 @@ ARQUETIPOS_CON_MINI_STORIES = {
     "ARQ-33",  # Movilidad y Gadgets
 }
 
+
+def _build_real_mini_stories_block() -> str:
+    """Bloque ENGAGEMENT con mini-historias basadas en reviews REALES (R3.3).
+
+    Activado cuando hay feedback de usuarios (advantages/disadvantages/comments)
+    en los datos del producto.
+    """
+    return """## ENGAGEMENT: MINI-HISTORIAS Y CTAs DISTRIBUIDOS
+
+### Mini-historias (INCLUIR 2-3 por artículo)
+Incluye 2-3 mini-escenarios BASADOS EN LAS REVIEWS REALES de los productos. Usa:
+- Una **persona concreta** (nombres españoles: María, Carlos, Laura, Pedro...)
+- Una **situación específica** con detalles (presupuesto, uso, problema concreto) inspirados en las opiniones reales
+- Un **resultado claro** que ilustre el punto de la sección (50-100 palabras cada una)
+
+IMPORTANTE: Las mini-historias deben reflejar experiencias de las reviews reales de los usuarios.
+No inventes escenarios genéricos; basa cada historia en ventajas, desventajas u opiniones concretas del producto.
+
+Distribución: una al inicio (enganchar), una en el medio (re-enganchar), una cerca del final (reforzar).
+
+Ejemplo: "Carlos buscaba un portátil para edición de vídeo con un presupuesto de 1.200€. Empezó con 8 GB de RAM y cada proyecto tardaba 3 horas en renderizar. Tras pasarse a 32 GB y SSD NVMe, el mismo proyecto tarda 40 minutos.\""""
+
+
+def _build_synthetic_mini_stories_block() -> str:
+    """Bloque ENGAGEMENT con PERFILES DE USO sintéticos (R3.3 fallback sin reviews).
+
+    Activado cuando el arquetipo se beneficia de mini-historias pero el producto
+    no tiene reviews/feedback. Reemplaza testimonios fabricados por descripciones
+    hipotéticas de perfiles de usuario, ancladas en specs reales del producto.
+
+    Constraints (ver plan R3.3): perfiles no testimonios; tono hipotético
+    explícito; sin nombres propios ni comillas de review fake; anclado en specs.
+    """
+    return """## ENGAGEMENT: PERFILES DE USO Y CTAs DISTRIBUIDOS
+
+### Perfiles de uso (INCLUIR 2-3 por artículo)
+Como NO disponemos de reviews reales del producto, incluye 2-3 **perfiles de uso hipotéticos**
+que muestren para quién encaja este producto. Estas NO son testimonios — son descripciones
+de casos de uso ancladas en las specs reales.
+
+**Reglas obligatorias:**
+
+1. **Perfiles, no testimonios.** Estructura: "Para un usuario que [perfil concreto], este producto resuelve [problema concreto] gracias a [spec real]."
+2. **2-3 perfiles diferenciados** que cubran distintos use-cases del producto (ej: estudiante, profesional, gamer casual).
+3. **Tono hipotético explícito.** Usa "puede encajar para...", "es una buena opción si...", "se ajusta bien al uso de...". NUNCA "Juan, 32 años, dice que..." ni comillas con frases de review.
+4. **Anclados en specs reales** del producto (precio, performance, conectividad, peso, autonomía), no en emociones inventadas.
+5. **NUNCA inventes nombres propios, edades, citas textuales ni reviews falsas.** No marques este bloque como "review", "testimonio" ni "opinión de cliente".
+
+**Encabezado:** "¿Para quién encaja?" o "Perfiles de uso" (no "Testimonios" ni "Reviews").
+
+Distribución: una al inicio (enganchar), una en el medio (re-enganchar), una cerca del final (reforzar).
+
+Ejemplo correcto: "Para un estudiante de diseño que necesita editar fotos en Lightroom sin moverse del escritorio, este equipo encaja por su pantalla calibrada de fábrica y los 32 GB de RAM, que evitan los cuellos de botella habituales con catálogos grandes."
+
+Ejemplo INCORRECTO (no hacer): "María, 24 años, nos cuenta: 'Este portátil me cambió la vida...'"
+"""
+
 # Importar constantes de tono desde prompts.brand_tone (fuente única de tono)
 try:
     from prompts.brand_tone import (
@@ -1310,31 +1367,19 @@ Usa los datos de estas fuentes como VERDAD ABSOLUTA. Si hay conflicto entre esta
         arquetipo_detail += f"\n**Estructura recomendada del arquetipo:**\n{structure_items}\n"
 
     # Determinar si incluir mini-historias:
-    # Solo si (1) el arquetipo lo requiere Y (2) hay reviews/feedback de usuarios
+    # - Si el arquetipo lo requiere Y hay reviews/feedback → mini-historias REALES
+    # - Si el arquetipo lo requiere Y NO hay feedback → PERFILES DE USO sintéticos
+    #   (R3.3: fallback sin reviews para no perder dimensión humana en ARQ-4/5/etc.)
     arquetipo_code = arquetipo.get('code', '')
     archetype_specific_section = build_archetype_instructions(arquetipo_code)
-    include_mini_stories = (
-        arquetipo_code in ARQUETIPOS_CON_MINI_STORIES
-        and has_feedback
-    )
+    needs_mini_stories = arquetipo_code in ARQUETIPOS_CON_MINI_STORIES
 
-    # Construir sección de engagement condicionalmente
-    engagement_section = "## ENGAGEMENT: CTAs DISTRIBUIDOS"
-    if include_mini_stories:
-        engagement_section = """## ENGAGEMENT: MINI-HISTORIAS Y CTAs DISTRIBUIDOS
-
-### Mini-historias (INCLUIR 2-3 por artículo)
-Incluye 2-3 mini-escenarios BASADOS EN LAS REVIEWS REALES de los productos. Usa:
-- Una **persona concreta** (nombres españoles: María, Carlos, Laura, Pedro...)
-- Una **situación específica** con detalles (presupuesto, uso, problema concreto) inspirados en las opiniones reales
-- Un **resultado claro** que ilustre el punto de la sección (50-100 palabras cada una)
-
-IMPORTANTE: Las mini-historias deben reflejar experiencias de las reviews reales de los usuarios.
-No inventes escenarios genéricos; basa cada historia en ventajas, desventajas u opiniones concretas del producto.
-
-Distribución: una al inicio (enganchar), una en el medio (re-enganchar), una cerca del final (reforzar).
-
-Ejemplo: "Carlos buscaba un portátil para edición de vídeo con un presupuesto de 1.200€. Empezó con 8 GB de RAM y cada proyecto tardaba 3 horas en renderizar. Tras pasarse a 32 GB y SSD NVMe, el mismo proyecto tarda 40 minutos.\""""
+    if needs_mini_stories and has_feedback:
+        engagement_section = _build_real_mini_stories_block()
+    elif needs_mini_stories:
+        engagement_section = _build_synthetic_mini_stories_block()
+    else:
+        engagement_section = "## ENGAGEMENT: CTAs DISTRIBUIDOS"
 
     # Construir prompt
     prompt = f"""Eres un redactor SEO de PcComponentes, la tienda líder de tecnología en España.
