@@ -25,16 +25,19 @@ Raichu v5.1.0 cerró con éxito las olas P0/P1/P2/P3/P4 (ver §5). El proyecto e
 
 | Eje | S1 | S2 | S3 | Total abiertos |
 |-----|----|----|----|----------------|
-| Performance y coste de API | 0 | 1 | 0 | 1 |
-| Calidad de output y prompts | 0 | 2 | 2 | 4 |
-| UX / Streamlit / session state | 0 | 0 | 1 | 1 |
+| Performance y coste de API | 0 | 0 | 0 | 0 |
+| Calidad de output y prompts | 0 | 0 | 0 | 0 |
+| UX / Streamlit / session state | 0 | 0 | 0 | 0 |
 | Seguridad / tests / deuda técnica | 0 | 0 | 0 | 0 |
-| **Total** | **0** | **3** | **3** | **6** |
+| **Total** | **0** | **0** | **0** | **0** |
 
 **Cerrados en Fase 1 (2026-04-29):** R1.2, R1.3, R1.4, R1.5, R1.6, R1.7, R3.5 (7 items).
 **Cerrados en Fase 2 (2026-05-08):** R1.1, R2.1, R2.3 (3 items).
 **Cerrados en Fase 3 (2026-05-09):** R2.7, R2.8, R2.9 (3 items).
 **Cerrados en Fase 5 (2026-05-09):** R2.6, R3.1, R3.4, R3.6, R3.7, R3.8 (6 items).
+**Cerrados en Fase 4 (2026-05-11):** R2.2 (descartado tras análisis cuantitativo), R2.4, R2.5, R3.2, R3.3 (5 items).
+
+**`roadmap-2026-04.md` está cerrado.** Todos los items se han completado o descartado documentadamente. Próximas auditorías deben crear un nuevo documento (`roadmap-2026-MM.md`).
 
 **Esfuerzo agregado estimado:** ~8-11 días de ingeniería.
 
@@ -164,7 +167,9 @@ time.sleep(current_delay + jitter)
 
 ---
 
-### R2.2 — System prompt sin compresión modular ⬜
+### R2.2 — System prompt sin compresión modular ✅ DONE (2026-05-11, descartado)
+**Verificación cuantitativa (chars/3.5 ≈ tokens):** `get_system_prompt_base()` mide ~1331 chars ≈ **380 tokens** (no 1200 como decía el audit). El cache actual de R1.2 ahorra ~589 tokens/generación (1141 sin cache vs 551 con cache). Modularizar por stage podría ahorrar ~230 tokens (eliminando bloques irrelevantes para Stage 2/3) pero **rompería el cache hit**, perdiendo ~359 tokens netos. La opción híbrida (base cacheado + delta no cacheado) tampoco compensa: con un delta de 80 tokens/stage, el coste neto es ~124 tokens más que el status quo. **Decisión: mantener system monolítico, descartar R2.2.** Las duplicaciones con `ANTI_IA_CHECKLIST_STAGE2` y `REGLAS_CRITICAS_COMUNES` ya quedaron consolidadas en R2.4 (Stage 2 referencia el checklist canónico, no copia bullets).
+
 **Eje:** Performance · **Esfuerzo:** M · **Archivo:** [prompts/brand_tone.py:266-297](../prompts/brand_tone.py#L266-L297)
 
 `get_system_prompt_base()` retorna ~1200 tokens sin diferenciar etapas. Stage 1 ≠ Stage 2 ≠ Stage 3 en necesidades. Instrucciones duplicadas con `ANTI_IA_CHECKLIST_STAGE2` y `REGLAS_CRITICAS_COMUNES`.
@@ -190,7 +195,9 @@ if self._failure_count > 5:
 
 ---
 
-### R2.4 — Prompt bloat Stage 1 ⬜
+### R2.4 — Prompt bloat Stage 1 ✅ DONE (2026-05-11)
+**Cambio:** Stage 2 condensado: secciones inline 1 (Tono) y 2 (Anti-IA) sustituidas por referencia al checklist canónico `ANTI_IA_CHECKLIST_STAGE2` (`prompts/brand_tone.py`), eliminando duplicación. Conservadas las secciones generation-specific (estructura HTML CMS R1.3, SEO/keyword, elementos visuales, datos de producto). Stage 2 sigue retornando JSON estructurado; el shift a JSON schema formal queda diferido (no es scope de R2.4). CSS cacheado al import: nueva constante `_CACHED_CSS_FOR_PROMPT_NO_ARGS` evaluada una vez; `get_css_styles()` la retorna en lugar de invocar `_get_css_for_prompt()` repetidamente. `_CSS_FALLBACK` ya quedó consolidado en design_system.py vía R3.2. 4 tests nuevos cubren markers críticos preservados, presupuesto de tokens y uso de la constante.
+
 **Eje:** Prompts · **Esfuerzo:** M · **Archivo:** [prompts/new_content.py](../prompts/new_content.py) (2330 líneas)
 
 Stage 1 incluye CSS fallback inline (L113-120), design_system templates (L1098-1122), instrucciones arquetípicas repetidas. ~30-40% de tokens en boilerplate. Stage 2 revalida el mismo checklist redundantemente.
@@ -199,7 +206,11 @@ Stage 1 incluye CSS fallback inline (L113-120), design_system templates (L1098-1
 
 ---
 
-### R2.5 — `guiding_questions` pobres en arquetipos trend/news ⬜
+### R2.5 — `guiding_questions` pobres en arquetipos trend/news ✅ DONE (2026-05-11)
+**Verificación:** Auditoría real del catálogo (37 arquetipos, no 34) muestra que todos cumplen el mínimo: rango 6–10 `guiding_questions` por arquetipo. El audit estaba desactualizado (alguien enriqueció después de la auditoría). Cambios:
+- Helper `validate_arquetipo_completeness(code)` en [config/arquetipos.py](../config/arquetipos.py) con WARNING blando (no raise) si <`MIN_GUIDING_QUESTIONS=6`. Detecta arquetipos a medias en startup sin romper producción.
+- 3 tests nuevos en [tests/test_arquetipos.py](../tests/test_arquetipos.py): `test_all_arquetipos_have_min_guiding_questions` (asserta ≥6 sin universales para los 37), `test_validate_arquetipo_completeness_returns_true_for_all`, `test_validate_arquetipo_completeness_unknown_code`.
+
 **Eje:** Prompts · **Esfuerzo:** S · **Archivo:** [config/arquetipos.py:398-401](../config/arquetipos.py#L398-L401)
 
 Todos los 34 arquetipos tienen `guiding_questions`, pero calidad varía:
@@ -276,7 +287,9 @@ Si OpenAI falla, Claude se usa pero 2× logging + JSON merge innecesario (copia)
 
 ---
 
-### R3.2 — CSS drift entre 3 archivos ⬜
+### R3.2 — CSS drift entre 3 archivos ✅ DONE (2026-05-11)
+**Cambio:** Nueva función `get_canonical_css()` en [config/design_system.py](../config/design_system.py) con el string CSS minificado canónico. [prompts/new_content.py](../prompts/new_content.py): `_CSS_FALLBACK` ahora es `get_canonical_css()` (asignación de referencia, byte-equivalente al string anterior). `CSS_INLINE_MINIFIED` preservado como alias retro-compat para tests existentes (`test_fixes.py`, `test_tables.py`, `test_visual_elements_and_serp.py`). Verificado que [prompts/templates.py](../prompts/templates.py) NO tenía CSS inline duplicado (usa `SafeTemplate` con references a clases CSS sin incrustar el CSS real) → esa parte del item resultó N/A. 4 tests nuevos en `tests/test_design_system_consistency.py`.
+
 **Eje:** Prompts · **Esfuerzo:** M · **Archivos:** [prompts/new_content.py:113-120](../prompts/new_content.py#L113-L120), [prompts/templates.py:44](../prompts/templates.py#L44), `config/design_system.py`
 
 `_CSS_FALLBACK` en Stage 1 es minificado legacy. `templates.py` define otro fallback. Design system vars (`--orange-900`, `--blue-m-900`) duplicadas en 3 sitios.
@@ -285,7 +298,9 @@ Si OpenAI falla, Claude se usa pero 2× logging + JSON merge innecesario (copia)
 
 ---
 
-### R3.3 — Mini-stories sin fallback sintético ⬜
+### R3.3 — Mini-stories sin fallback sintético ✅ DONE (2026-05-11)
+**Cambio:** Extraídos dos helpers en [prompts/new_content.py](../prompts/new_content.py): `_build_real_mini_stories_block()` (texto previo, basado en reviews) y `_build_synthetic_mini_stories_block()` (nuevo, "Perfiles de uso" hipotéticos). La rama de decisión en `build_new_content_prompt_stage1` ahora cubre 3 casos: arquetipo en set + feedback → real; arquetipo en set + sin feedback → sintético; resto → bloque mínimo CTAs. El bloque sintético declara explícitamente 5 constraints anti-fake en el prompt (perfiles no testimonios, tono hipotético, sin nombres propios ni citas, anclado en specs). 5 tests nuevos en `tests/test_prompts_new.py`. Validación manual de calidad de las mini-stories sintéticas: pendiente como puerta pre-merge (ver `docs/validation/phase4-manual-...md` cuando se ejecute).
+
 **Eje:** Prompts · **Esfuerzo:** S · **Archivo:** [prompts/new_content.py:57-68](../prompts/new_content.py#L57-L68)
 
 `ARQUETIPOS_CON_MINI_STORIES` activa mini-historias solo si `has_feedback=True`. Si producto no tiene reviews, ARQ-4/ARQ-5 pierden personas → contenido más genérico.
