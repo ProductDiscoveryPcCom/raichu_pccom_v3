@@ -1380,6 +1380,31 @@ def get_universal_questions() -> List[str]:
     return PREGUNTAS_UNIVERSALES.copy()
 
 
+MIN_GUIDING_QUESTIONS = 6
+
+
+def validate_arquetipo_completeness(code: str) -> bool:
+    """Verifica que un arquetipo tenga al menos MIN_GUIDING_QUESTIONS preguntas.
+
+    No lanza excepciones — sólo loguea WARNING. El flujo no debe romperse en
+    producción si alguien añade un arquetipo a medias. Usado por tests y por
+    el pipeline para detectar arquetipos incompletos en startup.
+    """
+    arquetipo = ARQUETIPOS.get(code)
+    if not arquetipo:
+        logger.warning("validate_arquetipo_completeness: código desconocido '%s'", code)
+        return False
+    n = len(arquetipo.get("guiding_questions", []))
+    if n < MIN_GUIDING_QUESTIONS:
+        logger.warning(
+            "Arquetipo %s tiene sólo %d guiding_questions (mínimo recomendado: %d). "
+            "Considera enriquecer la lista para mejorar el contexto del prompt.",
+            code, n, MIN_GUIDING_QUESTIONS,
+        )
+        return False
+    return True
+
+
 def get_structure(code: str) -> List[str]:
     """Obtiene la estructura recomendada para un arquetipo."""
     arquetipo = ARQUETIPOS.get(code)

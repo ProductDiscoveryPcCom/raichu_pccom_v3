@@ -1,7 +1,14 @@
 """
 Tests for config/arquetipos.py — archetype schema validation.
 """
-from config.arquetipos import ARQUETIPOS, get_arquetipo, get_arquetipo_names
+from config.arquetipos import (
+    ARQUETIPOS,
+    MIN_GUIDING_QUESTIONS,
+    get_arquetipo,
+    get_arquetipo_names,
+    get_guiding_questions,
+    validate_arquetipo_completeness,
+)
 
 
 REQUIRED_KEYS = {
@@ -44,3 +51,25 @@ def test_get_arquetipo_names():
     for code, name in names.items():
         assert isinstance(name, str)
         assert name  # non-empty
+
+
+def test_all_arquetipos_have_min_guiding_questions():
+    """R2.5: cada arquetipo debe tener al menos MIN_GUIDING_QUESTIONS preguntas
+    específicas (sin contar las universales). Si baja, ajustar arquetipos.py."""
+    failures = []
+    for code in ARQUETIPOS:
+        questions = get_guiding_questions(code, include_universal=False)
+        if len(questions) < MIN_GUIDING_QUESTIONS:
+            failures.append(f"{code}: {len(questions)} preguntas (mínimo {MIN_GUIDING_QUESTIONS})")
+    assert not failures, "Arquetipos con guiding_questions insuficientes:\n  " + "\n  ".join(failures)
+
+
+def test_validate_arquetipo_completeness_returns_true_for_all():
+    """R2.5: validate_arquetipo_completeness no debe disparar WARNING en ningún arquetipo del catálogo."""
+    for code in ARQUETIPOS:
+        assert validate_arquetipo_completeness(code), f"{code} falla validación de completeness"
+
+
+def test_validate_arquetipo_completeness_unknown_code():
+    """validate_arquetipo_completeness retorna False para códigos desconocidos sin lanzar."""
+    assert validate_arquetipo_completeness("ARQ-999") is False
