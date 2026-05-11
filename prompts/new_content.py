@@ -109,54 +109,13 @@ except ImportError:
 # - Callouts: padding ajustado, p:last-child sin margin, responsive
 # ============================================================================
 
-# CSS_INLINE_MINIFIED ahora se carga dinámicamente desde design_system.py
-# Fallback hardcodeado solo si design_system no está disponible
-_CSS_FALLBACK = """:root{--orange-900:#FF6000;--blue-m-900:#170453;--white:#FFFFFF;--gray-100:#F5F5F5;--gray-200:#E5E5E5;--gray-700:#404040;--gray-900:#171717;--space-md:16px;--space-lg:24px;--space-xl:32px;--radius-md:8px;}
-.contentGenerator__main,.contentGenerator__faqs,.contentGenerator__verdict{font-family:'Open Sans',sans-serif;line-height:1.7;color:var(--gray-900);max-width:100%;}
-.contentGenerator__main h2,.contentGenerator__main h3{margin-bottom:var(--space-lg);}
-.kicker{display:inline-block;background:var(--orange-900);color:var(--white);padding:4px 12px;font-size:12px;font-weight:700;text-transform:uppercase;border-radius:4px;margin-bottom:16px;}
-.toc{background:var(--gray-100);border-radius:var(--radius-md);padding:var(--space-lg);margin:var(--space-lg) 0;}
-.toc__title{font-weight:700;margin-bottom:12px;}.toc__list{margin:0;padding-left:20px;}.toc__list li{margin-bottom:8px;}
-.faqs__item{border-bottom:1px solid var(--gray-200);padding:var(--space-md) 0;}.faqs__question{font-weight:600;margin-bottom:8px;}
-.verdict-box{background:linear-gradient(135deg,var(--blue-m-900),#2E1A7A);color:var(--white);padding:var(--space-xl);border-radius:var(--radius-md);margin-top:var(--space-lg);}
-.verdict-box a{color:#FFD700;text-decoration:underline;}.verdict-box a:hover{color:var(--white);}.verdict-box p:last-child{margin-bottom:0;}
-.callout{background:var(--gray-100);border-left:4px solid var(--orange-900);padding:var(--space-md) var(--space-lg);margin:var(--space-lg) 0;border-radius:0 var(--radius-md) var(--radius-md) 0;}.callout p:last-child{margin-bottom:0;}
-.callout-bf{background:linear-gradient(135deg,#FF6000,#FF8533);color:var(--white);padding:var(--space-lg);border-radius:var(--radius-md);text-align:center;margin:var(--space-lg) 0;}
-.callout-alert{background:linear-gradient(135deg,#FF6000,#FF8533);color:var(--white);padding:var(--space-lg);border-radius:var(--radius-md);text-align:center;margin:var(--space-lg) 0;border-left:6px solid #CC4D00;}
-.callout-alert p:first-of-type{font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;font-size:1.2em;}
-table{width:100%;border-collapse:collapse;margin:var(--space-lg) 0;table-layout:fixed;font-size:15px;}
-thead th{background:var(--gray-100);font-weight:700;text-align:left;padding:12px 16px;border-bottom:2px solid var(--gray-200);}
-tbody td{padding:10px 16px;text-align:left;border-bottom:1px solid var(--gray-200);}
-tbody tr:hover{background:rgba(0,0,0,0.02);}
-.table-responsive{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:var(--space-lg) 0;}
-.table-responsive table{margin:0;}
-@media(max-width:768px){table{table-layout:auto;font-size:14px;}thead th,tbody td{padding:8px 10px;}.table-responsive{border:1px solid var(--gray-200);border-radius:var(--radius-md);}}
-.grid{display:grid;gap:16px;margin:var(--space-lg) 0;}
-.grid-layout{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--space-lg);margin-top:var(--space-lg);}
-.grid-item{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-md);padding:var(--space-md) var(--space-lg);}
-.grid-item.destacado{border:2px solid var(--orange-900);position:relative;}.grid-item.destacado::before{content:'DESTACADO';position:absolute;top:-10px;left:20px;background:var(--orange-900);color:var(--white);padding:2px 8px;font-size:11px;border-radius:4px;}
-.intro{font-size:17px;color:#1a1a1a;margin-bottom:32px;padding:20px;background-color:var(--gray-100);border-radius:var(--radius-md);line-height:1.8;}
-.check-list{list-style:none;padding-left:0;}.check-list li{padding-left:28px;position:relative;margin-bottom:12px;}.check-list li::before{content:"✓";position:absolute;left:0;color:var(--orange-900);font-weight:700;font-size:18px;}
-.specs-list{background-color:var(--gray-100);padding:20px 24px;border-radius:var(--radius-md);margin:28px 0;}.specs-list h4{font-weight:600;margin:0 0 14px 0;}.specs-list ul{list-style:none;margin:0;padding:0;}.specs-list ul li{padding:8px 0;border-bottom:1px solid #e0e0e0;display:flex;justify-content:space-between;font-size:15px;}.specs-list ul li:last-child{border-bottom:none;}
-.product-module{background:var(--gray-100);padding:var(--space-lg);border-radius:var(--radius-md);margin:var(--space-lg) 0;border-left:4px solid var(--orange-900);}.product-module h4{margin-top:0;margin-bottom:12px;color:var(--orange-900);}.product-module a{color:var(--orange-900);font-weight:600;}
-.video-container{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;margin:28px 0;border-radius:var(--radius-md);}.video-container iframe{position:absolute;top:0;left:0;width:100%;height:100%;border-radius:var(--radius-md);}
-.price-highlight{background:linear-gradient(90deg,#FF6000,#FF8640);color:var(--white);padding:20px 28px;border-radius:var(--radius-md);margin:28px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}.price-highlight .price{font-size:28px;font-weight:700;}.price-highlight .price-label{font-size:14px;color:rgba(255,255,255,0.9);}
-.compact-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--space-md);margin:var(--space-lg) 0;}
-.compact-card{background:var(--white);border-top:3px solid var(--orange-900);padding:var(--space-md);box-shadow:0 1px 4px rgba(0,0,0,0.08);}
-.compact-card__title{font-size:15px;font-weight:700;margin:0 0 10px 0;color:var(--ink,#171717);display:flex;align-items:center;gap:10px;}
-.compact-card__icon{width:28px;height:28px;background:var(--orange-900);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.compact-card__icon svg{width:16px;height:16px;fill:var(--white);}
-.compact-card ul{font-size:14px;margin:0;padding-left:18px;color:var(--muted,#404040);line-height:1.6;}
-.compact-card ul li{margin-bottom:4px;}.compact-card ul li:last-child{margin-bottom:0;}
-.use-cases{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--space-md);margin:var(--space-lg) 0;}
-.use-case{background:var(--gray-100);border-radius:var(--radius-md);padding:var(--space-md);border-left:3px solid var(--blue-m-900);}
-.use-case__title{font-size:14px;font-weight:700;margin:0 0 8px 0;color:var(--blue-m-900);display:flex;align-items:center;gap:10px;}
-.use-case__icon{width:26px;height:26px;background:var(--blue-m-900);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.use-case__icon svg{width:14px;height:14px;fill:var(--white);}
-.use-case p{font-size:13px;margin:0 0 8px 0;color:var(--muted,#404040);line-height:1.5;}
-.use-case p:last-child{margin-bottom:0;}.use-case strong{color:var(--ink,#171717);}
-.use-case a{color:var(--orange-900);font-weight:600;}
-@media(max-width:768px){.compact-cards,.use-cases{grid-template-columns:1fr;}}"""
+# CSS canónico: single source of truth en config/design_system.py (R3.2).
+# _CSS_FALLBACK y CSS_INLINE_MINIFIED se mantienen como alias retro-compat
+# para tests/test_tables.py, tests/test_visual_elements_and_serp.py y
+# tests/test_fixes.py que importan estos símbolos por nombre.
+from config.design_system import get_canonical_css as _get_canonical_css
+
+_CSS_FALLBACK = _get_canonical_css()
 
 
 def _get_css_for_prompt(
