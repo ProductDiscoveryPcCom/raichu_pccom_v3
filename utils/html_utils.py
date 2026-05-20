@@ -550,10 +550,20 @@ def validate_cms_articles(html_content: str) -> Dict[str, bool]:
     if not html_content:
         return {'main': False, 'faqs': False, 'verdict': False, 'all_present': False, 'missing': ['main', 'faqs', 'verdict']}
 
-    html_lower = html_content.lower()
-    has_main = 'contentgenerator__main' in html_lower
-    has_faqs = 'contentgenerator__faqs' in html_lower
-    has_verdict = 'contentgenerator__verdict' in html_lower
+    # Detectar la clase SOLO sobre etiquetas de apertura <article ...>, no en
+    # cualquier parte del documento. Un substring match ingenuo daria falso positivo
+    # cuando el <style> embebido o un html_template en comentario menciona las clases
+    # (p.ej. la regla CSS combinada de config/design_system.py).
+    def _has_article(class_name: str) -> bool:
+        return re.search(
+            r'<article\b[^>]*' + re.escape(class_name),
+            html_content,
+            re.IGNORECASE,
+        ) is not None
+
+    has_main = _has_article('contentGenerator__main')
+    has_faqs = _has_article('contentGenerator__faqs')
+    has_verdict = _has_article('contentGenerator__verdict')
 
     missing = []
     if not has_main:

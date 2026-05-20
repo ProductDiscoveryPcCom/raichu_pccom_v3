@@ -681,6 +681,31 @@ class TestAutoRetryPrompt:
         assert '<= 3' in block or '≤ 3' in block
 
 
+class TestTruncationGuard:
+    """El Stage 3 debe detectar truncación por max_tokens y reaccionar de forma
+    visible (no enmascarar), reintentando con más tokens. Source-inspection."""
+
+    def _stage3_block(self):
+        src = open("core/pipeline.py", encoding='utf-8').read()
+        idx = src.index("Etapa 3/3: Generando")
+        return src[idx:idx + 4000]
+
+    def test_detects_max_tokens_stop_reason(self):
+        block = self._stage3_block()
+        assert "stop_reason" in block and "max_tokens" in block
+
+    def test_retries_with_bigger_budget(self):
+        block = self._stage3_block()
+        # reintento con override de max_tokens
+        assert "max_tokens=_bigger" in block
+
+    def test_surfaces_error_not_masks(self):
+        block = self._stage3_block()
+        # aviso visible al usuario + check NO-OK, nunca silencioso
+        assert "st.error" in block
+        assert "Truncación" in block or "Truncaci" in block
+
+
 # ============================================================================
 # 18. Refinement context: generation_metadata injection
 # ============================================================================

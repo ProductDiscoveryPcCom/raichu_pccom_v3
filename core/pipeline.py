@@ -824,6 +824,32 @@ Formato tu respuesta de manera clara y accionable."""
             st.session_state.generation_in_progress = False
             return
 
+        # Guard de truncación: si la respuesta se cortó por límite de tokens, el HTML
+        # llega incompleto (típicamente sin el <article> verdict final y/o las FAQs).
+        # NO lo enmascaramos: avisamos de forma visible y reintentamos UNA vez con el
+        # doble de presupuesto de tokens (acotado). El fix de raíz es subir max_tokens
+        # en la configuración (>=16000 para targets de ~1800 palabras).
+        if (result.metadata or {}).get('stop_reason') == 'max_tokens':
+            _cur = getattr(generator, 'max_tokens', 8000) or 8000
+            _bigger = min(_cur * 2, 32000)
+            logger.warning(f"Stage 3 truncado (stop_reason=max_tokens, max_tokens={_cur}). Reintentando con {_bigger}")
+            status_widget.write(f"⚠️ Respuesta truncada por límite de tokens. Reintentando con {_bigger} tokens...")
+            _retry = generator.generate(stage3_prompt, system_prompt=system_prompt, max_tokens=_bigger)
+            if _retry.success and _retry.content and len(_retry.content) >= len(result.content or ""):
+                result = _retry
+            if (result.metadata or {}).get('stop_reason') == 'max_tokens':
+                logger.error(f"Stage 3 sigue truncado tras reintento con max_tokens={_bigger}")
+                st.error(
+                    f"⚠️ El contenido se truncó por el límite de tokens incluso tras reintentar con {_bigger}. "
+                    "El HTML puede estar incompleto (sin veredicto o FAQs). "
+                    "Sube `max_tokens` en la configuración (recomendado ≥16000)."
+                )
+                st.session_state.setdefault('_post_gen_checks', []).append(
+                    {'name': 'Truncación', 'ok': False, 'detail': f'stop_reason=max_tokens (max_tokens={_bigger})'})
+            else:
+                st.session_state.setdefault('_post_gen_checks', []).append(
+                    {'name': 'Truncación', 'ok': True, 'detail': f'reintento OK con {_bigger} tokens'})
+
         final_html = result.content
 
         if not final_html or len(final_html) < 100:

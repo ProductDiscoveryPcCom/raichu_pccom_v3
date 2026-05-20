@@ -404,6 +404,22 @@ def test_validate_cms_articles_empty():
     assert len(result['missing']) == 3
 
 
+def test_validate_cms_articles_css_only_is_not_present():
+    """Regresion-guard: la clase mencionada solo en el <style> (CSS) NO debe
+    contar como article presente. Detectamos la clase sobre etiquetas <article ...>,
+    no por substring en cualquier parte del documento."""
+    html = (
+        '<style>.contentGenerator__verdict{color:red}'
+        '.contentGenerator__faqs{margin:0}</style>'
+        '<article class="contentGenerator__main"><h2>x</h2></article>'
+    )
+    result = validate_cms_articles(html)
+    assert result['main'] is True
+    assert result['faqs'] is False
+    assert result['verdict'] is False
+    assert result['all_present'] is False
+
+
 # ---------------------------------------------------------------------------
 # validate_cms_structure
 # ---------------------------------------------------------------------------
