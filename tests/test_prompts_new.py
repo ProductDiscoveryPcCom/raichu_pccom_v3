@@ -11,8 +11,6 @@ from prompts.new_content import (
     build_final_prompt_stage3,
     _build_real_mini_stories_block,
     _build_synthetic_mini_stories_block,
-    _build_stage3_checklist,
-    _cms_article_skeletons,
 )
 
 
@@ -222,64 +220,3 @@ def test_stage1_omits_engagement_block_when_arquetipo_not_in_set():
     assert "PERFILES DE USO" not in prompt
     assert "MINI-HISTORIAS" not in prompt
     assert "ENGAGEMENT: CTAs DISTRIBUIDOS" in prompt
-
-
-# ============================================================================
-# Garantía estructura CMS — Capa A (prompt hardening) + C4 (mini-stories Stage 3)
-# ============================================================================
-
-def test_stage3_has_non_negotiable_cms_mandate():
-    """A1: el requisito de los 3 articles aparece como bloque NO-NEGOCIABLE antes del draft."""
-    out = build_final_prompt_stage3(
-        draft_content="<article>x</article>", analysis_feedback="{}", keyword="ssd",
-    )
-    assert "NO NEGOCIABLE" in out
-    assert "ERROR CRÍTICO" in out
-    assert all(c in out for c in [
-        "contentGenerator__main", "contentGenerator__faqs", "contentGenerator__verdict",
-    ])
-    # el mandato va antes del borrador (máxima atención del modelo)
-    assert out.index("NO NEGOCIABLE") < out.index("# BORRADOR ORIGINAL")
-
-
-def test_stage3_checklist_lists_three_articles_always():
-    """A2: los 3 articles encabezan el checklist tanto vacío como con elementos visuales."""
-    for ve in ([], ["toc", "table"]):
-        chk = _build_stage3_checklist(ve)
-        assert "contentGenerator__main" in chk
-        assert "contentGenerator__faqs" in chk
-        assert "contentGenerator__verdict" in chk
-
-
-def test_stage2_reports_missing_articles_as_critical():
-    """A3: Stage 2 §3 instruye a reportar articles faltantes como problema crítico."""
-    out = build_new_content_correction_prompt_stage2(
-        draft_content="<article>x</article>", target_length=1500, keyword="ssd",
-    )
-    assert "estructura" in out
-    assert "critico" in out
-
-
-def test_stage3_mini_stories_directive_only_for_miniset():
-    """C4: arquetipo del miniset (ARQ-7) recibe directiva de preservación; ARQ-3 no."""
-    in_set = build_final_prompt_stage3(
-        draft_content="d", analysis_feedback="{}", keyword="portatiles", arquetipo_code="ARQ-7",
-    )
-    not_in_set = build_final_prompt_stage3(
-        draft_content="d", analysis_feedback="{}", keyword="ssd", arquetipo_code="ARQ-3",
-    )
-    assert "ARQ-7" in ARQUETIPOS_CON_MINI_STORIES
-    assert "ARQ-3" not in ARQUETIPOS_CON_MINI_STORIES
-    assert "MINI-HISTORIAS" in in_set
-    assert "MINI-HISTORIAS" not in not_in_set
-
-
-def test_cms_article_skeletons_only_missing():
-    """_cms_article_skeletons devuelve solo los articles pedidos, con marcadores."""
-    sk = _cms_article_skeletons(
-        ["contentGenerator__faqs", "contentGenerator__verdict"], keyword="ssd",
-    )
-    assert "contentGenerator__faqs" in sk
-    assert "contentGenerator__verdict" in sk
-    assert "contentGenerator__main" not in sk
-    assert "#MODULE_START:VERDICT#" in sk

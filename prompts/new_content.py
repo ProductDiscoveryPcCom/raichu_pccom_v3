@@ -902,16 +902,9 @@ def _build_stage3_checklist(visual_elements: Optional[List[str]]) -> str:
     Returns:
         Checklist formateado como string
     """
-    # Los 3 <article> CMS van SIEMPRE como los primeros items (requisito no negociable).
-    cms_articles_block = (
-        '- [ ] `<article class="contentGenerator__main">` presente (ID MAIN)\n'
-        '- [ ] `<article class="contentGenerator__faqs">` presente (ID FAQS)\n'
-        '- [ ] `<article class="contentGenerator__verdict">` con `<div class="verdict-box">` (ID VERDICT)'
-    )
-
     if not visual_elements:
-        return cms_articles_block
-
+        return "- [ ] verdict-box presente\n- [ ] FAQs presentes"
+    
     _CHECKS = {
         'toc': '[ ] TOC → `<nav class="toc">`',
         'callout': '[ ] Callout → `<div class="callout">`',
@@ -938,78 +931,19 @@ def _build_stage3_checklist(visual_elements: Optional[List[str]]) -> str:
         'use_cases': '[ ] Casos de Uso → `<div class="use-cases">`',
     }
     
-    # Los 3 articles CMS encabezan SIEMPRE el checklist; luego los elementos visuales.
-    # 'verdict' y 'faqs' ya están cubiertos por el bloque CMS → evitar duplicados.
-    lines = [cms_articles_block]
+    lines = []
     for elem in visual_elements:
-        if elem in ('verdict', 'faqs'):
-            continue
         check = _CHECKS.get(elem)
         if check:
             lines.append(f"- {check}")
-
+    
+    # Siempre añadir verdict y FAQs si no están ya
+    if 'verdict' not in visual_elements:
+        lines.append('- [ ] Verdict → `<div class="verdict-box">`')
+    if 'faqs' not in visual_elements:
+        lines.append('- [ ] FAQs → `<article class="contentGenerator__faqs">`')
+    
     return "\n".join(lines)
-
-
-def _cms_article_skeletons(
-    missing: List[str],
-    keyword: str = "",
-    faq_questions: Optional[List[str]] = None,
-) -> str:
-    """
-    Devuelve plantillas instructivas (con marcadores #MODULE_START/END#) de los <article>
-    CMS ausentes, para embeber en el prompt de auto-reparación dirigida (Capa B del pipeline).
-
-    Fuente única compartida con la estructura de Stage 3: el modelo debe RELLENAR el
-    contenido real, no copiar literalmente los placeholders.
-
-    Args:
-        missing: clases ausentes tal cual las devuelve validate_cms_articles()['missing']
-                 (p.ej. ['contentGenerator__faqs', 'contentGenerator__verdict']).
-        keyword: keyword principal para los titulares.
-        faq_questions: preguntas sugeridas para las FAQs (opcional).
-    """
-    kw = (keyword or "").strip() or "el tema"
-    faq_questions = faq_questions or []
-    missing_set = set(missing)
-    blocks = []
-
-    if 'contentGenerator__main' in missing_set:
-        blocks.append(
-            '<article class="contentGenerator__main">\n'
-            '#MODULE_START:MAIN#\n'
-            '<span class="kicker">KICKER</span>\n'
-            f'<h2>Título con {kw}</h2>\n'
-            '<section><!-- contenido principal real --></section>\n'
-            '#MODULE_END:MAIN#\n'
-            '</article>'
-        )
-    if 'contentGenerator__faqs' in missing_set:
-        faq_hint = ""
-        if faq_questions:
-            faq_hint = " Preguntas sugeridas: " + "; ".join(str(q) for q in faq_questions[:6])
-        blocks.append(
-            '<article class="contentGenerator__faqs">\n'
-            '#MODULE_START:FAQS#\n'
-            f'<h2>Preguntas frecuentes sobre {kw}</h2>\n'
-            '<div class="faqs"><!-- 4-6 faqs__item con pregunta y respuesta reales -->'
-            f'{faq_hint}</div>\n'
-            '#MODULE_END:FAQS#\n'
-            '</article>'
-        )
-    if 'contentGenerator__verdict' in missing_set:
-        blocks.append(
-            '<article class="contentGenerator__verdict">\n'
-            '#MODULE_START:VERDICT#\n'
-            '<div class="verdict-box">\n'
-            '<h2>Nuestro veredicto</h2>\n'
-            '<p><!-- conclusión que APORTE valor real, no un resumen --></p>\n'
-            '</div>\n'
-            '#MODULE_END:VERDICT#\n'
-            '</article>'
-        )
-
-    return "\n\n".join(blocks)
 
 
 def _stage3_structure_hints(visual_elements: Optional[List[str]]) -> str:
@@ -2023,12 +1957,11 @@ def build_new_content_correction_prompt_stage2(
 Aplica el checklist canónico de anti-IA (incluye excepciones de años/urgencia para arquetipos promocionales ARQ-16/19/20):
 {ANTI_IA_CHECKLIST_STAGE2}
 
-## 3. ESTRUCTURA HTML (CRÍTICO PARA EL CMS)
+## 3. ESTRUCTURA HTML
 - [ ] ¿Empieza con <style> (NO con ```html)?
-- [ ] ¿Tiene `<article class="contentGenerator__main">` con kicker y toc?
-- [ ] ¿Tiene `<article class="contentGenerator__faqs">` con keyword en título?
-- [ ] ¿Tiene `<article class="contentGenerator__verdict">` con verdict-box?
-**Si falta CUALQUIERA de los 3 `<article>` (`contentGenerator__main`/`__faqs`/`__verdict`), repórtalo en `problemas` con `tipo: "estructura"` y `severidad: "critico"`. El CMS RECHAZA el contenido sin los 3.**
+- [ ] ¿Tiene contentGenerator__main con kicker y toc?
+- [ ] ¿Tiene contentGenerator__faqs con keyword en título?
+- [ ] ¿Tiene contentGenerator__verdict con verdict-box?
 
 ## 4. SEO Y KEYWORD (CRÍTICO)
 - [ ] ¿La keyword "{keyword}" aparece en las primeras 100 palabras?
@@ -2155,11 +2088,10 @@ def build_final_prompt_stage3(
     alternative_product: Optional[Dict] = None,
     products: Optional[List[Dict]] = None,  # v5.0
     visual_elements: Optional[List[str]] = None,
-    arquetipo_code: str = "",
 ) -> str:
     """
     Construye prompt para Etapa 3: Versión final corregida.
-
+    
     Args:
         draft_content: HTML del borrador
         analysis_feedback: Feedback del análisis (JSON o texto)
@@ -2236,34 +2168,9 @@ def build_final_prompt_stage3(
     visual_reminder = ""
     if visual_elements:
         visual_reminder = _build_stage3_visual_instructions(visual_elements)
-
-    # C4: directiva de preservación de mini-historias (solo arquetipos del miniset).
-    # Las mini-stories se inyectan en Stage 1; sin este recordatorio Stage 3 las elimina.
-    mini_stories_reminder = ""
-    if arquetipo_code and arquetipo_code in ARQUETIPOS_CON_MINI_STORIES:
-        mini_stories_reminder = (
-            "\n## MINI-HISTORIAS / PERFILES DE USO (OBLIGATORIO PARA ESTE ARQUETIPO)\n"
-            "Este arquetipo REQUIERE 2-3 mini-historias o perfiles de uso distribuidos en el "
-            "contenido. CONSÉRVALOS del borrador; NO los elimines ni los resumas. Si el borrador "
-            "no los tuviera, AÑÁDELOS. Su ausencia es un ERROR.\n"
-        )
-
-    # A1: requisito estructural NO-NEGOCIABLE al principio del prompt (máxima atención del modelo).
-    cms_structure_mandate = (
-        "# ⛔ REQUISITO ESTRUCTURAL NO NEGOCIABLE (ANTES QUE NADA)\n\n"
-        "Tu output DEBE contener EXACTAMENTE estos 3 `<article>`, cada uno con su par de "
-        "marcadores `#MODULE_START:ID#` / `#MODULE_END:ID#`:\n"
-        '1. `<article class="contentGenerator__main">` (ID: MAIN)\n'
-        '2. `<article class="contentGenerator__faqs">` (ID: FAQS)\n'
-        '3. `<article class="contentGenerator__verdict">` (ID: VERDICT)\n\n'
-        "Omitir CUALQUIERA de los 3 articles es un ERROR CRÍTICO que INVALIDA por completo la "
-        "respuesta. El CMS de PcComponentes RECHAZA el contenido sin los 3. Verifícalo antes de "
-        "entregar.\n"
-    )
-
+    
     return f"""Genera la VERSIÓN FINAL corregida como editor SEO senior de PcComponentes.
 
-{cms_structure_mandate}
 # BORRADOR ORIGINAL
 
 {draft_content[:12000]}
@@ -2274,7 +2181,6 @@ def build_final_prompt_stage3(
 {links_section}
 {alt_section}
 {visual_reminder}
-{mini_stories_reminder}
 {EJEMPLOS_TONO_STAGE3}
 
 ##  EVITAR SIGNOS DE IA (CRÍTICO)

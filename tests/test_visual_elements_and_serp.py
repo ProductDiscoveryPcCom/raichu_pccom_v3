@@ -681,64 +681,29 @@ class TestAutoRetryPrompt:
         assert '<= 3' in block or '≤ 3' in block
 
 
-# ============================================================================
-# 17b. Garantía CMS 3-article: _auto_repair_cms_articles + _ensure_cms_articles
-# ============================================================================
-class TestCmsAutoRepair:
-    """Verifica la garantía determinista de la estructura CMS (Capas B/C + orquestación)."""
+class TestTruncationGuard:
+    """El Stage 3 debe detectar truncación por max_tokens y reaccionar de forma
+    visible (no enmascarar), reintentando con más tokens. Source-inspection."""
 
-    def _src(self):
-        return open("core/pipeline.py", encoding='utf-8').read()
+    def _stage3_block(self):
+        src = open("core/pipeline.py", encoding='utf-8').read()
+        idx = src.index("Etapa 3/3: Generando")
+        return src[idx:idx + 4000]
 
-    def test_functions_exist(self):
-        src = self._src()
-        assert 'def _auto_repair_cms_articles(' in src
-        assert 'def _ensure_cms_articles(' in src
-        assert 'def _verdict_fabricated_from_scratch(' in src
+    def test_detects_max_tokens_stop_reason(self):
+        block = self._stage3_block()
+        assert "stop_reason" in block and "max_tokens" in block
 
-    def test_repair_prompt_has_strict_rules(self):
-        """El prompt de reparación CMS debe prohibir modificar/eliminar contenido."""
-        src = self._src()
-        idx = src.index('def _auto_repair_cms_articles')
-        block = src[idx:idx + 3500]
-        assert 'NO modifiques' in block or 'NO elimines' in block
+    def test_retries_with_bigger_budget(self):
+        block = self._stage3_block()
+        # reintento con override de max_tokens
+        assert "max_tokens=_bigger" in block
 
-    def test_repair_uses_shared_skeletons(self):
-        """La reparación reutiliza _cms_article_skeletons (fuente única con Stage 3)."""
-        src = self._src()
-        assert '_cms_article_skeletons' in src
-
-    def test_orchestrator_uses_validate_and_inject(self):
-        """_ensure_cms_articles usa validate_cms_articles y el backstop inject."""
-        src = self._src()
-        idx = src.index('def _ensure_cms_articles')
-        block = src[idx:idx + 2500]
-        assert 'validate_cms_articles' in block
-        assert 'inject_missing_cms_articles' in block
-
-    def test_orchestrator_records_telemetry(self):
-        """Registra qué capa resolvió cada article en _post_gen_checks."""
-        src = self._src()
-        idx = src.index('def _ensure_cms_articles')
-        block = src[idx:idx + 2500]
-        assert '_post_gen_checks' in block
-        assert 'Estructura CMS' in block
-
-    def test_called_twice_in_pipeline(self):
-        """_ensure_cms_articles se invoca 2 veces: gate + backstop final (final_backstop=True)."""
-        src = self._src()
-        # excluir la definición; contar solo invocaciones
-        calls = src.count('_ensure_cms_articles(')
-        assert calls >= 3  # 1 def + 2 llamadas
-        assert 'final_backstop=True' in src
-
-    def test_final_backstop_after_engagement(self):
-        """El backstop final (final_backstop=True) corre DESPUÉS de la llamada a
-        _check_engagement_elements dentro del pipeline."""
-        src = self._src()
-        eng_call_idx = src.index('_check_engagement_elements(st.session_state.final_html')
-        backstop_idx = src.index('final_backstop=True')
-        assert backstop_idx > eng_call_idx
+    def test_surfaces_error_not_masks(self):
+        block = self._stage3_block()
+        # aviso visible al usuario + check NO-OK, nunca silencioso
+        assert "st.error" in block
+        assert "Truncación" in block or "Truncaci" in block
 
 
 # ============================================================================

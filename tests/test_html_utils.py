@@ -24,7 +24,6 @@ from utils.html_utils import (
     sanitize_html,
     strip_html_tags,
     strip_tags,
-    inject_missing_cms_articles,
     validate_cms_articles,
     validate_cms_structure,
     validate_html_structure,
@@ -405,87 +404,20 @@ def test_validate_cms_articles_empty():
     assert len(result['missing']) == 3
 
 
-# ---------------------------------------------------------------------------
-# validate_cms_articles — Capa 0: detección sobre <article>, no substring (regresión-guard)
-# ---------------------------------------------------------------------------
-
 def test_validate_cms_articles_css_only_is_not_present():
-    """Un <style> que menciona las 3 clases pero SIN etiquetas <article> NO cuenta."""
-    style_only = (
-        '<style>.contentGenerator__main,.contentGenerator__faqs,'
-        '.contentGenerator__verdict{color:red;}</style><p>texto</p>'
+    """Regresion-guard: la clase mencionada solo en el <style> (CSS) NO debe
+    contar como article presente. Detectamos la clase sobre etiquetas <article ...>,
+    no por substring en cualquier parte del documento."""
+    html = (
+        '<style>.contentGenerator__verdict{color:red}'
+        '.contentGenerator__faqs{margin:0}</style>'
+        '<article class="contentGenerator__main"><h2>x</h2></article>'
     )
-    result = validate_cms_articles(style_only)
+    result = validate_cms_articles(html)
+    assert result['main'] is True
+    assert result['faqs'] is False
+    assert result['verdict'] is False
     assert result['all_present'] is False
-    assert len(result['missing']) == 3
-
-
-def test_validate_cms_articles_canonical_css_is_not_present():
-    """Guard conductual: el CSS canónico de design_system (que SÍ contiene las clases como
-    selectores) no debe contar como articles presentes."""
-    from config.design_system import get_canonical_css
-    result = validate_cms_articles('<style>' + get_canonical_css() + '</style>')
-    assert result['all_present'] is False
-
-
-def test_validate_cms_articles_real_articles_present():
-    html = (
-        '<article class="contentGenerator__main">x</article>'
-        '<article class="contentGenerator__faqs">y</article>'
-        '<article class="contentGenerator__verdict">z</article>'
-    )
-    assert validate_cms_articles(html)['all_present'] is True
-
-
-# ---------------------------------------------------------------------------
-# inject_missing_cms_articles — Capa C (backstop determinista)
-# ---------------------------------------------------------------------------
-
-def test_inject_idempotent_when_nothing_missing(sample_html):
-    assert inject_missing_cms_articles(sample_html, []) == sample_html
-
-
-def test_inject_single_missing_article():
-    html = (
-        '<article class="contentGenerator__main">x</article>'
-        '<article class="contentGenerator__faqs">y</article>'
-    )
-    fixed = inject_missing_cms_articles(html, ['contentGenerator__verdict'], keyword='ssd')
-    assert validate_cms_articles(fixed)['all_present'] is True
-    assert 'verdict-box' in fixed
-
-
-def test_inject_all_three_missing():
-    fixed = inject_missing_cms_articles(
-        '<p>contenido suelto</p>',
-        ['contentGenerator__main', 'contentGenerator__faqs', 'contentGenerator__verdict'],
-        keyword='ssd',
-    )
-    assert validate_cms_articles(fixed)['all_present'] is True
-
-
-def test_inject_faqs_uses_keyword_and_questions():
-    fixed = inject_missing_cms_articles(
-        '<article class="contentGenerator__main">x</article>',
-        ['contentGenerator__faqs'],
-        keyword='ssd kingston',
-        faq_questions=['¿Qué es un SSD?', '¿Cuánto dura?'],
-    )
-    assert 'Preguntas frecuentes sobre ssd kingston' in fixed
-    assert '¿Qué es un SSD?' in fixed
-
-
-def test_inject_verdict_extracts_existing_paragraph():
-    """Si hay un heading de veredicto, el backstop reusa ese párrafo en vez de fabricar."""
-    html = (
-        '<article class="contentGenerator__main">'
-        '<h2>Veredicto final</h2><p>El producto es solido y muy recomendable.</p>'
-        '</article>'
-        '<article class="contentGenerator__faqs">y</article>'
-    )
-    fixed = inject_missing_cms_articles(html, ['contentGenerator__verdict'])
-    assert validate_cms_articles(fixed)['all_present'] is True
-    assert 'solido y muy recomendable' in fixed
 
 
 # ---------------------------------------------------------------------------
