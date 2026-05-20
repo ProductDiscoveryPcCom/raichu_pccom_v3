@@ -13,3 +13,9 @@ credentials.json
 .coverage
 coverage.xml
 .coverage.*
+
+# Artefactos de trabajo locales (diagnosticos, logs, borradores de commit)
+tmp/
+# HTMLs y telemetria generados en validaciones A/B (pesados, regenerables).
+# El informe .md de cada validacion SI se versiona (docs/validation/*.md).
+docs/validation/htmls/
