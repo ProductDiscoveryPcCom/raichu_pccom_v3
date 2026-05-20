@@ -197,14 +197,19 @@ def _get_module_flags():
         flags['get_arquetipo'] = lambda x: None
     
     try:
-        from utils.html_utils import count_words_in_html, sanitize_html, validate_cms_articles
+        from utils.html_utils import (
+            count_words_in_html, sanitize_html, validate_cms_articles,
+            inject_missing_cms_articles,
+        )
         flags['count_words_in_html'] = count_words_in_html
         flags['sanitize_html'] = sanitize_html
         flags['validate_cms_articles'] = validate_cms_articles
+        flags['inject_missing_cms_articles'] = inject_missing_cms_articles
     except ImportError:
         flags['count_words_in_html'] = lambda x: 0
         flags['sanitize_html'] = lambda x: x
         flags['validate_cms_articles'] = None
+        flags['inject_missing_cms_articles'] = None
 
     try:
         from utils.content_scrubber import scrub_html
@@ -273,6 +278,7 @@ def execute_generation_pipeline(config: Dict[str, Any], mode: str = 'new') -> No
     count_words_in_html = _flags['count_words_in_html']
     sanitize_html = _flags['sanitize_html']
     validate_cms_articles = _flags['validate_cms_articles']
+    inject_missing_cms_articles = _flags['inject_missing_cms_articles']
     scrub_html = _flags['scrub_html']
     extract_html_content = _extract_html_content
     openai_client = _flags['openai_client']
@@ -803,6 +809,8 @@ Formato tu respuesta de manera clara y accionable."""
                 _s3_sig = inspect.signature(new_content.build_final_prompt_stage3)
                 if 'visual_elements' in _s3_sig.parameters:
                     stage3_kwargs['visual_elements'] = config.get('visual_elements', [])
+                if 'arquetipo_code' in _s3_sig.parameters:
+                    stage3_kwargs['arquetipo_code'] = config.get('arquetipo_codigo', '')
             except Exception:
                 pass
             stage3_prompt = new_content.build_final_prompt_stage3(**stage3_kwargs)
@@ -853,18 +861,13 @@ Formato tu respuesta de manera clara y accionable."""
             except Exception as e:
                 logger.warning(f"Content scrubber error: {e}")
 
-        # Validar estructura CMS final (3 articles requeridos)
-        if validate_cms_articles:
-            _cms_final = validate_cms_articles(st.session_state.final_html)
-            if not _cms_final['all_present']:
-                _missing_final = ', '.join(_cms_final['missing'])
-                logger.warning(f"Stage 3: faltan articles CMS en HTML final: {_missing_final}")
-                st.warning(
-                    f"⚠️ El HTML final no tiene la estructura CMS completa. "
-                    f"Faltan: {_missing_final}. "
-                    f"El CMS requiere 3 articles: contentGenerator__main, contentGenerator__faqs, contentGenerator__verdict. "
-                    f"Puedes descargar/copiar el resultado, pero puede ser rechazado por el CMS."
-                )
+        # Garantía estructura CMS (3 articles) — LLAMADA 1 (gate): Capa B + Capa C.
+        # Corre ANTES de los retries visual/engagement, para que vean un documento
+        # CMS-completo. NO es la última mutación → ver LLAMADA 2 más abajo.
+        if validate_cms_articles and inject_missing_cms_articles:
+            st.session_state.final_html = _ensure_cms_articles(
+                st.session_state.final_html, config
+            )
 
         # Mostrar métricas finales
         final_word_count = count_words_in_html(st.session_state.final_html)
@@ -1128,6 +1131,14 @@ Genera el HTML corregido:"""
         else:
             st.caption("📖 Verificación de engagement: CTAs")
         _check_engagement_elements(st.session_state.final_html, check_mini_stories=_check_mini_stories)
+
+        # Garantía estructura CMS — LLAMADA 2 (backstop final): ÚLTIMA mutación estructural.
+        # Los retries visual/engagement reescriben el HTML vía LLM y pueden tirar un <article>
+        # recién inyectado. final_backstop=True salta la Capa B (solo Capa C pura, idempotente).
+        if validate_cms_articles and inject_missing_cms_articles:
+            st.session_state.final_html = _ensure_cms_articles(
+                st.session_state.final_html, config, final_backstop=True
+            )
 
         # Post-generation PASO 7: generar meta title, meta description, TL;DR
         try:
@@ -1427,6 +1438,167 @@ Genera el HTML completo con los {len(missing_ids)} elementos insertados:"""
             logger.warning(f"Auto-retry error: {e}")
     
     return False
+
+
+def _verdict_fabricated_from_scratch(html_content: str, missing: List[str]) -> bool:
+    """
+    True si falta el verdict Y no hay heading veredicto/conclusión del que extraer texto
+    (→ el backstop tendría que fabricar el veredicto como relleno, no a partir del contenido).
+    """
+    if 'contentGenerator__verdict' not in (missing or []):
+        return False
+    try:
+        from utils.html_utils import _extract_verdict_paragraph
+    except ImportError:
+        return True
+    return _extract_verdict_paragraph(html_content) is None
+
+
+def _auto_repair_cms_articles(html_content: str, missing: List[str]) -> bool:
+    """
+    Reparación LLM dirigida: AÑADE solo el/los <article> CMS faltantes, preservando el resto.
+
+    Espejo de _auto_retry_missing_elements pero para la estructura CMS. Devuelve True si el
+    output fue aceptado (preserva >90% de longitud y >85% de palabras originales, y reduce
+    realmente los articles faltantes) y escrito en st.session_state.final_html.
+    """
+    if not missing:
+        return False
+    try:
+        from core.generator import ContentGenerator
+        from core.config import CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS, TEMPERATURE
+        from prompts.new_content import _cms_article_skeletons
+        from utils.html_utils import validate_cms_articles as _validate
+        extract_html_content = _extract_html_content
+    except ImportError as e:
+        logger.warning(f"Auto-repair CMS: imports no disponibles: {e}")
+        return False
+
+    skeletons = _cms_article_skeletons(missing)
+    missing_str = ', '.join(missing)
+
+    retry_prompt = f"""Eres un editor SEO de PcComponentes. El siguiente HTML fue generado pero le FALTAN {len(missing)} <article> que el CMS EXIGE.
+
+Tu ÚNICA tarea es AÑADIR el/los <article> CMS que faltan, en su sitio correcto.
+
+REGLAS ESTRICTAS:
+1. NO modifiques, reescribas ni elimines NADA del contenido existente
+2. SOLO añade el/los <article> faltantes, con contenido real (no placeholders)
+3. Cada <article> nuevo debe llevar sus marcadores #MODULE_START:ID# / #MODULE_END:ID#
+4. Mantén el <style> existente
+5. Orden final: contentGenerator__main → contentGenerator__faqs → contentGenerator__verdict
+6. Responde con el HTML COMPLETO (con <style> y todo). NO uses ```html ni markdown
+
+ARTICLES QUE FALTAN ({len(missing)}): {missing_str}
+
+ESTRUCTURA A AÑADIR (rellena con contenido real):
+{skeletons}
+
+---
+
+HTML ACTUAL:
+{html_content}
+
+---
+
+Genera el HTML completo con el/los {len(missing)} <article> añadidos:"""
+
+    logger.info(f"Auto-repair CMS: añadiendo {len(missing)} articles: {missing}")
+
+    with st.spinner(f"🔄 Reparando estructura CMS: {missing_str}..."):
+        try:
+            generator = ContentGenerator(
+                api_key=CLAUDE_API_KEY,
+                model=CLAUDE_MODEL,
+                max_tokens=MAX_TOKENS,
+                temperature=TEMPERATURE,
+            )
+            result = generator.generate(retry_prompt)
+
+            if result.success and result.content and len(result.content) > 200:
+                cleaned = extract_html_content(result.content)
+                if cleaned and len(cleaned) > len(html_content) * 0.9:
+                    import re as _re
+                    original_text = _re.sub(r'<[^>]+>', ' ', html_content).split()
+                    new_text = _re.sub(r'<[^>]+>', ' ', cleaned).split()
+                    original_set = set(w.lower() for w in original_text if len(w) > 3)
+                    new_set = set(w.lower() for w in new_text if len(w) > 3)
+                    if original_set and len(original_set & new_set) / len(original_set) > 0.85:
+                        before = _validate(html_content)['missing']
+                        after = _validate(cleaned)['missing']
+                        if len(after) < len(before):
+                            st.session_state.final_html = cleaned
+                            logger.info(f"Auto-repair CMS completado: faltaban {before}, ahora {after}")
+                            return True
+                        else:
+                            logger.warning("Auto-repair CMS: no redujo articles faltantes, descartando")
+                    else:
+                        logger.warning("Auto-repair CMS: contenido original no preservado, descartando")
+                else:
+                    logger.warning(f"Auto-repair CMS: output demasiado corto ({len(cleaned) if cleaned else 0} chars)")
+            else:
+                logger.warning(f"Auto-repair CMS fallido: {result.error}")
+        except Exception as e:
+            logger.warning(f"Auto-repair CMS error: {e}")
+
+    return False
+
+
+def _ensure_cms_articles(html_content: str, config: Dict, *, final_backstop: bool = False) -> str:
+    """
+    Garantiza los 3 <article> CMS de forma determinista.
+
+    Capa B (auto-repair LLM dirigido) → Capa C (backstop programático puro). Con
+    final_backstop=True salta la Capa B y solo re-aplica la Capa C (idempotente, string-ops)
+    como última mutación tras los retries visual/engagement que pueden tirar un article.
+    """
+    try:
+        from utils.html_utils import validate_cms_articles, inject_missing_cms_articles
+    except ImportError:
+        return html_content
+
+    check = validate_cms_articles(html_content)
+    if check['all_present']:
+        return html_content
+
+    resolved = {}  # clase -> capa que la resolvió (telemetría)
+    html = html_content
+
+    # Capa B — reparación LLM dirigida (no en el backstop final)
+    if not final_backstop and _auto_repair_cms_articles(html, check['missing']):
+        html = st.session_state.final_html
+        after = validate_cms_articles(html)
+        for cls in check['missing']:
+            if cls not in after['missing']:
+                resolved[cls] = 'B-repair'
+        check = after
+        if check['all_present']:
+            logger.info(f"CMS reparado por Capa B: {resolved}")
+            st.session_state.setdefault('_post_gen_checks', []).append(
+                {'name': 'Estructura CMS', 'ok': True, 'detail': 'reparada (auto-repair LLM)'})
+            return html
+
+    # Capa C — backstop programático determinista (garantía dura)
+    fabricated_verdict = _verdict_fabricated_from_scratch(html, check['missing'])
+    html = inject_missing_cms_articles(
+        html, check['missing'], config.get('keyword', ''), config.get('faq_questions'))
+    st.session_state.final_html = html
+    for cls in check['missing']:
+        resolved.setdefault(cls, 'C-backstop')
+    logger.warning(f"CMS completado por backstop programático (Capa C): {resolved}")
+
+    if fabricated_verdict:
+        st.warning(
+            "⚠️ El veredicto se generó como RELLENO (sin base en el contenido). "
+            "Revísalo antes de enviar al CMS."
+        )
+        ok = False
+    else:
+        st.info("ℹ️ Estructura CMS completada automáticamente (backstop)")
+        ok = True
+    st.session_state.setdefault('_post_gen_checks', []).append(
+        {'name': 'Estructura CMS', 'ok': ok, 'detail': f"backstop: {resolved}"})
+    return html
 
 
 def _check_ai_phrases(html_content: str) -> None:

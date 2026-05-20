@@ -550,10 +550,20 @@ def validate_cms_articles(html_content: str) -> Dict[str, bool]:
     if not html_content:
         return {'main': False, 'faqs': False, 'verdict': False, 'all_present': False, 'missing': ['main', 'faqs', 'verdict']}
 
-    html_lower = html_content.lower()
-    has_main = 'contentgenerator__main' in html_lower
-    has_faqs = 'contentgenerator__faqs' in html_lower
-    has_verdict = 'contentgenerator__verdict' in html_lower
+    # Detectar la clase SOLO sobre etiquetas de apertura <article ...>, no en
+    # cualquier parte del documento. Un substring match ingenuo daría falso positivo
+    # cuando el <style> embebido o un html_template en comentario menciona las clases
+    # (p.ej. la regla CSS combinada de config/design_system.py).
+    def _has_article(class_name: str) -> bool:
+        return re.search(
+            r'<article\b[^>]*' + re.escape(class_name),
+            html_content,
+            re.IGNORECASE,
+        ) is not None
+
+    has_main = _has_article('contentGenerator__main')
+    has_faqs = _has_article('contentGenerator__faqs')
+    has_verdict = _has_article('contentGenerator__verdict')
 
     missing = []
     if not has_main:
@@ -570,6 +580,144 @@ def validate_cms_articles(html_content: str) -> Dict[str, bool]:
         'all_present': has_main and has_faqs and has_verdict,
         'missing': missing,
     }
+
+
+def _extract_verdict_paragraph(html_content: str) -> Optional[str]:
+    """
+    Extrae el texto del primer párrafo que sigue a un heading de veredicto/conclusión.
+
+    Devuelve None si no hay un heading del que extraer (→ el backstop tendría que
+    fabricar el veredicto desde cero). Usado tanto por inject_missing_cms_articles
+    como por la detección de "verdict fabricado" en el pipeline.
+    """
+    if not html_content:
+        return None
+    heading = re.search(
+        r'<h[23][^>]*>[^<]*(?:veredicto|conclusi[oó]n)[^<]*</h[23]>',
+        html_content,
+        re.IGNORECASE,
+    )
+    if not heading:
+        return None
+    para = re.search(
+        r'<p[^>]*>(.*?)</p>',
+        html_content[heading.end():],
+        re.IGNORECASE | re.DOTALL,
+    )
+    if not para:
+        return None
+    text = re.sub(r'<[^>]+>', '', para.group(1)).strip()
+    return text or None
+
+
+def inject_missing_cms_articles(
+    html_content: str,
+    missing: List[str],
+    keyword: str = "",
+    faq_questions: Optional[List[str]] = None,
+) -> str:
+    """
+    Backstop determinista: inyecta esqueletos mínimos válidos para los <article> CMS
+    aún ausentes. Garantiza que validate_cms_articles(result)['all_present'] == True.
+
+    Solo string ops → no puede fallar. Idempotente: con missing vacío devuelve el HTML
+    sin cambios. Es la garantía de último recurso del invariante 3-article, no la vía
+    principal de contenido (Capas A/B producen el contenido real casi siempre).
+
+    Args:
+        html_content: HTML actual.
+        missing: clases ausentes, p.ej. ['contentGenerator__faqs', 'contentGenerator__verdict']
+                 (tal cual lo devuelve validate_cms_articles()['missing']).
+        keyword: keyword principal, para titulares.
+        faq_questions: preguntas para construir las FAQs si hay que fabricarlas.
+
+    Returns:
+        HTML con los articles faltantes añadidos (orden: main → contenido → faqs → verdict).
+    """
+    html = html_content or ""
+    if not missing:
+        return html
+
+    kw = (keyword or "").strip()
+    kw_safe = _html_module.escape(kw) if kw else ""
+    faq_questions = faq_questions or []
+    missing_set = set(missing)
+
+    # --- main (raro): minimal main tras el primer </style>, o al inicio ---
+    if 'contentGenerator__main' in missing_set:
+        kw_title = kw_safe or "este producto"
+        main_html = (
+            '<article class="contentGenerator__main">\n'
+            '#MODULE_START:MAIN#\n'
+            f'<span class="kicker">Guía</span>\n'
+            f'<h2>Todo sobre {kw_title}</h2>\n'
+            '#MODULE_END:MAIN#\n'
+            '</article>'
+        )
+        m = re.search(r'</style\s*>', html, re.IGNORECASE)
+        if m:
+            html = html[:m.end()] + "\n" + main_html + "\n" + html[m.end():]
+        else:
+            html = main_html + "\n" + html
+
+    # --- faqs: añadir antes del verdict (que va al final) ---
+    if 'contentGenerator__faqs' in missing_set:
+        heading = f"Preguntas frecuentes sobre {kw_safe}" if kw_safe else "Preguntas frecuentes"
+        items = []
+        for q in faq_questions[:6]:
+            q_safe = _html_module.escape(str(q).strip())
+            if q_safe:
+                items.append(
+                    '<div class="faqs__item">'
+                    f'<h3 class="faqs__question">{q_safe}</h3>'
+                    '<p class="faqs__answer">Consulta los detalles en el contenido de esta guía.</p>'
+                    '</div>'
+                )
+        if not items:
+            items.append(
+                '<div class="faqs__item">'
+                f'<h3 class="faqs__question">¿Qué debo saber sobre {kw_safe or "este tema"}?</h3>'
+                '<p class="faqs__answer">Revisa los apartados anteriores para una respuesta detallada.</p>'
+                '</div>'
+            )
+        faqs_html = (
+            '<article class="contentGenerator__faqs">\n'
+            '#MODULE_START:FAQS#\n'
+            f'<h2>{heading}</h2>\n'
+            '<div class="faqs">' + "".join(items) + '</div>\n'
+            '#MODULE_END:FAQS#\n'
+            '</article>'
+        )
+        html = html.rstrip() + "\n" + faqs_html + "\n"
+
+    # --- verdict: siempre al final ---
+    if 'contentGenerator__verdict' in missing_set:
+        extracted = _extract_verdict_paragraph(html_content)
+        if extracted:
+            verdict_text = _html_module.escape(extracted)
+        elif kw_safe:
+            verdict_text = (
+                f"Esta guía sobre {kw_safe} reúne los puntos clave para decidir con criterio. "
+                "Revisa los apartados anteriores antes de tomar la decisión final."
+            )
+        else:
+            verdict_text = (
+                "Esta guía reúne los puntos clave para decidir con criterio. "
+                "Revisa los apartados anteriores antes de tomar la decisión final."
+            )
+        verdict_html = (
+            '<article class="contentGenerator__verdict">\n'
+            '#MODULE_START:VERDICT#\n'
+            '<div class="verdict-box">\n'
+            '<h2>Nuestro veredicto</h2>\n'
+            f'<p>{verdict_text}</p>\n'
+            '</div>\n'
+            '#MODULE_END:VERDICT#\n'
+            '</article>'
+        )
+        html = html.rstrip() + "\n" + verdict_html + "\n"
+
+    return html
 
 
 def validate_cms_structure(html_content: str) -> Tuple[bool, List[str], List[str]]:
