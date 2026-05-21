@@ -705,6 +705,55 @@ class TestTruncationGuard:
         assert "st.error" in block
         assert "Truncación" in block or "Truncaci" in block
 
+    def test_guard_uses_model_hard_cap_constant(self):
+        """El cap del reintento usa la constante del módulo, no el literal 32000."""
+        block = self._stage3_block()
+        assert "MODEL_OUTPUT_HARD_CAP" in block
+        assert "32000" not in block
+
+
+# ============================================================================
+# 17b. Presupuesto dinámico de max_tokens (compute_max_tokens)
+# ============================================================================
+class TestDynamicTokenBudget:
+    """El pipeline debe reservar max_tokens por generación vía compute_max_tokens,
+    no usar el max_tokens global fijo. Source-inspection (las rutas usan
+    st.spinner/st.session_state → mismo patrón que TestTruncationGuard)."""
+
+    def _src(self):
+        return open("core/pipeline.py", encoding='utf-8').read()
+
+    def test_imports_compute_max_tokens(self):
+        src = self._src()
+        assert "from core.token_budget import compute_max_tokens" in src
+
+    def test_all_html_callsites_pass_budget(self):
+        """Stage 1/2/3 + qloop + visual retry + engagement: 6 generadores HTML
+        más Stage 2 → al menos 6 usos de compute_max_tokens en overrides."""
+        src = self._src()
+        # un uso por: stage1, stage2(rewrite), stage2(claude worker), stage3,
+        # qloop, visual retry, engagement
+        assert src.count("compute_max_tokens(") >= 7
+
+    def test_stage_arguments_present(self):
+        src = self._src()
+        assert "stage=1" in src
+        assert "stage=2" in src
+        assert "stage=3" in src
+
+    def test_passes_ceiling_from_config(self):
+        """El techo configurable (MAX_TOKENS de secrets) se pasa como ceiling."""
+        src = self._src()
+        assert "ceiling=MAX_TOKENS" in src
+
+    def test_helpers_thread_target_length(self):
+        """Los helpers secundarios reciben target_length para su presupuesto."""
+        src = self._src()
+        assert "def _auto_retry_missing_elements(" in src
+        assert "def _check_engagement_elements(" in src
+        # ambos helpers declaran el parámetro target_length
+        assert src.count("target_length: int = 1500") >= 2
+
 
 # ============================================================================
 # 18. Refinement context: generation_metadata injection

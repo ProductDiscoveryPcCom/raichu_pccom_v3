@@ -24,6 +24,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import streamlit as st
 
+from core.token_budget import compute_max_tokens, MODEL_OUTPUT_HARD_CAP
+
 logger = logging.getLogger(__name__)
 
 # ============================================================================
@@ -542,7 +544,10 @@ Proporciona un análisis estructurado que incluya:
 
 Formato tu respuesta de manera clara y accionable."""
 
-                result = generator.generate(analysis_prompt)
+                result = generator.generate(
+                    analysis_prompt,
+                    max_tokens=compute_max_tokens(config.get('target_length', 1500), stage=2, ceiling=MAX_TOKENS),
+                )
 
                 if result.success:
                     st.session_state.rewrite_analysis = result.content
@@ -610,7 +615,8 @@ Formato tu respuesta de manera clara y accionable."""
                 pass
 
         system_prompt = get_system_prompt_base() if _brand_tone_available else None
-        result = generator.generate(stage1_prompt, system_prompt=system_prompt)
+        _stage1_budget = compute_max_tokens(config.get('target_length', 1500), stage=1, ceiling=MAX_TOKENS)
+        result = generator.generate(stage1_prompt, system_prompt=system_prompt, max_tokens=_stage1_budget)
 
         if not result.success:
             _err_type, _err_msg = _classify_error(Exception(result.error)) if not isinstance(result.error, Exception) else _classify_error(result.error)
@@ -704,8 +710,10 @@ Formato tu respuesta de manera clara y accionable."""
         else:
             status_widget.write("🔍 Claude analizando el borrador...")
 
+        _stage2_budget = compute_max_tokens(config.get('target_length', 1500), stage=2, ceiling=MAX_TOKENS)
+
         def _claude_worker():
-            return generator.generate(stage2_prompt, system_prompt=system_prompt)
+            return generator.generate(stage2_prompt, system_prompt=system_prompt, max_tokens=_stage2_budget)
 
         def _openai_worker():
             return openai_client.generate_dual_analysis(
@@ -815,7 +823,8 @@ Formato tu respuesta de manera clara y accionable."""
 
         # Generar versión final (con system prompt de tono de marca)
         system_prompt = get_system_prompt_base() if _brand_tone_available else None
-        result = generator.generate(stage3_prompt, system_prompt=system_prompt)
+        _stage3_budget = compute_max_tokens(config.get('target_length', 1500), stage=3, ceiling=MAX_TOKENS)
+        result = generator.generate(stage3_prompt, system_prompt=system_prompt, max_tokens=_stage3_budget)
 
         if not result.success:
             _err_type, _err_msg = _classify_error(Exception(result.error)) if not isinstance(result.error, Exception) else _classify_error(result.error)
@@ -830,8 +839,8 @@ Formato tu respuesta de manera clara y accionable."""
         # doble de presupuesto de tokens (acotado). El fix de raíz es subir max_tokens
         # en la configuración (>=16000 para targets de ~1800 palabras).
         if (result.metadata or {}).get('stop_reason') == 'max_tokens':
-            _cur = getattr(generator, 'max_tokens', 8000) or 8000
-            _bigger = min(_cur * 2, 32000)
+            _cur = _stage3_budget or getattr(generator, 'max_tokens', 8000) or 8000
+            _bigger = min(_cur * 2, MODEL_OUTPUT_HARD_CAP)
             logger.warning(f"Stage 3 truncado (stop_reason=max_tokens, max_tokens={_cur}). Reintentando con {_bigger}")
             status_widget.write(f"⚠️ Respuesta truncada por límite de tokens. Reintentando con {_bigger} tokens...")
             _retry = generator.generate(stage3_prompt, system_prompt=system_prompt, max_tokens=_bigger)
@@ -1009,7 +1018,11 @@ Genera el HTML corregido:"""
                             temperature=max(0.3, TEMPERATURE - 0.1),  # Algo menos creativo para preservar
                         )
                         system_prompt_ql = get_system_prompt_base() if _brand_tone_available else None
-                        qloop_result = qloop_generator.generate(revision_prompt, system_prompt=system_prompt_ql)
+                        qloop_result = qloop_generator.generate(
+                            revision_prompt,
+                            system_prompt=system_prompt_ql,
+                            max_tokens=compute_max_tokens(target, stage=3, ceiling=MAX_TOKENS),
+                        )
 
                         if qloop_result.success and qloop_result.content and len(qloop_result.content) > 200:
                             revised_html = extract_html_content(qloop_result.content)
@@ -1126,7 +1139,8 @@ Genera el HTML corregido:"""
             st.caption("🎨 Verificación de elementos visuales")
         _check_visual_elements_presence(
             st.session_state.final_html,
-            config.get('visual_elements', [])
+            config.get('visual_elements', []),
+            target_length=config.get('target_length', 1500),
         )
 
         # Post-generation PASO 5: detectar frases IA en el contenido final
@@ -1153,7 +1167,11 @@ Genera el HTML corregido:"""
             st.caption("📖 Verificación de engagement: mini-historias + CTAs (activo por arquetipo con reviews)")
         else:
             st.caption("📖 Verificación de engagement: CTAs")
-        _check_engagement_elements(st.session_state.final_html, check_mini_stories=_check_mini_stories)
+        _check_engagement_elements(
+            st.session_state.final_html,
+            check_mini_stories=_check_mini_stories,
+            target_length=config.get('target_length', 1500),
+        )
 
         # Post-generation PASO 7: generar meta title, meta description, TL;DR
         try:
@@ -1237,10 +1255,14 @@ Genera el HTML corregido:"""
         st.session_state.current_stage = 0
 
 
-def _check_visual_elements_presence(html_content: str, selected_elements: List[str]) -> None:
+def _check_visual_elements_presence(
+    html_content: str,
+    selected_elements: List[str],
+    target_length: int = 1500,
+) -> None:
     """
     Verifica que los elementos visuales seleccionados estén presentes en el HTML.
-    
+
     Si faltan ≤3 elementos, intenta auto-retry con refinamiento targeted.
     Si faltan >3 o el retry falla, muestra warning al usuario.
     """
@@ -1257,7 +1279,7 @@ def _check_visual_elements_presence(html_content: str, selected_elements: List[s
     
     # Auto-retry si ≤3 elementos faltantes
     if len(missing_ids) <= 3:
-        retry_success = _auto_retry_missing_elements(html_content, missing_ids)
+        retry_success = _auto_retry_missing_elements(html_content, missing_ids, target_length=target_length)
         if retry_success:
             # Verificar de nuevo tras retry
             still_missing = _detect_missing_visual_elements(
@@ -1357,17 +1379,22 @@ def _get_visual_element_names() -> Dict[str, str]:
     }
 
 
-def _auto_retry_missing_elements(html_content: str, missing_ids: List[str]) -> bool:
+def _auto_retry_missing_elements(
+    html_content: str,
+    missing_ids: List[str],
+    target_length: int = 1500,
+) -> bool:
     """
     Intenta insertar elementos visuales faltantes via refinamiento targeted.
-    
+
     Solo se ejecuta si faltan ≤3 elementos. Usa un prompt enfocado exclusivamente
     en insertar los componentes faltantes sin alterar el resto del contenido.
-    
+
     Args:
         html_content: HTML actual
         missing_ids: Lista de element_ids faltantes
-        
+        target_length: palabras objetivo (para el presupuesto de max_tokens)
+
     Returns:
         True si se completó el retry (aunque no garantiza éxito)
     """
@@ -1425,7 +1452,10 @@ Genera el HTML completo con los {len(missing_ids)} elementos insertados:"""
                 max_tokens=MAX_TOKENS,
                 temperature=TEMPERATURE,
             )
-            result = generator.generate(retry_prompt)
+            result = generator.generate(
+                retry_prompt,
+                max_tokens=compute_max_tokens(target_length, stage=3, ceiling=MAX_TOKENS),
+            )
             
             if result.success and result.content and len(result.content) > 200:
                 cleaned = extract_html_content(result.content)
@@ -1498,7 +1528,11 @@ def _check_ai_phrases(html_content: str) -> None:
         )
 
 
-def _check_engagement_elements(html_content: str, check_mini_stories: bool = True) -> None:
+def _check_engagement_elements(
+    html_content: str,
+    check_mini_stories: bool = True,
+    target_length: int = 1500,
+) -> None:
     """
     Verifica presencia de mini-stories y CTAs distribuidos.
     Si faltan, intenta auto-retry (1 iteración) para insertarlos.
@@ -1507,6 +1541,7 @@ def _check_engagement_elements(html_content: str, check_mini_stories: bool = Tru
         html_content: HTML generado
         check_mini_stories: Si False, no verifica ni inserta mini-stories.
             Solo se activa cuando el arquetipo lo requiere Y hay reviews disponibles.
+        target_length: palabras objetivo (para el presupuesto de max_tokens)
 
     Detección:
     - Mini-stories: nombres propios + cifras en proximidad (solo si check_mini_stories=True)
@@ -1603,7 +1638,10 @@ Genera el HTML con las mejoras de engagement:"""
                 max_tokens=MAX_TOKENS,
                 temperature=TEMPERATURE,
             )
-            eng_result = eng_generator.generate(engagement_prompt)
+            eng_result = eng_generator.generate(
+                engagement_prompt,
+                max_tokens=compute_max_tokens(target_length, stage=3, ceiling=MAX_TOKENS),
+            )
             
             if eng_result.success and eng_result.content and len(eng_result.content) > 200:
                 revised = extract_html_content(eng_result.content)

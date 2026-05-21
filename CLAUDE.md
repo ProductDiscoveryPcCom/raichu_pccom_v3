@@ -87,6 +87,22 @@ Orquestado en `core/pipeline.py`:
 
 Funciones de prompts por etapa: ver `.claude/rules/prompts.md`
 
+### Presupuesto dinamico de max_tokens
+
+`core/token_budget.py` expone `compute_max_tokens(target_length, stage, ceiling)` —
+funcion pura que reserva tokens de salida por generacion segun `target_length`
+(arquetipos largos no truncan, cortos no malgastan techo). El pipeline pasa el
+resultado como override `max_tokens=` en **todas** las llamadas que generan HTML
+(Stage 1, Stage 3, qloop calidad, auto-retry visual, engagement); Stage 2
+(analisis texto/JSON) usa un presupuesto fijo menor.
+
+- `ceiling = core.config.MAX_TOKENS` (el `max_tokens` de `secrets.toml`) actua como
+  **techo/clamp**, no como valor fijo. Si no esta definido, el techo es
+  `MODEL_OUTPUT_HARD_CAP` (32000). **Recomendado: subir `max_tokens` en secrets a
+  ~32000** para que arquetipos de ~4000w no se claméen por debajo de su presupuesto.
+- El **guard de truncacion** de Stage 3 (`core/pipeline.py`, `stop_reason=='max_tokens'`
+  → reintento ×2 acotado a `MODEL_OUTPUT_HARD_CAP`) queda como red de seguridad.
+
 ## 5 modos de operacion
 
 | Modo | Key | Descripcion |
