@@ -394,6 +394,10 @@ def execute_generation_pipeline(config: Dict[str, Any], mode: str = 'new') -> No
     # Marcar generación en progreso
     st.session_state.generation_in_progress = True
     st.session_state.last_config = config
+    # Reset de checks post-generación al INICIO (no a media generación), para no
+    # borrar los que se añaden durante el pipeline (p.ej. guard de truncación de
+    # Stage 3) ni acumular los de generaciones previas en la misma sesión.
+    st.session_state['_post_gen_checks'] = []
     
     # Crear generador
     try:
@@ -938,8 +942,10 @@ Formato tu respuesta de manera clara y accionable."""
         progress_bar.progress(100)
         status_widget.update(label="✅ Generación completada", state="complete", expanded=False)
 
-        # Resumen post-generación: recopilar checks pasados
-        st.session_state['_post_gen_checks'] = []
+        # Resumen post-generación: preservar checks ya añadidos (p.ej. guard de
+        # truncación de Stage 3), no resetear incondicionalmente.
+        if '_post_gen_checks' not in st.session_state:
+            st.session_state['_post_gen_checks'] = []
 
         # Post-generation PASO 2: Quality Score multi-dimensional
         quality_result = None
@@ -1184,7 +1190,7 @@ Genera el HTML corregido:"""
                     keyword=config.get('keyword', ''),
                     pdp_data=config.get('pdp_data') or config.get('pdp_json_data'),
                     secondary_keywords=config.get('keywords', []),
-                    arquetipo_name=get_arquetipo(config.get('arquetipo_codigo', '')).get('name', '') if get_arquetipo(config.get('arquetipo_codigo', '')) else '',
+                    arquetipo_name=(get_arquetipo(config.get('arquetipo_codigo', '')) or {}).get('name', ''),
                 )
 
             if meta_result:
