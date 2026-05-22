@@ -94,7 +94,10 @@ funcion pura que reserva tokens de salida por generacion segun `target_length`
 (arquetipos largos no truncan, cortos no malgastan techo). El pipeline pasa el
 resultado como override `max_tokens=` en **todas** las llamadas que generan HTML
 (Stage 1, Stage 3, qloop calidad, auto-retry visual, engagement); Stage 2
-(analisis texto/JSON) usa un presupuesto fijo menor.
+(analisis texto/JSON) no genera HTML pero **tambien escala con `target_length`**
+(`max(STAGE2_FLOOR=4000, target*STAGE2_TOKENS_PER_WORD=3.0)`, mas suave que el HTML
+y con piso) porque el analisis crece con el tamano del borrador — un fijo de 4000
+truncaba el analisis de borradores largos.
 
 - `ceiling = core.config.MAX_TOKENS` (el `max_tokens` de `secrets.toml`) actua como
   **techo/clamp**, no como valor fijo. Si no esta definido, el techo es
