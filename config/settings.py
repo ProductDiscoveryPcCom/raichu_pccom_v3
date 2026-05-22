@@ -33,7 +33,7 @@ def _safe_float(env_var: str, default: float) -> float:
 CLAUDE_API_KEY: str = os.getenv('ANTHROPIC_API_KEY', os.getenv('CLAUDE_API_KEY', ''))
 ANTHROPIC_API_KEY: str = CLAUDE_API_KEY  # Alias
 
-CLAUDE_MODEL: str = os.getenv('CLAUDE_MODEL', 'claude-sonnet-4-20250514')
+CLAUDE_MODEL: str = os.getenv('CLAUDE_MODEL', 'claude-sonnet-4-6')
 MAX_TOKENS: int = _safe_int('MAX_TOKENS', 16000)
 TEMPERATURE: float = _safe_float('TEMPERATURE', 0.7)
 

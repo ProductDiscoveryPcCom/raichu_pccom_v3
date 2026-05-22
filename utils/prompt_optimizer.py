@@ -25,7 +25,7 @@ __version__ = "1.0.0"
 
 # Tokens estimados por modelo
 MAX_CONTEXT_TOKENS = {
-    'claude-sonnet-4-20250514': 200_000,
+    'claude-sonnet-4-6': 200_000,
     'claude-opus-4-20250514': 200_000,
     'gpt-4.1': 128_000,
 }
@@ -48,7 +48,7 @@ def estimate_tokens_simple(text: str) -> int:
     return len(text) // 4
 
 
-def optimize_prompt(prompt: str, model: str = 'claude-sonnet-4-20250514') -> str:
+def optimize_prompt(prompt: str, model: str = 'claude-sonnet-4-6') -> str:
     """
     Optimiza un prompt para reducir consumo de contexto.
     
@@ -88,7 +88,7 @@ def optimize_prompt(prompt: str, model: str = 'claude-sonnet-4-20250514') -> str
     return prompt
 
 
-def check_prompt_size(prompt: str, model: str = 'claude-sonnet-4-20250514') -> dict:
+def check_prompt_size(prompt: str, model: str = 'claude-sonnet-4-6') -> dict:
     """
     Verifica si el prompt cabe cómodamente en el contexto.
     

@@ -22,7 +22,7 @@ def _load_config():
     """Carga la configuración desde múltiples fuentes."""
     config = {
         'api_key': '',
-        'model': 'claude-sonnet-4-20250514',
+        'model': 'claude-sonnet-4-6',
         'max_tokens': 16000,
         'temperature': 0.7,
         'debug_mode': False,

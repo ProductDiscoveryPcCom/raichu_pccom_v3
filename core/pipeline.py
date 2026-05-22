@@ -188,7 +188,7 @@ def _get_module_flags():
     except ImportError:
         flags['DEBUG_MODE'] = False
         flags['CLAUDE_API_KEY'] = ''
-        flags['CLAUDE_MODEL'] = 'claude-sonnet-4-20250514'
+        flags['CLAUDE_MODEL'] = 'claude-sonnet-4-6'
         flags['MAX_TOKENS'] = 8192
         flags['TEMPERATURE'] = 0.7
     

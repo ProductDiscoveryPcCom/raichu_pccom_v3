@@ -5,7 +5,7 @@ Aplicacion Streamlit para generacion automatizada de contenido SEO para PcCompon
 ## Stack
 
 - **Runtime:** Python 3.11, Streamlit 1.28+
-- **IA:** Anthropic API (`claude-sonnet-4-20250514`), OpenAI (`gpt-4.1-2025-04-14` para correccion dual en Stage 2), Google Gemini 2.5 Flash (generacion de imagenes)
+- **IA:** Anthropic API (`claude-sonnet-4-6`), OpenAI (`gpt-4.1-2025-04-14` para correccion dual en Stage 2), Google Gemini 2.5 Flash (generacion de imagenes)
 - **Scraping/Research:** BeautifulSoup4 + lxml, SerpAPI, SEMrush API, Google Search Console API
 - **Deploy:** Streamlit Cloud
 

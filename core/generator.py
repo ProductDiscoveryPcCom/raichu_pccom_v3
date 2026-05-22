@@ -106,7 +106,7 @@ except ImportError:
     # Fallback si no está core.config (legacy/standalone)
     import os
     CLAUDE_API_KEY = os.getenv('ANTHROPIC_API_KEY', os.getenv('CLAUDE_API_KEY', ''))
-    DEFAULT_MODEL = 'claude-sonnet-4-20250514'
+    DEFAULT_MODEL = 'claude-sonnet-4-6'
     MAX_TOKENS = 16000
     DEFAULT_TEMPERATURE = 0.7
     DEFAULT_MAX_RETRIES = 3
@@ -118,7 +118,7 @@ except ImportError:
 # ============================================================================
 
 AVAILABLE_MODELS = {
-    'claude-sonnet-4-20250514': 'Claude Sonnet 4',
+    'claude-sonnet-4-6': 'Claude Sonnet 4.6',
     'claude-opus-4-20250514': 'Claude Opus 4',
     'claude-3-5-sonnet-20241022': 'Claude 3.5 Sonnet',
     'claude-3-opus-20240229': 'Claude 3 Opus',
@@ -141,7 +141,7 @@ def _sleep_with_jitter(delay: float, jitter_ratio: float = RETRY_JITTER_RATIO) -
     time.sleep(delay + jitter)
 
 MODEL_TOKEN_LIMITS = {
-    'claude-sonnet-4-20250514': 200000,
+    'claude-sonnet-4-6': 200000,
     'claude-opus-4-20250514': 200000,
     'claude-3-5-sonnet-20241022': 200000,
     'claude-3-opus-20240229': 200000,
