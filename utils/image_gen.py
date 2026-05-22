@@ -4,6 +4,7 @@ Image Generation - PcComponentes Content Generator
 Version 2.0.0 - 2026-02-12
 
 Generacion de imagenes contextualizadas con Google Gemini 2.5 Flash Image.
+Fallback cross-vendor a OpenAI gpt-image-1 si Gemini no esta disponible o falla.
 Tipos de imagen:
   - Portada (cover): 1024x576 (16:9), max-width 44rem
   - Cuerpo contextual (body_contextual): 1024x1024, ilustra seccion H2/H3
@@ -52,6 +53,13 @@ INFOGRAPHIC_ASPECT = "9:16"
 DEFAULT_MODEL = "gemini-2.5-flash-image"
 FALLBACK_MODEL = "gemini-2.5-flash-preview-image-generation"
 
+# Fallback cross-vendor: si Gemini no está disponible o falla una imagen, se usa
+# el modelo de imágenes de OpenAI (gpt-image-1). NOTA: gpt-image-1 NO soporta seed
+# images (referencias de estilo) ni ratios arbitrarios — las imágenes se ajustan
+# (crop + resize) al tamaño objetivo de cada tipo. Suele requerir organización
+# verificada en OpenAI.
+OPENAI_IMAGE_MODEL = "gpt-image-1"
+
 # Rate limiting
 DELAY_BETWEEN_GENERATIONS = 1.5
 
@@ -75,6 +83,24 @@ IMAGE_TYPE_LABELS = {
     ImageType.BODY_USE_CASE: "Cuerpo - Caso de uso",
     ImageType.INFOGRAPHIC: "Infografia",
     ImageType.SUMMARY: "Resumen grafico",
+}
+
+# Tamaño final deseado por tipo (igual que el nativo de Gemini).
+_TYPE_TARGET_SIZE = {
+    ImageType.COVER: (1024, 576),
+    ImageType.BODY_CONTEXTUAL: (1024, 1024),
+    ImageType.BODY_USE_CASE: (1024, 1024),
+    ImageType.INFOGRAPHIC: (1024, 1792),
+    ImageType.SUMMARY: (1024, 1024),
+}
+
+# Tamaño que admite gpt-image-1 más cercano al ratio deseado (luego se recorta).
+_OPENAI_REQUEST_SIZE = {
+    ImageType.COVER: "1536x1024",          # landscape → recorte a 16:9
+    ImageType.BODY_CONTEXTUAL: "1024x1024",
+    ImageType.BODY_USE_CASE: "1024x1024",
+    ImageType.INFOGRAPHIC: "1024x1536",    # portrait → recorte a 9:16
+    ImageType.SUMMARY: "1024x1024",
 }
 
 
@@ -189,6 +215,37 @@ def is_gemini_available() -> Tuple[bool, str]:
     return (client is not None), error
 
 
+def _get_openai_image_client():
+    """Obtiene cliente OpenAI para imágenes (fallback). Mismo patrón de carga de
+    key que Gemini: core.config (inyección directa) → st.secrets (fallback local).
+    Returns: (client|None, error_str)."""
+    try:
+        from openai import OpenAI
+    except ImportError:
+        return None, "openai SDK no instalado. pip install openai>=1.0.0"
+    api_key = ""
+    try:
+        from core.config import OPENAI_API_KEY
+        api_key = OPENAI_API_KEY
+    except ImportError:
+        pass
+    if not api_key:
+        try:
+            import streamlit as st
+            api_key = st.secrets.get('openai_key', '') or st.secrets.get('OPENAI_API_KEY', '')
+        except Exception:
+            pass
+    if not api_key:
+        return None, "OPENAI_API_KEY no configurada"
+    return OpenAI(api_key=api_key), ""
+
+
+def is_openai_images_available() -> Tuple[bool, str]:
+    """Verifica disponibilidad del fallback de imágenes OpenAI (gpt-image-1)."""
+    client, error = _get_openai_image_client()
+    return (client is not None), error
+
+
 # ============================================================================
 # CONVERSIÓN DE FORMATO Y REDIMENSIONADO
 # ============================================================================
@@ -274,6 +331,50 @@ def _resize_and_convert(
         return None
     except Exception as e:
         logger.error(f"Error redimensionando/convirtiendo imagen: {e}")
+        return None
+
+
+def _fit_to_size(image_bytes: bytes, target_w: int, target_h: int) -> Optional[bytes]:
+    """Ajusta una imagen al tamaño objetivo manteniendo proporción: recorta al
+    centro hasta el ratio destino y luego redimensiona. Evita distorsión cuando
+    el proveedor (gpt-image-1) entrega un ratio distinto al deseado.
+
+    Returns: bytes PNG ajustados, o None si Pillow no está disponible / falla.
+    """
+    try:
+        from PIL import Image
+
+        img = Image.open(io.BytesIO(image_bytes))
+        src_w, src_h = img.size
+        if not src_w or not src_h:
+            return None
+
+        target_ratio = target_w / target_h
+        src_ratio = src_w / src_h
+
+        if src_ratio > target_ratio:
+            # Demasiado ancho → recortar lados
+            new_w = int(round(src_h * target_ratio))
+            left = (src_w - new_w) // 2
+            img = img.crop((left, 0, left + new_w, src_h))
+        elif src_ratio < target_ratio:
+            # Demasiado alto → recortar arriba/abajo
+            new_h = int(round(src_w / target_ratio))
+            top = (src_h - new_h) // 2
+            img = img.crop((0, top, src_w, top + new_h))
+
+        img = img.resize((target_w, target_h), Image.LANCZOS)
+
+        buf = io.BytesIO()
+        img.save(buf, format="PNG", optimize=True)
+        buf.seek(0)
+        return buf.getvalue()
+
+    except ImportError:
+        logger.warning("Pillow no disponible para ajuste de tamaño (fallback OpenAI)")
+        return None
+    except Exception as e:
+        logger.error(f"Error ajustando tamaño de imagen OpenAI: {e}")
         return None
 
 
@@ -522,6 +623,52 @@ def _generate_single_image(
         return None, "", f"Error generando imagen: {error_msg}"
 
 
+def _generate_single_image_openai(
+    prompt: str,
+    image_type: ImageType,
+    client: Optional[Any] = None,
+) -> Tuple[Optional[bytes], str, str]:
+    """Genera una imagen con el modelo de OpenAI (gpt-image-1) como fallback.
+
+    No soporta seed images. El tamaño se pide en el ratio admitido más cercano y
+    se ajusta (crop + resize) al objetivo del tipo. Returns: (bytes, mime, error).
+    """
+    if client is None:
+        client, error = _get_openai_image_client()
+        if not client:
+            return None, "", error
+
+    try:
+        size = _OPENAI_REQUEST_SIZE.get(image_type, "1024x1024")
+        response = client.images.generate(
+            model=OPENAI_IMAGE_MODEL,
+            prompt=prompt,
+            size=size,
+            n=1,
+        )
+
+        if not response.data:
+            return None, "", "OpenAI no devolvio imagen en la respuesta"
+
+        b64 = getattr(response.data[0], 'b64_json', None)
+        if not b64:
+            return None, "", "OpenAI no devolvio imagen (b64_json vacio)"
+
+        raw = base64.b64decode(b64)
+
+        # Ajustar al tamaño final deseado del tipo (gpt-image-1 no da 16:9 ni 9:16)
+        target = _TYPE_TARGET_SIZE.get(image_type)
+        if target:
+            fitted = _fit_to_size(raw, target[0], target[1])
+            if fitted:
+                raw = fitted
+
+        return raw, "image/png", ""
+
+    except Exception as e:
+        return None, "", f"Error OpenAI {OPENAI_IMAGE_MODEL}: {str(e)}"
+
+
 def generate_images(
     requests: List[ImageRequest],
     html_content: str = "",
@@ -531,11 +678,18 @@ def generate_images(
     """
     start_time = time.time()
 
-    client, error = _get_gemini_client()
-    if not client:
-        return ImageGenResult(success=False, error=error)
+    gemini_client, gemini_error = _get_gemini_client()
+    openai_client, openai_error = _get_openai_image_client()
 
-    result = ImageGenResult(model_used=DEFAULT_MODEL)
+    if not gemini_client and not openai_client:
+        # Ningún proveedor disponible
+        return ImageGenResult(
+            success=False,
+            error=gemini_error or openai_error or "Sin proveedor de imágenes disponible",
+        )
+
+    result = ImageGenResult()
+    models_used = set()
 
     for i, req in enumerate(requests):
         if req.image_type == ImageType.COVER:
@@ -568,10 +722,31 @@ def generate_images(
             )
             prompt = seed_prefix + prompt
 
-        img_bytes, mime, gen_error = _generate_single_image(
-            client, prompt,
-            seed_images=req.seed_images if req.seed_images else None
-        )
+        # 1) Gemini primero (si está disponible). Soporta seed images.
+        img_bytes, mime, gen_error = (None, "", "")
+        if gemini_client:
+            img_bytes, mime, gen_error = _generate_single_image(
+                gemini_client, prompt,
+                seed_images=req.seed_images if req.seed_images else None
+            )
+            if img_bytes:
+                models_used.add(DEFAULT_MODEL)
+
+        # 2) Fallback OpenAI (gpt-image-1) si Gemini no dio imagen.
+        #    Cubre tanto "Gemini no configurado" como fallo runtime por imagen.
+        if not img_bytes and openai_client:
+            if gemini_client:
+                logger.warning(
+                    f"Gemini falló en imagen {i+1} ({gen_error}); probando {OPENAI_IMAGE_MODEL}"
+                )
+            oai_bytes, oai_mime, oai_err = _generate_single_image_openai(
+                prompt, req.image_type, client=openai_client
+            )
+            if oai_bytes:
+                img_bytes, mime, gen_error = oai_bytes, oai_mime, ""
+                models_used.add(OPENAI_IMAGE_MODEL)
+            else:
+                gen_error = f"{gen_error} | OpenAI: {oai_err}".strip(" |")
 
         if img_bytes:
             # Redimensionar si se pidieron dimensiones custom
@@ -611,6 +786,10 @@ def generate_images(
             time.sleep(DELAY_BETWEEN_GENERATIONS)
 
     result.generation_time = time.time() - start_time
+    if models_used:
+        result.model_used = " + ".join(sorted(models_used))
+    else:
+        result.model_used = DEFAULT_MODEL if gemini_client else OPENAI_IMAGE_MODEL
     if not result.images:
         result.success = False
         result.error = "No se pudo generar ninguna imagen"
