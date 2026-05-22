@@ -844,6 +844,30 @@ class TestCSSIntegrity:
         assert len(CRITICAL_SELECTORS) > 0
 
 
+class TestMainFormDiscoverability:
+    """render_main_form expone keyword, keywords secundarias e instrucciones de
+    forma descubrible (regresión: antes estaban enterradas bajo 'Visual')."""
+
+    def _src(self):
+        return Path("ui/inputs.py").read_text(encoding='utf-8')
+
+    def test_keyword_input_in_main_section(self):
+        src = self._src()
+        assert 'render_keyword_input(key="main_keyword"' in src
+
+    def test_dedicated_expander_for_keywords_and_instructions(self):
+        src = self._src()
+        # Expander propio (no enterrado bajo "Visual")
+        assert 'Keywords secundarias, instrucciones y fuentes' in src
+        # Y el expander visual ya no mezcla instrucciones
+        assert 'Visual, estructura e instrucciones' not in src
+
+    def test_secondary_kw_and_instructions_wired(self):
+        src = self._src()
+        assert 'main_secondary_keywords' in src
+        assert 'render_additional_instructions(key="main_instructions")' in src
+
+
 # ============================================================================
 # 14. APP.PY — Funciones Core
 # ============================================================================
