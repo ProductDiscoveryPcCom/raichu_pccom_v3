@@ -2106,19 +2106,23 @@ def render_image_generation_tab(html_content: str) -> None:
     # Verificar disponibilidad de Gemini
     try:
         from utils.image_gen import (
-            is_gemini_available, extract_headings_from_html,
+            is_gemini_available, is_openai_images_available, extract_headings_from_html,
             ImageType, ImageRequest, generate_images, create_images_zip,
             IMAGE_TYPE_LABELS, ImageFormatVariant,
         )
-        available, gemini_error = is_gemini_available()
+        gemini_available, gemini_error = is_gemini_available()
+        openai_available, openai_error = is_openai_images_available()
     except ImportError:
         st.warning("⚠️ Módulo de generación de imágenes no disponible. Instalar: `pip install google-genai`")
         return
-    
-    if not available:
-        st.warning(f"⚠️ Gemini no configurado: {gemini_error}")
-        st.caption("Configura `GEMINI_API_KEY` en secrets o variables de entorno.")
+
+    if not gemini_available and not openai_available:
+        st.warning(f"⚠️ Ningún generador de imágenes configurado. Gemini: {gemini_error}. OpenAI: {openai_error}")
+        st.caption("Configura `GEMINI_API_KEY` (preferido) y/o `OPENAI_API_KEY` (fallback) en secrets.")
         return
+
+    if not gemini_available and openai_available:
+        st.info(f"ℹ️ Gemini no disponible ({gemini_error}). Usando OpenAI `gpt-image-1` como generador.")
     
     # Extraer headings del HTML para asociar imágenes
     headings = extract_headings_from_html(html_content)
