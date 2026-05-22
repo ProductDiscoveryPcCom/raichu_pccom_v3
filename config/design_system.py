@@ -570,7 +570,7 @@ _BASE_CSS_SECTION_MAP = {
     'Grid System':         'grid',
     'Cards':               'card,grid',
     'Separadores':         '_core',
-    'Tablas HTML':         'table',
+    'Tablas HTML':         'table,comparison_table',
     'Tablas (Light Table': 'table,light_table',
     'FAQs':                'faqs',
     'Verdict Box':         'verdict',

@@ -75,6 +75,22 @@ def test_extract_html_content():
     assert extract_html_content("") == ""
 
 
+def test_extract_html_content_strips_module_markers():
+    """Los marcadores #MODULE_START:ID# / #MODULE_END:ID# no deben renderizarse."""
+    html = (
+        '<article class="contentGenerator__main">\n'
+        '#MODULE_START:MAIN#\n'
+        '<p>contenido</p>\n'
+        '  #MODULE_END:MAIN#\n'
+        '</article>'
+    )
+    result = extract_html_content(html)
+    assert '#MODULE_START' not in result
+    assert '#MODULE_END' not in result
+    assert 'MODULE' not in result
+    assert '<p>contenido</p>' in result  # el contenido real se conserva
+
+
 # ---------------------------------------------------------------------------
 # validate_response
 # ---------------------------------------------------------------------------

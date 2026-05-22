@@ -493,6 +493,7 @@ table tbody tr:hover {
   width: 100%;
   border-collapse: collapse;
   margin: var(--space-4) 0;
+  table-layout: fixed;
 }
 
 .comparison-table th,
