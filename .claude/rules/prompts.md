@@ -50,10 +50,14 @@ Todo contenido generado DEBE contener 3 `<article>`:
 ## Correccion dual (Stage 2)
 
 1. Claude analiza el draft (via `ContentGenerator.generate()`)
-2. OpenAI valida independientemente (via `core/openai_client.call_openai_api()`)
-3. Stage 3 recibe feedback combinado de ambos
+2. Un segundo modelo valida independientemente y `merge_dual_analyses()` fusiona ambos
+3. Stage 3 recibe feedback combinado
 
-Solo se activa si `_openai_client_available and OPENAI_API_KEY`.
+**Eleccion del analista secundario** (en `core/pipeline.py`, Stage 2):
+- **OpenAI** (via `openai_client.generate_dual_analysis()`) si `_openai_client_available and OPENAI_API_KEY` — preferido por ser cross-vendor (mayor independencia).
+- **Fallback Claude Haiku** (via `_haiku_secondary_analysis()`, modelo `core.config.DUAL_FALLBACK_MODEL`) cuando NO hay key/SDK de OpenAI, o cuando OpenAI falla en runtime (rate limit / error → backstop secuencial). Garantiza "siempre dos analisis".
+- Independencia menor con Haiku (mismo proveedor que el principal) — es red de seguridad, no sustituto equivalente. Usa el mismo system critico que OpenAI (`_DUAL_FALLBACK_SYSTEM`), no el tono de marca.
+- `merge_dual_analyses(..., secondary_provider=...)` etiqueta la telemetria con el modelo real usado (`'openai'` / `'haiku'`).
 
 ## Como anadir un arquetipo nuevo
 

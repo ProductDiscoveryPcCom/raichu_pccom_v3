@@ -119,6 +119,7 @@ except ImportError:
 
 AVAILABLE_MODELS = {
     'claude-sonnet-4-6': 'Claude Sonnet 4.6',
+    'claude-haiku-4-5-20251001': 'Claude Haiku 4.5',
     'claude-opus-4-20250514': 'Claude Opus 4',
     'claude-3-5-sonnet-20241022': 'Claude 3.5 Sonnet',
     'claude-3-opus-20240229': 'Claude 3 Opus',
@@ -142,6 +143,7 @@ def _sleep_with_jitter(delay: float, jitter_ratio: float = RETRY_JITTER_RATIO) -
 
 MODEL_TOKEN_LIMITS = {
     'claude-sonnet-4-6': 200000,
+    'claude-haiku-4-5-20251001': 200000,
     'claude-opus-4-20250514': 200000,
     'claude-3-5-sonnet-20241022': 200000,
     'claude-3-opus-20240229': 200000,
