@@ -522,40 +522,47 @@ Usa este contenido como base, mejóralo y amplíalo según el análisis competit
         # ====================================================================
         
         serp_context = ""
-        if mode == 'new' and config.get('serp_research', False):
-            status_widget.update(label="Etapa 0/3: Investigación SERP...", state="running")
-            status_widget.write("🔍 Analizando qué posiciona en las SERPs...")
+        # Etapa 0 — Enriquecer con información actual de la web.
+        # Cadena: OpenAI web search (primario) → SERP research (fallback).
+        # Opt-in vía config['web_research']. Compat: config['serp_research'] sigue
+        # forzando solo la rama SERP.
+        _web_research_on = config.get('web_research', False)
+        _serp_only = config.get('serp_research', False)
+        if mode == 'new' and (_web_research_on or _serp_only):
+            status_widget.update(label="Etapa 0/3: Investigación web...", state="running")
+            status_widget.write("🌐 Buscando información actual (web/SERP)...")
             try:
-                if not _serp_research_available:
-                    raise ImportError("serp_research not available")
-
-                research = research_serp(config.get('keyword', ''))
-
-                if research.success:
-                    serp_context = format_for_prompt(research)
-
-                    n_results = len(research.serp_results)
-                    n_scraped = sum(1 for c in research.competitors if c.success)
-                    avg_words = research.avg_word_count
-                    n_related = len(research.related_searches)
-
-                    summary_parts = [
-                        f"✅ {n_results} resultados encontrados",
-                        f"{n_scraped} competidores analizados",
-                    ]
-                    if avg_words:
-                        summary_parts.append(f"~{avg_words} palabras de media")
-                    if n_related:
-                        summary_parts.append(f"{n_related} búsquedas relacionadas")
-
-                    status_widget.write(", ".join(summary_parts))
+                if _web_research_on:
+                    from utils.web_research import research_enriched, to_prompt_context
+                    wr = research_enriched(config.get('keyword', ''))
+                    if wr.success and to_prompt_context(wr):
+                        serp_context = to_prompt_context(wr)
+                        _prov = "OpenAI web search" if wr.provider == 'openai_web' else "SERP (fallback)"
+                        _n_src = len(wr.sources)
+                        _msg = f"✅ Enriquecido vía {_prov}"
+                        if _n_src:
+                            _msg += f" · {_n_src} fuentes"
+                        status_widget.write(_msg)
+                    else:
+                        status_widget.write(f"⚠️ Investigación web sin datos: {wr.error}")
                 else:
-                    status_widget.write(f"⚠️ SERP: {research.error}")
-            except ImportError:
-                status_widget.write("⚠️ Módulo serp_research no disponible")
+                    # Compat: solo SERP (flag legacy serp_research)
+                    if not _serp_research_available:
+                        raise ImportError("serp_research not available")
+                    research = research_serp(config.get('keyword', ''))
+                    if research.success:
+                        serp_context = format_for_prompt(research)
+                        n_scraped = sum(1 for c in research.competitors if c.success)
+                        status_widget.write(
+                            f"✅ {len(research.serp_results)} resultados, {n_scraped} competidores analizados"
+                        )
+                    else:
+                        status_widget.write(f"⚠️ SERP: {research.error}")
+            except ImportError as e:
+                status_widget.write(f"⚠️ Módulo de investigación no disponible: {e}")
             except Exception as e:
-                logger.warning(f"Error en investigación SERP: {e}")
-                status_widget.write(f"⚠️ Investigación SERP fallida: {str(e)[:100]}")
+                logger.warning(f"Error en investigación web/SERP: {e}")
+                status_widget.write(f"⚠️ Investigación fallida: {str(e)[:100]}")
 
             progress_bar.progress(25)
         
