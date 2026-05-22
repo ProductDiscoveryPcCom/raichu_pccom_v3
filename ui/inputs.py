@@ -284,6 +284,8 @@ class FormData:
     faq_questions: Optional[List[str]] = None
     # NUEVO [I1]: Fuentes autoritativas
     authoritative_sources: Optional[str] = None
+    # Enriquecer con búsqueda web (OpenAI web search → fallback SERP)
+    web_research: bool = False
 
 
 # ============================================================================
@@ -2761,6 +2763,19 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
     st.markdown("#### ⚙️ Opciones adicionales")
     st.caption("*Todos estos campos son opcionales. Empieza solo con keyword + arquetipo si es tu primera vez.*")
 
+    # Investigación web (opt-in): enriquece con info actual. Cadena OpenAI web
+    # search → fallback SERP. Consume crédito de OpenAI por generación.
+    web_research = st.checkbox(
+        "🌐 Enriquecer con búsqueda web (información actual)",
+        key="main_web_research",
+        value=False,
+        help=(
+            "Investiga datos actuales de la web vía OpenAI (con fallback automático "
+            "a la investigación SERP). Mejora la precisión del contenido —modelos, "
+            "specs, precios, novedades—. Consume crédito de OpenAI por generación."
+        ),
+    )
+
     # Productos — dentro de expander, con hint contextual por arquetipo
     _PRODUCT_CENTRIC_ARCHETYPES = {
         'ARQ-4', 'ARQ-5', 'ARQ-6', 'ARQ-7', 'ARQ-8', 'ARQ-9', 'ARQ-10',
@@ -2916,6 +2931,7 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
         secondary_keywords=secondary_keywords or None,
         faq_questions=faq_questions or None,
         authoritative_sources=authoritative_sources or None,
+        web_research=web_research,
     )
 
 
@@ -3027,6 +3043,8 @@ def render_content_inputs() -> Tuple[bool, Dict[str, Any]]:
         'faq_questions': form_data.faq_questions or [],
         # NUEVO [I1]: Fuentes autoritativas
         'authoritative_sources': form_data.authoritative_sources or '',
+        # Investigación web opt-in (OpenAI web search → fallback SERP)
+        'web_research': form_data.web_research,
     }
     
     # REC-6: Resumen pre-generación compacto

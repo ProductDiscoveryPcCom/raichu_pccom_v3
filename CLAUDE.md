@@ -54,7 +54,8 @@ utils/
   html_utils.py          # Conteo de palabras, validacion HTML, deteccion frases IA
   gsc_utils.py           # Google Search Console (cache, canibalizacion, CSV fallback)
   gsc_api.py             # API GSC directa
-  serp_research.py       # Investigacion SERP (DuckDuckGo/SerpAPI)
+  serp_research.py       # Investigacion SERP (DuckDuckGo/SerpAPI) — fallback de web_research
+  web_research.py        # Investigacion web (OpenAI web search → fallback SERP), opt-in
   image_gen.py           # Generacion de imagenes (Gemini primario, OpenAI gpt-image-1 fallback)
   product_json_utils.py  # Parse/validacion JSON de productos
   translation.py         # Traduccion de contenido
@@ -81,6 +82,13 @@ Prioridad de carga:
 
 Orquestado en `core/pipeline.py`:
 
+0. **Stage 0 — Investigacion web (opcional, opt-in):** si `config['web_research']`
+   (checkbox "🌐 Enriquecer con busqueda web" en el formulario), `utils/web_research.py`
+   enriquece el `guiding_context` con info actual. Cadena con fallback:
+   **OpenAI web search** (Responses API + tool `web_search` — reutiliza `OPENAI_API_KEY`)
+   → **SERP research** (`utils/serp_research.py`, SerpAPI/DuckDuckGo) si OpenAI no esta
+   o falla → sin enriquecer (graceful). NO depende de Gemini. Las fuentes web se usan
+   solo como contexto factual; NO se inyectan como enlaces externos en el HTML.
 1. **Stage 1 — Borrador:** Claude genera HTML draft con CSS embebido
 2. **Stage 2 — Analisis:** Claude analiza + un segundo modelo valida (correccion dual). Secundario = OpenAI si `openai_key` esta en secrets (cross-vendor, mayor independencia); si no hay key/SDK o OpenAI falla en runtime, **fallback automatico a Claude Haiku** (`core.config.DUAL_FALLBACK_MODEL`) para garantizar "siempre dos analisis"
 3. **Stage 3 — Final:** Claude genera version final incorporando feedback de ambos analisis
