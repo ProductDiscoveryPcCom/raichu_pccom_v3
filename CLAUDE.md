@@ -82,7 +82,7 @@ Prioridad de carga:
 Orquestado en `core/pipeline.py`:
 
 1. **Stage 1 — Borrador:** Claude genera HTML draft con CSS embebido
-2. **Stage 2 — Analisis:** Claude analiza + OpenAI valida (correccion dual, opcional si `openai_key` esta en secrets)
+2. **Stage 2 — Analisis:** Claude analiza + un segundo modelo valida (correccion dual). Secundario = OpenAI si `openai_key` esta en secrets (cross-vendor, mayor independencia); si no hay key/SDK o OpenAI falla en runtime, **fallback automatico a Claude Haiku** (`core.config.DUAL_FALLBACK_MODEL`) para garantizar "siempre dos analisis"
 3. **Stage 3 — Final:** Claude genera version final incorporando feedback de ambos analisis
 
 Funciones de prompts por etapa: ver `.claude/rules/prompts.md`

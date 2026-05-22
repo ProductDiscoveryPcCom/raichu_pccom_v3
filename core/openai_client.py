@@ -272,16 +272,20 @@ def generate_dual_analysis(
 def merge_dual_analyses(
     claude_analysis: str,
     openai_analysis: str,
+    secondary_provider: str = 'openai',
 ) -> str:
     """
-    Fusiona los análisis de Claude y OpenAI en un solo feedback para la etapa 3.
+    Fusiona el análisis de Claude (principal) con el del analista secundario en
+    un solo feedback para la etapa 3.
 
     Intenta parsear ambos como JSON y combinar los problemas detectados.
     Si el parsing falla, concatena como texto.
 
     Args:
         claude_analysis: Análisis de Claude (etapa 2)
-        openai_analysis: Análisis de OpenAI (etapa 2)
+        openai_analysis: Análisis del analista secundario (etapa 2)
+        secondary_provider: Identificador del segundo modelo ('openai' o 'haiku').
+            Solo afecta a las etiquetas/telemetría del feedback combinado.
 
     Returns:
         Feedback combinado para la etapa 3
@@ -291,14 +295,15 @@ def merge_dual_analyses(
 
     # Si ambos son JSON, fusionar inteligentemente
     if claude_json and openai_json:
-        return _merge_json_analyses(claude_json, openai_json)
+        return _merge_json_analyses(claude_json, openai_json, secondary_provider)
 
     # Fallback: concatenar como texto
+    label = 'OPENAI' if secondary_provider == 'openai' else secondary_provider.upper()
     return (
         "# ANÁLISIS DE CLAUDE\n\n"
         f"{claude_analysis}\n\n"
         "---\n\n"
-        "# ANÁLISIS DE OPENAI (corrección dual)\n\n"
+        f"# ANÁLISIS DE {label} (corrección dual)\n\n"
         f"{openai_analysis}"
     )
 
@@ -318,7 +323,7 @@ def _try_parse_json(text: str) -> Optional[Dict]:
         return None
 
 
-def _merge_json_analyses(claude: Dict, openai: Dict) -> str:
+def _merge_json_analyses(claude: Dict, openai: Dict, secondary_provider: str = 'openai') -> str:
     """Fusiona dos análisis JSON en un feedback combinado."""
 
     # Combinar problemas de ambos (sin duplicados)
@@ -376,7 +381,7 @@ def _merge_json_analyses(claude: Dict, openai: Dict) -> str:
     merged['problemas'] = merged_problems
     merged['puntuacion_general'] = min_score
     merged['correccion_dual'] = True
-    merged['modelos_usados'] = ['claude', 'openai']
+    merged['modelos_usados'] = ['claude', secondary_provider]
 
     if all_ai_phrases:
         if 'tono' not in merged:

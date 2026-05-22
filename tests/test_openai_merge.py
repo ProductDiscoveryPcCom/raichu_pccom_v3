@@ -7,7 +7,7 @@ aspectos_positivos dedup when items are dicts (unhashable).
 import json
 import pytest
 
-from core.openai_client import _merge_json_analyses
+from core.openai_client import _merge_json_analyses, merge_dual_analyses
 
 
 def _base_analysis(**overrides):
@@ -255,3 +255,41 @@ class TestPuntuacionGeneralUnexpectedShapeLog:
             "puntuacion_general dict shape inesperado" in rec.message
             for rec in caplog.records
         )
+
+
+# ── secondary_provider: telemetría del segundo modelo (fallback Haiku) ───
+
+class TestSecondaryProvider:
+    def test_default_provider_is_openai(self):
+        merged = _parse(_merge_json_analyses(
+            _base_analysis(), _base_analysis(),
+        ))
+        assert merged["modelos_usados"] == ["claude", "openai"]
+
+    def test_haiku_provider_reflected_in_json(self):
+        merged = _parse(_merge_json_analyses(
+            _base_analysis(), _base_analysis(), secondary_provider="haiku",
+        ))
+        assert merged["modelos_usados"] == ["claude", "haiku"]
+
+    def test_merge_dual_analyses_passes_provider_through(self):
+        merged = _parse(merge_dual_analyses(
+            json.dumps(_base_analysis()),
+            json.dumps(_base_analysis()),
+            secondary_provider="haiku",
+        ))
+        assert merged["modelos_usados"] == ["claude", "haiku"]
+
+    def test_text_fallback_uses_provider_label(self):
+        # Entradas no-JSON → rama de concatenación textual
+        out = merge_dual_analyses(
+            "análisis claude libre",
+            "análisis haiku libre",
+            secondary_provider="haiku",
+        )
+        assert "# ANÁLISIS DE HAIKU (corrección dual)" in out
+        assert "# ANÁLISIS DE CLAUDE" in out
+
+    def test_text_fallback_default_label_openai(self):
+        out = merge_dual_analyses("claude libre", "openai libre")
+        assert "# ANÁLISIS DE OPENAI (corrección dual)" in out

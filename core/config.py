@@ -119,6 +119,20 @@ if not OPENAI_API_KEY:
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
     OPENAI_MODEL = os.getenv('OPENAI_MODEL', OPENAI_MODEL)
 
+# Modelo de fallback para la validación dual (Stage 2) cuando OpenAI no está
+# disponible (sin key/SDK) o falla en runtime. Mantiene el principio de
+# "siempre dos análisis" usando un modelo Claude pequeño y barato.
+# NOTA: la independencia es menor que con OpenAI (mismo proveedor) — es una red
+# de seguridad, no un sustituto equivalente. Override vía secrets: dual_fallback_model.
+DUAL_FALLBACK_MODEL = "claude-haiku-4-5-20251001"
+try:
+    if hasattr(st, 'secrets') and 'dual_fallback_model' in st.secrets:
+        DUAL_FALLBACK_MODEL = st.secrets['dual_fallback_model']
+except Exception:
+    pass
+if os.getenv('DUAL_FALLBACK_MODEL'):
+    DUAL_FALLBACK_MODEL = os.getenv('DUAL_FALLBACK_MODEL')
+
 # Gemini config (generación de imágenes)
 GEMINI_API_KEY = ""
 try:

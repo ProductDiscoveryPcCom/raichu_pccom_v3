@@ -139,6 +139,60 @@ def _run_parallel_stage2(
     return claude_payload, openai_payload
 
 
+# Sistema crítico para el segundo análisis (espejo del de openai_client): pedimos
+# un revisor riguroso, NO el system de tono de marca, para maximizar el valor de
+# la "segunda opinión".
+_DUAL_FALLBACK_SYSTEM = (
+    "Eres un editor SEO experto. Analiza el contenido de forma rigurosa "
+    "y responde ÚNICAMENTE con el JSON solicitado. "
+    "Sé especialmente crítico con: frases genéricas de IA, "
+    "estructura HTML incorrecta, y falta de personalidad en el tono."
+)
+
+
+def _haiku_secondary_analysis(
+    stage2_prompt: str,
+    max_tokens: int,
+    *,
+    api_key: str,
+    model: str,
+    content_generator_cls: Any,
+) -> Tuple[bool, str, Dict[str, Any]]:
+    """Segundo análisis de Stage 2 vía un modelo Claude pequeño (Haiku) como
+    fallback de OpenAI para la corrección dual.
+
+    Devuelve la MISMA forma que openai_client.generate_dual_analysis para que el
+    pipeline procese ambos de manera uniforme: (ok, analysis, metadata).
+    Captura todas las excepciones (no propaga) — es una red de seguridad.
+    """
+    if not api_key or content_generator_cls is None:
+        return False, "", {"error": "Haiku fallback no disponible (sin API key o generador)"}
+
+    try:
+        gen = content_generator_cls(
+            api_key=api_key,
+            model=model,
+            max_tokens=max_tokens,
+            temperature=0.4,  # análisis preciso, igual que el secundario OpenAI
+        )
+        result = gen.generate(
+            stage2_prompt,
+            system_prompt=_DUAL_FALLBACK_SYSTEM,
+            max_tokens=max_tokens,
+        )
+        if result is not None and getattr(result, 'success', False):
+            return True, result.content, {
+                "model": getattr(result, 'model', model),
+                "tokens": getattr(result, 'tokens_used', 0),
+                "time": round(getattr(result, 'generation_time', 0.0), 2),
+                "provider": "haiku",
+            }
+        return False, "", {"error": getattr(result, 'error', None) or "desconocido"}
+    except Exception as e:  # noqa: BLE001 — fallback no debe romper el pipeline
+        logger.error(f"Error en análisis Haiku (fallback dual): {e}")
+        return False, "", {"error": str(e)}
+
+
 # ============================================================================
 # IMPORTS LAZY (se cargan al ejecutar, no al importar el módulo)
 # ============================================================================
@@ -179,18 +233,20 @@ def _get_module_flags():
         flags['_brand_tone_available'] = False
     
     try:
-        from core.config import CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS, TEMPERATURE, DEBUG_MODE
+        from core.config import CLAUDE_API_KEY, CLAUDE_MODEL, MAX_TOKENS, TEMPERATURE, DEBUG_MODE, DUAL_FALLBACK_MODEL
         flags['DEBUG_MODE'] = DEBUG_MODE
         flags['CLAUDE_API_KEY'] = CLAUDE_API_KEY
         flags['CLAUDE_MODEL'] = CLAUDE_MODEL
         flags['MAX_TOKENS'] = MAX_TOKENS
         flags['TEMPERATURE'] = TEMPERATURE
+        flags['DUAL_FALLBACK_MODEL'] = DUAL_FALLBACK_MODEL
     except ImportError:
         flags['DEBUG_MODE'] = False
         flags['CLAUDE_API_KEY'] = ''
         flags['CLAUDE_MODEL'] = 'claude-sonnet-4-6'
         flags['MAX_TOKENS'] = 8192
         flags['TEMPERATURE'] = 0.7
+        flags['DUAL_FALLBACK_MODEL'] = 'claude-haiku-4-5-20251001'
     
     try:
         from config.arquetipos import get_arquetipo
@@ -341,6 +397,7 @@ def execute_generation_pipeline(config: Dict[str, Any], mode: str = 'new') -> No
     CLAUDE_MODEL = _flags['CLAUDE_MODEL']
     MAX_TOKENS = _flags['MAX_TOKENS']
     TEMPERATURE = _flags['TEMPERATURE']
+    DUAL_FALLBACK_MODEL = _flags['DUAL_FALLBACK_MODEL']
     
     # ========================================================================
     # VALIDACIONES DE ENTRADA
@@ -666,8 +723,25 @@ Formato tu respuesta de manera clara y accionable."""
         # ETAPA 2: ANÁLISIS CRÍTICO (con corrección dual si OpenAI disponible)
         # ====================================================================
         
-        # Determinar si hay corrección dual
-        dual_enabled = _openai_client_available and openai_client.is_available()
+        # Determinar el analista secundario para la corrección dual.
+        # Preferencia: OpenAI (cross-vendor → mayor independencia). Si no hay
+        # key/SDK de OpenAI, se usa Claude Haiku como fallback para garantizar
+        # "siempre dos análisis" (red de seguridad, independencia menor).
+        openai_available = (
+            _openai_client_available and openai_client is not None and openai_client.is_available()
+        )
+        haiku_available = bool(CLAUDE_API_KEY) and ContentGenerator is not None
+        use_openai_secondary = openai_available
+        secondary_provider = 'openai' if use_openai_secondary else 'haiku'
+        dual_enabled = openai_available or haiku_available
+
+        if use_openai_secondary:
+            secondary_display = f"OpenAI ({OPENAI_MODEL})"
+        elif haiku_available:
+            secondary_display = "Claude Haiku (fallback)"
+        else:
+            secondary_display = ""
+
         stage2_label = "Análisis Crítico Dual" if dual_enabled else "Análisis Crítico"
         status_widget.update(label=f"Etapa 2/3: {stage2_label}...", state="running")
         st.session_state.current_stage = 2
@@ -706,11 +780,11 @@ Formato tu respuesta de manera clara y accionable."""
                 config=rewrite_config,
             )
 
-        # --- Análisis dual en paralelo (R1.1): Claude + OpenAI ---
+        # --- Análisis dual en paralelo (R1.1): Claude + secundario (OpenAI/Haiku) ---
         system_prompt = get_system_prompt_base() if _brand_tone_available else None
 
-        if dual_enabled:
-            status_widget.write(f"🔍 Claude + OpenAI ({OPENAI_MODEL}) analizando en paralelo...")
+        if dual_enabled and secondary_display:
+            status_widget.write(f"🔍 Claude + {secondary_display} analizando en paralelo...")
         else:
             status_widget.write("🔍 Claude analizando el borrador...")
 
@@ -725,13 +799,29 @@ Formato tu respuesta de manera clara y accionable."""
                 model=OPENAI_MODEL,
             )
 
-        claude_payload, openai_payload = _run_parallel_stage2(
+        def _haiku_worker():
+            return _haiku_secondary_analysis(
+                stage2_prompt,
+                _stage2_budget,
+                api_key=CLAUDE_API_KEY,
+                model=DUAL_FALLBACK_MODEL,
+                content_generator_cls=ContentGenerator,
+            )
+
+        if use_openai_secondary:
+            secondary_callable = _openai_worker
+        elif haiku_available:
+            secondary_callable = _haiku_worker
+        else:
+            secondary_callable = None
+
+        claude_payload, secondary_payload = _run_parallel_stage2(
             claude_callable=_claude_worker,
-            openai_callable=_openai_worker if dual_enabled else None,
+            openai_callable=secondary_callable,
             dual_enabled=dual_enabled,
         )
 
-        # --- Procesar resultado de Claude ---
+        # --- Procesar resultado de Claude (análisis principal) ---
         claude_ok, claude_result, claude_err, claude_t = claude_payload
         if not claude_ok or (claude_result is not None and not claude_result.success):
             err_msg = str(claude_err) if claude_err else getattr(claude_result, 'error', 'desconocido')
@@ -741,47 +831,64 @@ Formato tu respuesta de manera clara y accionable."""
             claude_analysis = claude_result.content
             status_widget.write(f"✅ Análisis Claude completado ({claude_t:.1f}s)")
 
-        # --- Procesar resultado de OpenAI ---
-        if dual_enabled and openai_payload is not None:
-            openai_ok_outer, openai_result, openai_err, openai_t = openai_payload
-            if not openai_ok_outer:
-                # Excepción no capturada por openai_client (ej. rate_limit, network)
-                _err_type, _err_msg = _classify_error(openai_err) if openai_err else ("unknown", "error desconocido")
+        # --- Procesar análisis secundario (OpenAI o Haiku) ---
+        # Por defecto, solo Claude; se sobreescribe si el secundario aporta análisis.
+        st.session_state.analysis_json = claude_analysis
+        secondary_analysis = None
+
+        if dual_enabled and secondary_payload is not None:
+            sec_outer_ok, sec_result, sec_err, sec_t = secondary_payload
+            if not sec_outer_ok:
+                # Excepción no capturada por el worker (ej. rate_limit, network)
+                _err_type, _err_msg = _classify_error(sec_err) if sec_err else ("unknown", "error desconocido")
                 if _err_type.startswith('rate_limit'):
-                    logger.warning(f"OpenAI dual correction rate limited: {openai_err}")
+                    logger.warning(f"Análisis secundario ({secondary_provider}) rate limited: {sec_err}")
                     st.warning(f"⚠️ {_err_msg}")
                 else:
-                    logger.warning(f"OpenAI dual correction error: {openai_err}")
-                    st.warning(f"⚠️ Error en corrección dual OpenAI: {_err_msg}. Continuando solo con Claude.")
-                st.session_state.analysis_json = claude_analysis
+                    logger.warning(f"Análisis secundario ({secondary_provider}) error: {sec_err}")
+                    st.warning(f"⚠️ Error en corrección dual ({secondary_display}): {_err_msg}.")
             else:
-                ok, openai_analysis, openai_meta = openai_result
+                ok, sec_text, sec_meta = sec_result
                 if ok:
+                    secondary_analysis = sec_text
                     status_widget.write(
-                        f"✅ Análisis OpenAI completado "
-                        f"({openai_meta.get('tokens', 0)} tokens, "
-                        f"{openai_t:.1f}s)"
-                    )
-                    st.session_state.analysis_json = openai_client.merge_dual_analyses(
-                        claude_analysis=claude_analysis,
-                        openai_analysis=openai_analysis,
-                    )
-                    logger.info(
-                        f"Corrección dual completada en paralelo: "
-                        f"claude={claude_t:.1f}s openai={openai_t:.1f}s "
-                        f"wall={max(claude_t, openai_t):.1f}s"
+                        f"✅ Análisis {secondary_display} completado "
+                        f"({sec_meta.get('tokens', 0)} tokens, {sec_t:.1f}s)"
                     )
                 else:
                     logger.warning(
-                        f"OpenAI dual correction returned ok=False: {openai_meta.get('error', 'desconocido')}"
+                        f"Análisis secundario ({secondary_provider}) ok=False: {sec_meta.get('error', 'desconocido')}"
                     )
                     status_widget.write(
-                        f"⚠️ OpenAI no disponible: {openai_meta.get('error', 'desconocido')}. "
-                        "Continuando solo con análisis de Claude."
+                        f"⚠️ {secondary_display} no disponible: {sec_meta.get('error', 'desconocido')}."
                     )
-                    st.session_state.analysis_json = claude_analysis
-        else:
-            st.session_state.analysis_json = claude_analysis
+
+            # Backstop: si el secundario era OpenAI y falló, reintentar con Haiku
+            # (secuencial — solo en el camino de error, no penaliza el caso común).
+            if secondary_analysis is None and use_openai_secondary and haiku_available:
+                status_widget.write("↪️ Reintentando validación dual con Claude Haiku (fallback)...")
+                h_ok, h_text, h_meta = _haiku_worker()
+                if h_ok:
+                    secondary_analysis = h_text
+                    secondary_provider = 'haiku'
+                    status_widget.write(
+                        f"✅ Fallback Haiku completado ({h_meta.get('tokens', 0)} tokens)"
+                    )
+                else:
+                    logger.warning(f"Fallback Haiku también falló: {h_meta.get('error', 'desconocido')}")
+                    status_widget.write("⚠️ Fallback Haiku no disponible. Continuando solo con Claude.")
+
+            # Fusionar si el secundario (OpenAI o Haiku) aportó análisis
+            if secondary_analysis and openai_client is not None:
+                st.session_state.analysis_json = openai_client.merge_dual_analyses(
+                    claude_analysis=claude_analysis,
+                    openai_analysis=secondary_analysis,
+                    secondary_provider=secondary_provider,
+                )
+                logger.info(
+                    f"Corrección dual completada (secundario={secondary_provider}): "
+                    f"claude={claude_t:.1f}s"
+                )
 
         # Inject CMS structure feedback into analysis if articles were missing
         if _cms_feedback and st.session_state.analysis_json:
