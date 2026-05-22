@@ -2803,8 +2803,8 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
         with st.expander("🏆 Análisis de Competencia", expanded=True):
             competitor_urls, _ = render_competitor_urls_input(key="main_competitors")
 
-    # Elementos visuales + Encabezados + Instrucciones — agrupados en un expander
-    with st.expander("🎨 Visual, estructura e instrucciones *(opcional)*", expanded=False):
+    # Elementos visuales + Encabezados — expander de presentación
+    with st.expander("🎨 Elementos visuales y estructura *(opcional)*", expanded=False):
         # Elementos visuales
         st.markdown("**Elementos Visuales**")
         visual_config = render_visual_elements_selector(key_prefix="main_visual", arquetipo_code=arquetipo)
@@ -2820,28 +2820,16 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
                     f"Estos elementos funcionan mejor con datos de producto."
                 )
 
-        st.markdown("---")
-
         # Estructura de encabezados (ocultar si el perfil lo indica)
         headings_config = None
         if _profile['show_headings']:
+            st.markdown("---")
             st.markdown("**Estructura de Encabezados**")
             headings_config = render_headings_config(key_prefix="main_headings")
 
-        st.markdown("---")
-
-        # Instrucciones adicionales
-        st.markdown("**Instrucciones Adicionales**")
-        additional_instructions = render_additional_instructions(key="main_instructions")
-
-        st.markdown("---")
-
-        # Fuentes autoritativas (Task I1)
-        st.markdown("**Fuentes Autoritativas**")
-        authoritative_sources = render_authoritative_sources_input(key="main_authoritative_sources")
-
-        st.markdown("---")
-
+    # Keywords secundarias + Instrucciones + Fuentes — expander dedicado y
+    # descubrible (antes estaban enterradas bajo el expander de "Visual").
+    with st.expander("✍️ Keywords secundarias, instrucciones y fuentes *(opcional)*", expanded=False):
         # Keywords secundarias (ocultar si el perfil lo indica)
         secondary_keywords = []
         if _profile['show_secondary_kw']:
@@ -2861,6 +2849,17 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
             if secondary_keywords and len(secondary_keywords) > 15:
                 st.warning("⚠️ Demasiadas keywords secundarias. Recomendado: 5-10 máximo.")
                 secondary_keywords = secondary_keywords[:15]
+            st.markdown("---")
+
+        # Instrucciones adicionales
+        st.markdown("**Instrucciones Adicionales**")
+        additional_instructions = render_additional_instructions(key="main_instructions")
+
+        st.markdown("---")
+
+        # Fuentes autoritativas (Task I1)
+        st.markdown("**Fuentes Autoritativas**")
+        authoritative_sources = render_authoritative_sources_input(key="main_authoritative_sources")
 
     # ── Validación ──────────────────────────────────────────────────
     if errors:
