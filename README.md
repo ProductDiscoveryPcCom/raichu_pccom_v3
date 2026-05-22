@@ -43,7 +43,7 @@ API keys via `.env` o `.streamlit/secrets.toml` (para Streamlit Cloud):
 ```bash
 # .env
 ANTHROPIC_API_KEY=sk-ant-...
-CLAUDE_MODEL=claude-sonnet-4-20250514
+CLAUDE_MODEL=claude-sonnet-4-6
 ```
 
 Cascada de prioridad: `st.secrets` -> `config.settings` -> `os.getenv()`

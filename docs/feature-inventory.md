@@ -379,7 +379,7 @@ Last updated: 2026-04-06
 
 | | |
 |---|---|
-| **What it does** | Primary AI engine for all 3 pipeline stages; model `claude-sonnet-4-20250514`. |
+| **What it does** | Primary AI engine for all 3 pipeline stages; model `claude-sonnet-4-6`. |
 | **Where it lives** | `core/generator.py` → `ContentGenerator`, `core/config.py` → bridge pattern |
 | **Status** | Working |
 

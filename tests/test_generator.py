@@ -19,14 +19,14 @@ def test_generation_result_defaults():
         success=True,
         content="<p>test</p>",
         stage=1,
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-6",
         tokens_used=100,
         generation_time=1.5,
     )
     assert result.success is True
     assert result.content == "<p>test</p>"
     assert result.stage == 1
-    assert result.model == "claude-sonnet-4-20250514"
+    assert result.model == "claude-sonnet-4-6"
     assert result.tokens_used == 100
     assert result.generation_time == 1.5
     assert result.error is None
@@ -38,7 +38,7 @@ def test_generation_result_with_error():
         success=False,
         content="",
         stage=2,
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-6",
         tokens_used=0,
         generation_time=0.1,
         error="Rate limit exceeded",

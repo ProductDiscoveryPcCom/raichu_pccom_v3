@@ -72,7 +72,7 @@ except ImportError as e:
     import os
     CLAUDE_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
     ANTHROPIC_API_KEY = CLAUDE_API_KEY
-    CLAUDE_MODEL = 'claude-sonnet-4-20250514'
+    CLAUDE_MODEL = 'claude-sonnet-4-6'
     MAX_TOKENS = 16000
     TEMPERATURE = 0.7
     APP_NAME = "PcComponentes Content Generator"
