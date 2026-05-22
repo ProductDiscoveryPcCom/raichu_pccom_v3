@@ -2198,28 +2198,22 @@ def build_final_prompt_stage3(
 </style>
 
 <article class="contentGenerator__main">
-    #MODULE_START:MAIN#
     <span class="kicker">KICKER</span>
     <h2>Título con {keyword}</h2>
 {_stage3_structure_hints(visual_elements)}
     <section>...</section>
-    #MODULE_END:MAIN#
 </article>
 
 <article class="contentGenerator__faqs">
-    #MODULE_START:FAQS#
     <h2>Preguntas frecuentes sobre {keyword}</h2>
     <div class="faqs">...</div>
-    #MODULE_END:FAQS#
 </article>
 
 <article class="contentGenerator__verdict">
-    #MODULE_START:VERDICT#
     <div class="verdict-box">
         <h2>Nuestro veredicto</h2>
         <p>Conclusión que APORTE valor real...</p>
     </div>
-    #MODULE_END:VERDICT#
 </article>
 ```
 
@@ -2239,7 +2233,6 @@ def build_final_prompt_stage3(
 10. **EMOJIS:** No usar emojis en el contenido generado.
 11. **ELEMENTOS VISUALES:** TODOS los elementos visuales solicitados DEBEN estar presentes.
 12. **META DESCRIPTION:** Incluye `<!-- META: ... -->` (max 155 chars con keyword) ANTES del `<style>` como primera línea del output.
-13. **MODULAR MARKERS (NUEVO):** Encierra cada bloque <article> con marcadores `#MODULE_START:ID#` y `#MODULE_END:ID#` (IDs: MAIN, FAQS, VERDICT) como se muestra en la estructura. No incluyas nada fuera de estos marcadores excepto el META y el <style>.
 
 ## 🔍 CHECKLIST PRE-ENTREGA (OBLIGATORIO)
 

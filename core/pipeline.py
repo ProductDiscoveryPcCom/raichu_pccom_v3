@@ -296,6 +296,9 @@ def _extract_html_content(text: str) -> str:
     import re as _re
     text = _re.sub(r'^```html?\s*', '', text, flags=_re.MULTILINE)
     text = _re.sub(r'^```\s*$', '', text, flags=_re.MULTILINE)
+    # Eliminar marcadores de módulo (#MODULE_START:ID# / #MODULE_END:ID#) que no
+    # deben renderizarse como texto en el HTML final.
+    text = _re.sub(r'[ \t]*#MODULE_(?:START|END):[A-Za-z0-9_]+#[ \t]*\r?\n?', '', text)
     text = text.strip()
     return text
 

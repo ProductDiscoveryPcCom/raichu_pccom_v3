@@ -609,7 +609,14 @@ def extract_html_content(content: str) -> str:
     html_match = re.search(r'```(?:html)?\s*(.*?)\s*```', content, re.DOTALL | re.IGNORECASE)
     if html_match:
         content = html_match.group(1).strip()
-    
+
+    # Paso 5b: Eliminar marcadores de módulo (#MODULE_START:ID# / #MODULE_END:ID#)
+    # que algún prompt pudo pedir y que no deben renderizarse como texto.
+    content = re.sub(
+        r'[ \t]*#MODULE_(?:START|END):[A-Za-z0-9_]+#[ \t]*\r?\n?',
+        '', content,
+    )
+
     # Paso 6: Verificar que empieza con tag HTML válido
     # Si no empieza con <, buscar el primer <
     if not content.startswith('<'):

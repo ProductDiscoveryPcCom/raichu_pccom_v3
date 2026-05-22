@@ -235,6 +235,38 @@ class TestCSSCoverage:
         css = _get_css_for_prompt(visual_elements=[elem])
         assert marker in css, f"CSS falta estilos para '{elem}' (buscando '{marker}')"
 
+    def test_comparison_table_includes_base_table_css(self):
+        """comparison_table debe arrastrar la sección base de tablas: table-layout
+        fixed (columnas cuadradas) y .table-responsive (wrapper que inyecta
+        table_fixer). Regresión: antes el tree-shaking solo incluía .comparison-table."""
+        css = _get_css_for_prompt(visual_elements=['comparison_table'])
+        assert 'comparison-table' in css
+        assert 'table-layout' in css, "Falta table-layout → columnas desiguales"
+        assert 'table-responsive' in css, "Falta .table-responsive → wrapper sin estilo"
+
+
+# ============================================================================
+# Strip de marcadores de módulo (#MODULE_START/END#) en limpieza de HTML
+# ============================================================================
+class TestModuleMarkerStrip:
+    """Los marcadores #MODULE_*# no deben filtrarse al HTML final renderizado."""
+
+    def test_pipeline_extract_strips_markers(self):
+        from core.pipeline import _extract_html_content
+        html = (
+            '<article class="contentGenerator__main">\n'
+            '#MODULE_START:MAIN#\n<p>x</p>\n  #MODULE_END:MAIN#\n</article>'
+        )
+        out = _extract_html_content(html)
+        assert 'MODULE' not in out
+        assert '<p>x</p>' in out
+
+    def test_prompt_no_longer_requests_markers(self):
+        """El prompt Stage 3 ya no debe instruir emitir marcadores #MODULE_*#."""
+        src = open('prompts/new_content.py', encoding='utf-8').read()
+        assert '#MODULE_START' not in src
+        assert 'MODULAR MARKERS' not in src
+
 
 # ============================================================================
 # 6. Detection Patterns in app.py
