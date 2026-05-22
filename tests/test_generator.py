@@ -4,7 +4,9 @@ No live API calls.
 """
 from core.generator import (
     GenerationResult,
+    NONSTREAMING_MAX_TOKENS,
     _sleep_with_jitter,
+    call_claude_api,
     extract_html_content,
     validate_response,
 )
@@ -165,3 +167,54 @@ def test_sleep_with_jitter_custom_ratio(monkeypatch):
 
     assert captured["range"] == (0, 2.0)
     assert captured["slept"] == 8.0
+
+
+# ---------------------------------------------------------------------------
+# Streaming obligatorio sobre el umbral del SDK (max_tokens > 21333)
+# El SDK Anthropic eleva ValueError en llamadas no-streaming que pudieran
+# tardar >10 min. call_claude_api debe cambiar a streaming por encima del umbral.
+# ---------------------------------------------------------------------------
+
+class TestStreamingThreshold:
+    def test_below_threshold_uses_create_not_stream(self, mock_anthropic_client):
+        mock_anthropic_client.set_response("<p>contenido</p>")
+        resp = call_claude_api(
+            "prompt", max_tokens=8000, client=mock_anthropic_client,
+        )
+        assert resp.content == "<p>contenido</p>"
+        assert mock_anthropic_client.messages.create.called
+        assert not mock_anthropic_client.messages.stream.called
+
+    def test_above_threshold_uses_streaming(self, mock_anthropic_client):
+        mock_anthropic_client.set_response("<p>largo</p>")
+        resp = call_claude_api(
+            "prompt", max_tokens=32000, client=mock_anthropic_client,
+        )
+        assert resp.content == "<p>largo</p>"
+        assert mock_anthropic_client.messages.stream.called
+        assert not mock_anthropic_client.messages.create.called
+
+    def test_exactly_at_threshold_stays_nonstreaming(self, mock_anthropic_client):
+        # El SDK lanza solo si max_tokens > 21333; en el límite exacto no-streaming.
+        call_claude_api(
+            "prompt", max_tokens=NONSTREAMING_MAX_TOKENS, client=mock_anthropic_client,
+        )
+        assert mock_anthropic_client.messages.create.called
+        assert not mock_anthropic_client.messages.stream.called
+
+    def test_just_above_threshold_streams(self, mock_anthropic_client):
+        call_claude_api(
+            "prompt", max_tokens=NONSTREAMING_MAX_TOKENS + 1, client=mock_anthropic_client,
+        )
+        assert mock_anthropic_client.messages.stream.called
+        assert not mock_anthropic_client.messages.create.called
+
+    def test_streaming_preserves_usage_and_stop_reason(self, mock_anthropic_client):
+        mock_anthropic_client.set_response("texto", input_tokens=500, output_tokens=900)
+        resp = call_claude_api(
+            "prompt", max_tokens=30000, client=mock_anthropic_client,
+        )
+        assert resp.input_tokens == 500
+        assert resp.output_tokens == 900
+        assert resp.total_tokens == 1400
+        assert resp.stop_reason == "end_turn"

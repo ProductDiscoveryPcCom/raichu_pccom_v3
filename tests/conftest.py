@@ -118,6 +118,16 @@ def mock_anthropic_client(monkeypatch):
     response.stop_reason = "end_turn"
     client.messages.create.return_value = response
 
+    # Camino de streaming (max_tokens > NONSTREAMING_MAX_TOKENS):
+    # client.messages.stream(**kwargs) es un context manager cuyo
+    # get_final_message() devuelve el MISMO `response` que create().
+    stream_obj = MagicMock()
+    stream_obj.get_final_message.return_value = response
+    stream_cm = MagicMock()
+    stream_cm.__enter__.return_value = stream_obj
+    stream_cm.__exit__.return_value = False
+    client.messages.stream.return_value = stream_cm
+
     def set_response(text, input_tokens=100, output_tokens=200):
         response.content = [MagicMock(text=text)]
         response.usage.input_tokens = input_tokens

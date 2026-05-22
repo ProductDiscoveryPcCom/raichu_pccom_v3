@@ -105,6 +105,12 @@ truncaba el analisis de borradores largos.
   ~32000** para que arquetipos de ~4000w no se claméen por debajo de su presupuesto.
 - El **guard de truncacion** de Stage 3 (`core/pipeline.py`, `stop_reason=='max_tokens'`
   → reintento ×2 acotado a `MODEL_OUTPUT_HARD_CAP`) queda como red de seguridad.
+- **Streaming automatico sobre `max_tokens > 21333`** (`NONSTREAMING_MAX_TOKENS` en
+  `core/generator.py`): el SDK de Anthropic exige streaming en peticiones no-streaming
+  que pudieran tardar >10 min (eleva `ValueError`). `call_claude_api` cambia a
+  `client.messages.stream()` por encima del umbral y recupera el `Message` final. Por
+  eso es **seguro** subir `max_tokens` en secrets a ~32000 sin romper refinamiento,
+  pipeline ni ninguna llamada a Claude.
 
 ## 5 modos de operacion
 

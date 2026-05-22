@@ -150,6 +150,13 @@ MODEL_TOKEN_LIMITS = {
     'claude-3-haiku-20240307': 200000,
 }
 
+# El SDK de Anthropic exige streaming si una petición no-streaming pudiera tardar
+# >10 min. Su heurística: expected_time = 3600 * max_tokens / 128000; si supera
+# 600s lanza ValueError. Despejando: max_tokens > 21333. Por encima de este
+# umbral usamos streaming (acumulando el Message final) para no romper.
+# Ver anthropic._base_client._calculate_nonstreaming_timeout.
+NONSTREAMING_MAX_TOKENS = 21_333
+
 
 # ============================================================================
 # EXCEPCIONES PERSONALIZADAS
@@ -313,8 +320,15 @@ def call_claude_api(
                         "cache_control": {"type": "ephemeral"},
                     }
                 ]
-            
-            response = client.messages.create(**kwargs)
+
+            # Por encima del umbral del SDK, las llamadas no-streaming elevan
+            # ValueError ("Streaming is required..."). Usamos streaming y
+            # recuperamos el Message final completo (misma forma de respuesta).
+            if max_tokens > NONSTREAMING_MAX_TOKENS:
+                with client.messages.stream(**kwargs) as stream:
+                    response = stream.get_final_message()
+            else:
+                response = client.messages.create(**kwargs)
             
             content = ""
             if response.content:
