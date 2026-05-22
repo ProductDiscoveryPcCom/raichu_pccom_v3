@@ -11,7 +11,7 @@ from core.token_budget import (
     compute_max_tokens,
     HTML_FLOOR,
     MODEL_OUTPUT_HARD_CAP,
-    STAGE2_BUDGET,
+    STAGE2_FLOOR,
 )
 
 
@@ -45,10 +45,19 @@ class TestComputeMaxTokens:
             assert compute_max_tokens(t, stage=2) < compute_max_tokens(t, stage=1)
             assert compute_max_tokens(t, stage=2) < compute_max_tokens(t, stage=3)
 
-    def test_stage2_es_fijo(self):
-        """Stage 2 no depende de target_length (presupuesto fijo)."""
-        assert compute_max_tokens(1400, stage=2) == STAGE2_BUDGET
-        assert compute_max_tokens(5000, stage=2) == STAGE2_BUDGET
+    def test_stage2_tiene_piso(self):
+        """Stage 2 nunca baja del piso STAGE2_FLOOR (targets pequeños)."""
+        assert compute_max_tokens(500, stage=2) == STAGE2_FLOOR
+        assert compute_max_tokens(1400, stage=2) >= STAGE2_FLOOR
+
+    def test_stage2_escala_con_target(self):
+        """Stage 2 crece con el target (análisis de borradores grandes), pero
+        más suave que el HTML. (E2E: 4000 fijo truncaba a 3500w.)"""
+        s2_small = compute_max_tokens(1400, stage=2)
+        s2_large = compute_max_tokens(3500, stage=2)
+        assert s2_large > s2_small
+        # 3500w debe darle holgura suficiente (>4000, lo que truncaba antes)
+        assert compute_max_tokens(3500, stage=2) > 4000
 
     def test_clamp_inferior_html_floor(self):
         """Targets diminutos nunca bajan del suelo HTML."""

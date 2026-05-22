@@ -28,7 +28,12 @@ TOKENS_PER_WORD_HTML = 4.0
 
 SAFETY_FACTOR = 1.30        # margen sobre la estimación central
 HTML_FLOOR = 8000           # nunca por debajo: incluso 1400w + CSS lo necesita
-STAGE2_BUDGET = 4000        # análisis condensado (texto/JSON), no genera HTML
+
+# Stage 2 (análisis texto/JSON): NO genera HTML, pero su longitud crece con el
+# tamaño del borrador analizado. Escala más suave que el HTML, con piso.
+# (E2E 2026-05-21: un fijo de 4000 truncaba el análisis de un borrador de 3500w.)
+STAGE2_FLOOR = 4000
+STAGE2_TOKENS_PER_WORD = 3.0
 
 # Límite duro del modelo (Sonnet 4.x admite ~64k de salida; conservador).
 MODEL_OUTPUT_HARD_CAP = 32000
@@ -54,11 +59,14 @@ def compute_max_tokens(
         [_, hard_cap] para análisis. `hard_cap = min(ceiling, MODEL_OUTPUT_HARD_CAP)`.
     """
     hard = MODEL_OUTPUT_HARD_CAP if not ceiling else min(int(ceiling), MODEL_OUTPUT_HARD_CAP)
+    target = max(1, int(target_length or 1500))
 
     if stage == 2:
-        return min(STAGE2_BUDGET, hard)
+        # Análisis: escala suave con el target (crece con el borrador), con piso.
+        raw = max(STAGE2_FLOOR, target * STAGE2_TOKENS_PER_WORD)
+        budget = int(math.ceil(raw / 1000.0) * 1000)      # redondeo a 1000
+        return min(budget, hard)
 
-    target = max(1, int(target_length or 1500))
     raw = STYLE_OVERHEAD_TOKENS + target * TOKENS_PER_WORD_HTML * SAFETY_FACTOR
     budget = int(math.ceil(raw / 1000.0) * 1000)          # redondeo a 1000
     return max(HTML_FLOOR, min(budget, hard))
