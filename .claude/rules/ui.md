@@ -47,6 +47,24 @@ Al cambiar de modo (`core/session.py`):
 
 Las keys `translated_html_*` se guardan/restauran por separado.
 
+## Brief descargable/subible (modo nuevo)
+
+`_render_brief_io_section()` en `ui/inputs.py` (al INICIO de `render_main_form`, antes
+de los widgets) permite descargar el brief en Markdown (`utils/brief_io.build_brief_markdown`),
+rellenarlo offline y subirlo para autocompletar el formulario
+(`parse_brief_markdown` + `_apply_brief`).
+
+**Patrón de pre-siembra de widgets** (`_apply_brief`, debe correr ANTES de instanciar widgets + `st.rerun()`):
+- Widgets con `value=`/`index=` que leen `get_form_value` (keyword, longitud, arquetipo):
+  `save_form_data({...})` + `st.session_state.pop('<widget_key>', None)` para forzar
+  re-inicialización desde el valor del brief (si no, el `session_state` persistido del
+  widget gana sobre `value=`/`index=`).
+- Widgets de solo-key sin `value=` (instrucciones, keywords secundarias, fuentes,
+  briefing `main_guiding_*`): set directo `st.session_state['<key>'] = valor`.
+- Si hay respuestas de briefing más allá de las 3 visibles o universales, set
+  `st.session_state['main_guiding_show_all'] = True` para que esos `text_area` se rendericen
+  (y por tanto se lean sus valores).
+
 ## Como anadir un modo nuevo
 
 1. Anadir el string del modo a `options` en `st.radio()` (app.py)

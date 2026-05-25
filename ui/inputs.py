@@ -2707,10 +2707,155 @@ def _get_form_profile(arquetipo_code: str) -> Dict[str, bool]:
     return profile
 
 
+def _gather_current_brief_values() -> Dict[str, Any]:
+    """Reúne los valores actuales del formulario para precargar el brief al descargar."""
+    vals: Dict[str, Any] = {
+        'keyword': get_form_value('keyword', ''),
+        'target_length': get_form_value('target_length', ''),
+        'secondary_keywords': st.session_state.get('main_secondary_keywords', ''),
+        'additional_instructions': st.session_state.get('main_instructions', ''),
+        'authoritative_sources': st.session_state.get('main_authoritative_sources', ''),
+        'guiding': {},
+    }
+    for k, v in list(st.session_state.items()):
+        if isinstance(k, str) and (k.startswith('main_guiding_spec_') or k.startswith('main_guiding_univ_')):
+            if isinstance(v, str) and v.strip():
+                vals['guiding'][k.replace('main_', '', 1)] = v
+    return vals
+
+
+def _apply_brief(parsed: Dict[str, Any]) -> int:
+    """Aplica un brief parseado al formulario (session_state + form_data). Devuelve
+    el número de campos aplicados. Debe llamarse ANTES de renderizar los widgets."""
+    meta = parsed.get('meta', {}) or {}
+    fields = parsed.get('fields', {}) or {}
+    applied = 0
+    fd: Dict[str, Any] = {}
+
+    arq = meta.get('arquetipo')
+    if arq:
+        fd['arquetipo'] = arq
+        # Forzar re-inicialización de los selectbox desde el valor del brief
+        st.session_state.pop('main_arquetipo', None)
+        st.session_state.pop('main_arquetipo_category', None)
+        applied += 1
+
+    kw = (fields.get('keyword') or '').strip()
+    if kw:
+        fd['keyword'] = kw
+        st.session_state.pop('main_keyword', None)
+        applied += 1
+
+    tl_raw = fields.get('target_length') or ''
+    tl_digits = re.sub(r'[^0-9]', '', str(tl_raw))
+    if tl_digits:
+        fd['target_length'] = int(tl_digits)
+        st.session_state.pop('main_length', None)
+        applied += 1
+
+    if fd:
+        save_form_data(fd)
+
+    # Widgets de solo-key (sin value=): set directo en session_state
+    _RAW = {
+        'secondary_keywords': 'main_secondary_keywords',
+        'additional_instructions': 'main_instructions',
+        'authoritative_sources': 'main_authoritative_sources',
+    }
+    for fid, skey in _RAW.items():
+        if fid in fields and (fields[fid] or '').strip():
+            st.session_state[skey] = fields[fid].strip()
+            applied += 1
+
+    # Briefing (guiding questions)
+    needs_show_all = False
+    for fid, val in fields.items():
+        if fid.startswith('guiding_') and (val or '').strip():
+            st.session_state[f"main_{fid}"] = val.strip()
+            applied += 1
+            m = re.match(r'guiding_spec_(\d+)$', fid)
+            if (m and int(m.group(1)) >= 3) or fid.startswith('guiding_univ_'):
+                needs_show_all = True
+    if needs_show_all:
+        st.session_state['main_guiding_show_all'] = True
+
+    return applied
+
+
+def _render_brief_io_section() -> None:
+    """Sección de descarga/subida del brief para el equipo de expertos (modo nuevo)."""
+    try:
+        from utils.brief_io import build_brief_markdown, parse_brief_markdown
+    except ImportError:
+        return
+
+    with st.expander("📋 Brief para el equipo (descargar / rellenar / subir)", expanded=False):
+        arq = get_form_value('arquetipo', 'ARQ-1')
+        try:
+            from config.arquetipos import get_arquetipo as _ga
+            arq_name = (_ga(arq) or {}).get('name', '')
+        except Exception:
+            arq_name = ''
+
+        st.caption(
+            "Descarga el brief, pásalo al equipo de expertos para que lo rellene, y "
+            f"súbelo completado para autocompletar el formulario. Arquetipo actual: **{arq}**."
+        )
+
+        try:
+            brief_md = build_brief_markdown(
+                arq, mode='new', values=_gather_current_brief_values(), arquetipo_name=arq_name
+            )
+        except Exception as e:
+            logger.warning(f"No se pudo generar el brief: {e}")
+            brief_md = ""
+
+        col_dl, col_up = st.columns(2)
+        with col_dl:
+            st.download_button(
+                "⬇️ Descargar brief (.md)",
+                data=(brief_md or "").encode('utf-8'),
+                file_name=f"brief_{arq}.md",
+                mime="text/markdown",
+                key="brief_download",
+                disabled=not brief_md,
+                use_container_width=True,
+            )
+        with col_up:
+            uploaded = st.file_uploader(
+                "⬆️ Subir brief completado",
+                type=["md", "txt"],
+                key="brief_upload",
+                label_visibility="collapsed",
+            )
+
+        if uploaded is not None:
+            sig = f"{uploaded.name}:{getattr(uploaded, 'size', 0)}"
+            if st.session_state.get('_brief_applied_sig') != sig:
+                try:
+                    text = uploaded.read().decode('utf-8', errors='replace')
+                    parsed = parse_brief_markdown(text)
+                    n = _apply_brief(parsed)
+                    st.session_state['_brief_applied_sig'] = sig
+                    if n:
+                        st.success(f"✅ Brief aplicado: {n} campo(s) autocompletado(s). Revisa el formulario.")
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ El brief no contenía campos reconocibles. ¿Mantuviste los códigos `[...]`?")
+                except Exception as e:
+                    logger.warning(f"Error aplicando brief: {e}")
+                    st.error(f"❌ No se pudo procesar el brief: {e}")
+
+
 def render_main_form(mode: str = "new") -> Optional[FormData]:
     """Renderiza el formulario principal completo con jerarquía visual mejorada."""
     errors = []
-    
+
+    # Brief descargable/subible para el equipo (solo contenido nuevo).
+    # DEBE ir antes de los widgets para poder pre-sembrar sus valores.
+    if mode == "new":
+        _render_brief_io_section()
+
     # ── SECCIÓN 1: Campos obligatorios ──────────────────────────────
     st.markdown("#### 🎯 Configuración principal")
 
