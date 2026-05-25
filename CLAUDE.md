@@ -56,6 +56,7 @@ utils/
   gsc_api.py             # API GSC directa
   serp_research.py       # Investigacion SERP (DuckDuckGo/SerpAPI) — fallback de web_research
   web_research.py        # Investigacion web (OpenAI web search → fallback SERP), opt-in
+  brief_io.py            # Export/import del brief en Markdown (descargar/rellenar/subir)
   image_gen.py           # Generacion de imagenes (Gemini primario, OpenAI gpt-image-1 fallback)
   product_json_utils.py  # Parse/validacion JSON de productos
   translation.py         # Traduccion de contenido
