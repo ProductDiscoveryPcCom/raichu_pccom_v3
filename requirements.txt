@@ -7,10 +7,14 @@
 streamlit>=1.28.0,<2.0.0
 
 # API de Claude (Anthropic)
-anthropic>=0.34.0,<1.0.0
+# >=0.49.0: streaming (messages.stream + get_final_message) usado cuando
+# max_tokens supera el umbral no-streaming del SDK (~21333).
+anthropic>=0.49.0,<1.0.0
 
-# API de OpenAI (corrección dual en etapa 2 - opcional)
-openai>=1.30.0,<2.0.0
+# API de OpenAI (corrección dual Stage 2, fallback de imágenes gpt-image-1 y
+# web research). >=1.74.0 garantiza: Responses API (client.responses.create) +
+# herramienta web_search + modelo de imágenes gpt-image-1.
+openai>=1.74.0,<2.0.0
 
 # HTTP Requests y Web Scraping
 requests>=2.31.0,<3.0.0
