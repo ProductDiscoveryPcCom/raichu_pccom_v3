@@ -22,7 +22,9 @@ tests → commit en rama → merge `--no-ff` a `main` → push.
 | UX / formulario | 2 | 0 |
 | Research / enriquecimiento | 1 | 0 |
 | Deploy / dependencias | 1 | 0 |
-| **Decisiones pendientes** | — | 1 |
+| **Decisiones pendientes** | — | 0 |
+
+> P1 (Modular Prompt Markers / I3) resuelto el 2026-05-26 → `❌ DESCARTADO` (ver §7).
 
 **10 commits a `main`.** Suite de tests: **963 → 1053 verdes** sin API keys (+90).
 Todos los cambios siguen el patrón de degradación graceful y resiliencia
@@ -147,13 +149,16 @@ redondeo a 1000, acotado al techo.
 
 ## 7. Decisiones pendientes / housekeeping
 
-### P1 — Decisión sobre "Modular Prompt Markers" (I3) ⬜ OPEN
+### P1 — "Modular Prompt Markers" (I3) ❌ DESCARTADO (2026-05-26)
 El item **I3** del `audit-2026-03.md` ("soporte para `#MODULE_START#`/`#MODULE_END#`")
-estaba marcado `[x]` pero los marcadores nunca se consumían y se colaban como texto
-(ver Q1, revertido en `48383ee`).
-**Decisión requerida:** ¿los marcadores modulares tenían un propósito real (trocear el
-HTML para el CMS)? Si sí, reimplementar **bien** (emitir + parsear + usar). Si no, marcar
-I3 como `❌ DESCARTADO`. **Recomendación:** descartar salvo necesidad concreta del CMS.
+estaba marcado `[x]` pero los marcadores nunca se consumían (no había parser ni uso
+downstream) y se colaban como texto en el HTML renderizado (ver Q1).
+**Decisión (usuario, 2026-05-26): DESCARTADO.** No existe consumidor de los marcadores
+ni necesidad confirmada del CMS de trocear el HTML por bloques. La implementación quedó
+revertida en `48383ee` (prompt ya no los emite + strip defensivo en la limpieza de HTML).
+Si en el futuro el CMS requiriera modularización por bloques, se reabriría como item
+nuevo con diseño completo (emitir + parsear + ensamblar). El audit-2026-03 (I3) se anota
+en consecuencia.
 
 ### P2 — Housekeeping (no bloqueante)
 - Rama `origin/claude/review-and-test-TIAuw` puede borrarse (sus fixes únicos ya en main).
