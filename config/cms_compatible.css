@@ -370,7 +370,7 @@ table tbody tr:hover {
 .table-responsive {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  margin: var(--space-3) 0;
+  margin: var(--space-4) 0;
 }
 
 .table-responsive table {
@@ -489,23 +489,47 @@ table tbody tr:hover {
    COMPONENTES - Tabla de Comparación (Comparison Table)
    ============================================================================ */
 
+/* !important + display:table/header-group: gana al CSS del CMS de producción
+   (.chunkPostView-* table{display:block} y th{background:#ebebeb}). */
 .comparison-table {
+  display: table !important;
+  table-layout: fixed;
   width: 100%;
   border-collapse: collapse;
-  margin: var(--space-4) 0;
-  table-layout: fixed;
+  font-size: 14px;
+}
+
+.comparison-table thead {
+  display: table-header-group !important;
+}
+
+.comparison-table tbody {
+  display: table-row-group !important;
 }
 
 .comparison-table th,
 .comparison-table td {
-  padding: 12px 16px;
+  padding: var(--space-2) var(--space-3);
   text-align: left;
-  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .comparison-table th {
+  background: #170453 !important;
+  color: #fff !important;
+  font-weight: 700;
+  font-size: 15px;
+  border: none !important;
+}
+
+.comparison-table td {
+  border-bottom: 1px solid var(--line);
+}
+
+.comparison-table tbody tr:nth-child(even) td {
   background: var(--gray-50);
-  font-weight: 600;
 }
 
 .comparison-table .comparison-highlight {

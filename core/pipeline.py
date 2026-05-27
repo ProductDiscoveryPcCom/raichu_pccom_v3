@@ -361,7 +361,7 @@ def execute_generation_pipeline(config: Dict[str, Any], mode: str = 'new') -> No
         _get_structure_available = False
 
     try:
-        from utils.table_fixer import fix_tables
+        from utils.table_fixer import fix_tables, enforce_comparison_table_css
         _table_fixer_available = True
     except ImportError:
         _table_fixer_available = False
@@ -1051,6 +1051,14 @@ Formato tu respuesta de manera clara y accionable."""
                     st.info(f"📊 Tablas: {table_stats['tables_found']} encontradas, {', '.join(fixes)}")
                     st.session_state.setdefault('_post_gen_checks', []).append(
                         {'name': 'Tablas', 'ok': True, 'detail': f"{table_stats['tables_found']} tablas"})
+            # Refuerzo determinista: override CSS de .comparison-table (gana al CMS).
+            # Va DESPUÉS de fix_tables (estructura thead/tbody ya asentada).
+            enforced_html, css_stats = enforce_comparison_table_css(st.session_state.final_html)
+            if css_stats['css_injected']:
+                st.session_state.final_html = enforced_html
+                st.session_state.setdefault('_post_gen_checks', []).append(
+                    {'name': 'Tabla comparativa CSS', 'ok': True,
+                     'detail': 'override !important inyectado'})
         except ImportError:
             pass
         except Exception as e:

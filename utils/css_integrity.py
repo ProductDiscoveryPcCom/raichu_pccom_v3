@@ -109,13 +109,30 @@ def check_css_integrity(verbose: bool = False) -> List[str]:
         font_match = re.search(r"font-family\s*:\s*'([^']+)'", css)
         if font_match:
             fonts[name] = font_match.group(1)
-    
+
     unique_fonts = set(fonts.values())
     if len(unique_fonts) > 1:
         issues.append(
             f"Font-family inconsistente: "
             + ", ".join(f"{k}='{v}'" for k, v in fonts.items())
         )
+
+    # Check 4: drift dirigido del fix de tabla comparativa.
+    # El header debe usar el azul de marca con !important para ganar al CSS del
+    # CMS de producción. Solo se verifica en las fuentes LITERALES (fichero CMS y
+    # fallback canónico); la fuente design_system está tree-shaken a core-only y
+    # no contiene .comparison-table (daría falso-positivo).
+    _LITERAL_SOURCES = ('cms_compatible.css', 'fallback (new_content.py)')
+    _th_pattern = re.compile(
+        r'\.comparison-table th\s*\{[^}]*background\s*:\s*#170453[^}]*!important',
+        re.IGNORECASE,
+    )
+    for name in _LITERAL_SOURCES:
+        css = sources.get(name)
+        if css and not _th_pattern.search(css):
+            issues.append(
+                f"comparison-table th sin #170453/!important en {name}"
+            )
     
     if verbose:
         if issues:

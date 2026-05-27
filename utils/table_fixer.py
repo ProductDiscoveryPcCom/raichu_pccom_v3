@@ -25,6 +25,27 @@ __version__ = "1.0.0"
 # Umbral de columnas para envolver en wrapper responsive
 RESPONSIVE_THRESHOLD = 4
 
+# Marcador de idempotencia del refuerzo CSS de tablas comparativas.
+PCC_TABLE_FIX_MARKER = "/* PCC-TABLE-FIX */"
+
+# Bloque override (con !important) que gana la cascada frente a lo que el modelo
+# haya reescrito y frente al CSS del CMS de producción
+# (.chunkPostView-* table{display:block} y th{background:#ebebeb}).
+# Valores LITERALES (hex/px, sin var(...)) para ser autosuficiente.
+_COMPARISON_TABLE_OVERRIDE = (
+    PCC_TABLE_FIX_MARKER
+    + ".comparison-table{display:table !important;table-layout:fixed;width:100%;"
+    "border-collapse:collapse;font-size:14px;}"
+    ".comparison-table thead{display:table-header-group !important;}"
+    ".comparison-table tbody{display:table-row-group !important;}"
+    ".comparison-table th,.comparison-table td{padding:10px 14px;text-align:left;"
+    "vertical-align:top;word-wrap:break-word;overflow-wrap:break-word;}"
+    ".comparison-table th{background:#170453 !important;color:#fff !important;"
+    "font-weight:700;font-size:15px;border:none !important;}"
+    ".comparison-table td{border-bottom:1px solid #E6E6E6;}"
+    ".comparison-table tbody tr:nth-child(even) td{background:#F4F4F4;}"
+)
+
 
 def fix_tables(html: str) -> Tuple[str, Dict]:
     """
@@ -135,5 +156,68 @@ def validate_tables(html: str) -> List[str]:
         col_counts = [len(re.findall(r'<t[hd][\s>]', row, re.IGNORECASE)) for row in rows]
         if len(set(col_counts)) > 1:
             issues.append(f"Tabla {i}: columnas inconsistentes {col_counts}")
-    
+
     return issues
+
+
+def enforce_comparison_table_css(html: str) -> Tuple[str, Dict]:
+    """Inyecta un override CSS determinista para .comparison-table.
+
+    Estrategia OVERRIDE POR CASCADA: el bloque (_COMPARISON_TABLE_OVERRIDE, con
+    !important) se inserta al FINAL del <style> del artículo. Al ir último y ser
+    !important, gana sobre lo que el modelo haya reescrito y sobre el CSS del CMS
+    de producción, sin parsear ni reemplazar reglas existentes.
+
+    Args:
+        html: HTML final del artículo (con o sin <style>).
+
+    Returns:
+        (html, stats) donde stats tiene:
+            - comparison_tables_found: int  (nº de class="comparison-table")
+            - css_injected: bool            (se añadió el override)
+            - style_created: bool           (se creó un <style> nuevo)
+            - already_present: bool         (marcador ya existía → no-op)
+    """
+    stats = {
+        'comparison_tables_found': 0,
+        'css_injected': False,
+        'style_created': False,
+        'already_present': False,
+    }
+
+    if not html:
+        return html, stats
+
+    # Guard: solo actuar si hay tablas comparativas (evita CSS muerto).
+    stats['comparison_tables_found'] = len(
+        re.findall(r'class\s*=\s*["\'][^"\']*\bcomparison-table\b', html, re.IGNORECASE)
+    )
+    if stats['comparison_tables_found'] == 0:
+        return html, stats
+
+    # Idempotencia: si el marcador ya está, no apilar (refinamientos/reruns).
+    if PCC_TABLE_FIX_MARKER in html:
+        stats['already_present'] = True
+        return html, stats
+
+    # Insertar antes del ÚLTIMO </style> (mayor prioridad de cascada local).
+    style_closes = list(re.finditer(r'</style\s*>', html, re.IGNORECASE))
+    if style_closes:
+        last = style_closes[-1]
+        result = html[:last.start()] + _COMPARISON_TABLE_OVERRIDE + html[last.start():]
+        stats['css_injected'] = True
+        logger.info("Comparison-table CSS override inyectado en <style> existente")
+        return result, stats
+
+    # No hay <style>: crear uno. Debe ir DESPUÉS del comentario líder <!-- META: ... -->
+    # si existe (su extracción exige que vaya primero); si no, al inicio.
+    new_style = f'<style>{_COMPARISON_TABLE_OVERRIDE}</style>'
+    meta = re.search(r'<!--\s*META:.*?-->', html, re.DOTALL | re.IGNORECASE)
+    if meta:
+        result = html[:meta.end()] + new_style + html[meta.end():]
+    else:
+        result = new_style + html
+    stats['css_injected'] = True
+    stats['style_created'] = True
+    logger.info("Comparison-table CSS override inyectado en <style> nuevo")
+    return result, stats

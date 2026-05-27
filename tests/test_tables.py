@@ -458,6 +458,164 @@ class TestTableFixer:
 
 
 # ============================================================================
+# TEST 6: Refuerzo determinista post-gen (enforce_comparison_table_css)
+# ============================================================================
+
+# HTML de artículo con <style> y tabla comparativa (como sale del pipeline).
+_ARTICLE_WITH_STYLE = '''<style>.comparison-table{width:100%;}</style>
+<article class="contentGenerator__main">
+<table class="comparison-table"><thead><tr><th>Spec</th><th>A</th></tr></thead>
+<tbody><tr><td>GPU</td><td>RTX</td></tr></tbody></table>
+</article>'''
+
+# Artículo con tabla comparativa pero SIN <style>.
+_ARTICLE_NO_STYLE = '''<article class="contentGenerator__main">
+<table class="comparison-table"><thead><tr><th>Spec</th><th>A</th></tr></thead>
+<tbody><tr><td>GPU</td><td>RTX</td></tr></tbody></table>
+</article>'''
+
+
+class TestComparisonTableEnforcer:
+    """Refuerzo CSS determinista de .comparison-table (override por cascada)."""
+
+    def test_injects_override_block(self):
+        from utils.table_fixer import enforce_comparison_table_css, PCC_TABLE_FIX_MARKER
+        out, stats = enforce_comparison_table_css(_ARTICLE_WITH_STYLE)
+        assert stats['css_injected'] is True
+        assert PCC_TABLE_FIX_MARKER in out
+        assert 'display:table !important' in out
+        assert 'display:table-header-group !important' in out
+        assert '#170453' in out
+        assert 'color:#fff !important' in out
+
+    def test_marker_inside_style(self):
+        from utils.table_fixer import enforce_comparison_table_css, PCC_TABLE_FIX_MARKER
+        out, _ = enforce_comparison_table_css(_ARTICLE_WITH_STYLE)
+        # El override va ANTES del </style> (dentro del bloque <style>).
+        assert out.index(PCC_TABLE_FIX_MARKER) < out.index('</style>')
+
+    def test_idempotent(self):
+        from utils.table_fixer import enforce_comparison_table_css, PCC_TABLE_FIX_MARKER
+        once, _ = enforce_comparison_table_css(_ARTICLE_WITH_STYLE)
+        twice, stats2 = enforce_comparison_table_css(once)
+        assert twice.count(PCC_TABLE_FIX_MARKER) == 1
+        assert stats2['already_present'] is True
+        assert stats2['css_injected'] is False
+        assert twice == once
+
+    def test_creates_style_when_missing(self):
+        from utils.table_fixer import enforce_comparison_table_css, PCC_TABLE_FIX_MARKER
+        out, stats = enforce_comparison_table_css(_ARTICLE_NO_STYLE)
+        assert stats['style_created'] is True
+        assert stats['css_injected'] is True
+        assert '<style>' in out and '</style>' in out
+        assert PCC_TABLE_FIX_MARKER in out
+
+    def test_created_style_after_meta_comment(self):
+        from utils.table_fixer import enforce_comparison_table_css
+        html = '<!-- META: keyword=x -->' + _ARTICLE_NO_STYLE
+        out, stats = enforce_comparison_table_css(html)
+        assert stats['style_created'] is True
+        # El comentario META debe seguir siendo lo primero.
+        assert out.index('<!-- META:') < out.index('<style>')
+
+    def test_no_op_without_comparison_table(self):
+        from utils.table_fixer import enforce_comparison_table_css
+        html = '<style>table{width:100%;}</style><table><tr><td>x</td></tr></table>'
+        out, stats = enforce_comparison_table_css(html)
+        assert stats['comparison_tables_found'] == 0
+        assert stats['css_injected'] is False
+        assert out == html
+
+    def test_injects_into_last_style(self):
+        from utils.table_fixer import enforce_comparison_table_css, PCC_TABLE_FIX_MARKER
+        html = '<style>a{}</style>' + _ARTICLE_WITH_STYLE
+        out, _ = enforce_comparison_table_css(html)
+        # El marcador va en el ÚLTIMO bloque <style>.
+        last_style_open = out.rfind('<style>')
+        assert out.index(PCC_TABLE_FIX_MARKER) > last_style_open
+
+    def test_th_wins_cascade_markers(self):
+        from utils.table_fixer import enforce_comparison_table_css
+        out, _ = enforce_comparison_table_css(_ARTICLE_WITH_STYLE)
+        assert 'background:#170453 !important' in out
+        assert 'border:none !important' in out
+
+
+# ============================================================================
+# TEST 7: Las 3 fuentes CSS contienen el fix corregido
+# ============================================================================
+
+def _get_biblioteca_css():
+    path = os.path.join(os.path.dirname(__file__), '..', 'static', 'biblioteca_visual.html')
+    with open(path, encoding='utf-8') as f:
+        return f.read()
+
+
+class TestComparisonTableCSSSources:
+    """Verifica que las 3 fuentes sincronizadas contienen las reglas corregidas."""
+
+    def test_cms_css_comparison_display_table(self):
+        css = _get_cms_css()
+        assert '.comparison-table' in css
+        assert 'display: table !important' in css or 'display:table !important' in css
+        assert '#170453' in css
+
+    def test_canonical_css_comparison_header(self):
+        css = _get_fallback_css()
+        assert '.comparison-table' in css
+        assert '#170453' in css
+        assert '!important' in css
+
+    def test_biblioteca_comparison_header(self):
+        css = _get_biblioteca_css()
+        # th con azul de marca
+        assert '#170453' in css
+        assert 'display: table-header-group !important' in css \
+            or 'display:table-header-group !important' in css
+
+    def test_treeshake_emits_comparison_rules(self):
+        """PART A4: el tree-shaking emite las reglas nuevas para comparison_table."""
+        from config.design_system import get_css_for_prompt
+        css = get_css_for_prompt(selected_components=['comparison_table'], minify=False)
+        assert 'comparison-table' in css
+        assert '#170453' in css
+        assert 'table-header-group' in css
+
+
+# ============================================================================
+# TEST 8: Interacción fix_tables + enforce (orden del pipeline)
+# ============================================================================
+
+class TestComparisonTableFixInteraction:
+    """fix_tables (estructura) y enforce (CSS) no se pisan."""
+
+    def test_fix_tables_still_works(self):
+        from utils.table_fixer import fix_tables
+        fixed, stats = fix_tables(BAD_TABLE_NO_THEAD)
+        assert stats['tables_found'] == 1
+        assert '<thead>' in fixed
+        assert '<tbody>' in fixed
+
+    def test_pipeline_order(self):
+        """fix_tables → enforce sobre tabla comparativa cruda en un artículo."""
+        from utils.table_fixer import fix_tables, enforce_comparison_table_css
+        raw = ('<style>.comparison-table{width:100%;}</style>'
+               '<table class="comparison-table">'
+               '<tr><th>Spec</th><th>A</th><th>B</th><th>C</th></tr>'
+               '<tr><td>GPU</td><td>1</td><td>2</td><td>3</td></tr></table>')
+        structured, tstats = fix_tables(raw)
+        assert tstats['thead_added'] == 1
+        assert '<thead>' in structured
+        out, cstats = enforce_comparison_table_css(structured)
+        assert cstats['css_injected'] is True
+        # Estructura preservada + override inyectado.
+        assert '<thead>' in out
+        assert 'comparison-table' in out
+        assert '#170453' in out
+
+
+# ============================================================================
 # Run
 # ============================================================================
 
