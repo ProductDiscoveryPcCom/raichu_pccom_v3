@@ -1173,7 +1173,16 @@ def build_rewrite_correction_prompt_stage2(
                 url = prod.get('url', '')
                 anchor = prod.get('anchor', '')
                 links_checklist += f"- [ ] Alternativo: [{anchor}]({url})\n"
-    
+
+    if not secondary_keywords:
+        secondary_keywords_block = "No hay keywords secundarias."
+    else:
+        _sk_joined = "\n- ".join(secondary_keywords)
+        secondary_keywords_block = (
+            "Verifica que cada una de estas keywords aparezca al menos 1 vez "
+            f"distribuida naturalmente:\n- {_sk_joined}"
+        )
+
     prompt = f"""# TAREA: ANÁLISIS CRÍTICO DEL BORRADOR (ETAPA 2/3)
 
 Eres un editor SEO senior de PcComponentes. Analiza el borrador y genera un informe de correcciones.
@@ -1188,7 +1197,7 @@ Eres un editor SEO senior de PcComponentes. Analiza el borrador y genera un info
 {objetivo if objetivo else 'Superar a la competencia'}
 
 ## 🎯 KEYWORDS SECUNDARIAS (REESCRITURA)
-{"No hay keywords secundarias." if not secondary_keywords else "Verifica que cada una de estas keywords aparezca al menos 1 vez distribuida naturalmente:\n- " + "\n- ".join(secondary_keywords)}
+{secondary_keywords_block}
 
 ## MODO DE REESCRITURA
 {rewrite_mode.upper()}
