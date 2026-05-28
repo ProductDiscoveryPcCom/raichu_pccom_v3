@@ -144,6 +144,14 @@ _RE_HREF = re.compile(r'href=["\']([^"\']+)["\']', re.I)
 _RE_TITLE_TAG = re.compile(r'<title[^>]*>(.*?)</title>', re.I | re.DOTALL)
 _RE_ANCHOR = re.compile(r'<a[^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', re.I | re.DOTALL)
 
+# Patrones de URL que identifican una PDP (producto). Compartido entre analyze_links()
+# y classify_internal_link() para no duplicar la heurística.
+_PDP_URL_PATTERNS = (
+    '/producto/', '/p/', 'portatil-', 'monitor-', 'tarjeta-',
+    'procesador-', 'movil-', 'tablet-', 'televisor-', 'auricular-',
+    'teclado-', 'raton-', 'silla-', 'ordenador-',
+)
+
 # -- extract_meta_tags --
 _RE_META_TAG = re.compile(r'<meta[^>]+>', re.I)
 _RE_META_NAME = re.compile(r'name=["\']([^"\']+)["\']', re.I)
@@ -692,11 +700,7 @@ def analyze_links(html_content: str) -> Dict:
             if '/blog/' in url_lower:
                 blog.append(info)
             # PDPs tienen varios patrones
-            elif any(pattern in url_lower for pattern in [
-                '/producto/', '/p/', 'portatil-', 'monitor-', 'tarjeta-', 
-                'procesador-', 'movil-', 'tablet-', 'televisor-', 'auricular-',
-                'teclado-', 'raton-', 'silla-', 'ordenador-'
-            ]):
+            elif any(pattern in url_lower for pattern in _PDP_URL_PATTERNS):
                 pdp.append(info)
         elif url.startswith('http'):
             external.append(info)
@@ -713,6 +717,113 @@ def analyze_links(html_content: str) -> Dict:
         'internal_links_count': len(internal),
         'external_links_count': len(external),
     }
+
+def _is_internal_url(url: str) -> bool:
+    """True si la URL apunta a pccomponentes.com o es relativa (/...)."""
+    if not url:
+        return False
+    return 'pccomponentes.com' in url.lower() or url.startswith('/')
+
+
+def classify_internal_link(url: str) -> str:
+    """
+    Clasifica una URL interna en 'blog' | 'pdp' | 'plp' | 'otro'.
+
+    Prioridad:
+    1. blog → contiene '/blog/'
+    2. pdp  → coincide con _PDP_URL_PATTERNS (slugs de producto, /producto/, /p/)
+    3. plp  → categoría: ruta limpia de 1-2 segmentos (sin slug de producto)
+    4. otro → resto de internos (home '/', anclas '#', búsquedas '?', etc.)
+    """
+    url_lower = url.lower()
+
+    if '/blog/' in url_lower:
+        return 'blog'
+
+    if any(pattern in url_lower for pattern in _PDP_URL_PATTERNS):
+        return 'pdp'
+
+    # A partir de aquí: interno, ni blog ni pdp. Distinguir PLP (categoría) de "otro".
+    try:
+        parsed = urlparse(url)
+    except (ValueError, AttributeError):
+        return 'otro'
+
+    path = (parsed.path or '').strip('/')
+
+    # Home, anclas o rutas vacías → otro
+    if not path:
+        return 'otro'
+
+    segments = [s for s in path.split('/') if s]
+    # PLP: ruta de categoría corta (1-2 segmentos) sin extensión de fichero.
+    # Las PDP ya se filtraron arriba por slug; lo restante de 1-2 niveles se
+    # trata como listado de categoría.
+    if 1 <= len(segments) <= 2 and '.' not in segments[-1]:
+        return 'plp'
+
+    return 'otro'
+
+
+def _normalize_link_url(url: str) -> str:
+    """
+    Normaliza una URL para deduplicar: minúsculas, sin fragmento (#...) y
+    sin barra final. Conserva el query string (dos PLPs con distinto ?q= son
+    distintas).
+    """
+    if not url:
+        return ''
+    raw = url.strip()
+    # Eliminar fragmento
+    raw = raw.split('#', 1)[0]
+    normalized = raw.lower()
+    # Quitar barra final (salvo que sea la raíz "/")
+    if len(normalized) > 1 and normalized.endswith('/'):
+        normalized = normalized.rstrip('/')
+    return normalized
+
+
+def scan_existing_links(html_content: str) -> List[Dict[str, str]]:
+    """
+    Barre los <a href> de un HTML y devuelve SOLO los enlaces internos,
+    clasificados y deduplicados por URL normalizada.
+
+    Reutiliza _RE_ANCHOR / strip_html_tags (vía la misma lógica que analyze_links).
+    Degradación graceful: ante cualquier error o HTML vacío devuelve [].
+
+    Returns:
+        Lista de dicts {'url': str, 'anchor': str, 'kind': 'blog'|'pdp'|'plp'|'otro'}
+    """
+    if not html_content:
+        return []
+
+    try:
+        matches = _RE_ANCHOR.findall(html_content)
+    except Exception:
+        logger.warning("scan_existing_links: fallo al parsear enlaces", exc_info=True)
+        return []
+
+    results: List[Dict[str, str]] = []
+    seen = set()
+
+    for url, anchor in matches:
+        if not _is_internal_url(url):
+            continue
+
+        norm = _normalize_link_url(url)
+        if not norm or norm in seen:
+            continue
+        seen.add(norm)
+
+        clean_anchor = strip_html_tags(anchor).strip()
+        results.append({
+            'url': url,
+            'anchor': clean_anchor,
+            'kind': classify_internal_link(url),
+        })
+
+    return results
+
 
 def get_heading_hierarchy(html_content: str) -> List[Dict[str, str]]:
     """Extrae jerarquía de encabezados."""

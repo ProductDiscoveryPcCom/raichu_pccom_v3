@@ -45,12 +45,28 @@ import unicodedata
 from datetime import datetime
 import re
 import os
+import hashlib
 
 logger = logging.getLogger(__name__)
 
 # Importar utilidades
 from utils.html_utils import count_words_in_html
 from utils.brief_parser import parse_cannibalization_brief
+
+# Barrido de enlaces internos existentes (opt-in, degradación graceful)
+try:
+    from utils.html_utils import scan_existing_links, _normalize_link_url
+    _scan_links_available = True
+except ImportError:
+    _scan_links_available = False
+    scan_existing_links = None
+
+    def _normalize_link_url(url: str) -> str:
+        """Fallback de normalización si html_utils no expone el helper."""
+        if not url:
+            return ''
+        raw = url.strip().split('#', 1)[0].lower()
+        return raw.rstrip('/') if len(raw) > 1 and raw.endswith('/') else raw
 
 # Importar configuración
 from config.settings import (
@@ -552,7 +568,10 @@ def render_rewrite_section() -> Tuple[bool, Dict]:
     with st.expander("📝 Enlaces a Posts / PLPs (Contenido Editorial)", expanded=False):
         st.caption("Añade el HTML del contenido destino para que los enlaces sean más contextuales y naturales.")
         posts_plps_links = render_posts_plps_links_section()
-    
+
+    # Barrido opt-in de enlaces internos ya existentes en el HTML (solo SINGLE)
+    preserved_links = render_scanned_links_section(html_contents, rewrite_mode)
+
     product_links = []  # Backward compat
     
     # =========================================================================
@@ -578,11 +597,11 @@ def render_rewrite_section() -> Tuple[bool, Dict]:
     
     # Mostrar resumen antes de generar
     render_generation_summary(
-        keyword, rewrite_config, gsc_analysis, html_contents, 
+        keyword, rewrite_config, gsc_analysis, html_contents,
         main_product_data, rewrite_mode, rewrite_instructions,
-        alternative_products, posts_plps_links
+        alternative_products, posts_plps_links, preserved_links
     )
-    
+
     # Preparar configuración completa (el botón está en app.py)
     full_config = prepare_rewrite_config(
         keyword=keyword,
@@ -598,6 +617,7 @@ def render_rewrite_section() -> Tuple[bool, Dict]:
         product_links=product_links,
         alternative_products=alternative_products,
         products=rewrite_products,
+        preserved_links=preserved_links,
     )
     
     return True, full_config
@@ -645,6 +665,128 @@ def _initialize_rewrite_state() -> None:
         st.session_state.rewrite_alt_products_enabled = False
     if 'rewrite_alt_products_count' not in st.session_state:
         st.session_state.rewrite_alt_products_count = 1
+    # Estado para barrido de enlaces internos existentes (opt-in)
+    if 'rewrite_scan_enabled' not in st.session_state:
+        st.session_state.rewrite_scan_enabled = False
+    if 'rewrite_scan_source_hash' not in st.session_state:
+        st.session_state.rewrite_scan_source_hash = ''
+    if 'rewrite_scan_links' not in st.session_state:
+        st.session_state.rewrite_scan_links = []
+
+
+# ============================================================================
+# SECCIÓN: BARRIDO DE ENLACES INTERNOS EXISTENTES (opt-in, solo SINGLE)
+# ============================================================================
+
+def _purge_scan_widget_keys() -> None:
+    """
+    Elimina los widget keys por-item del barrido (`rewrite_scan_keep_*`,
+    `rewrite_scan_anchor_*`). Debe llamarse ANTES de instanciar los widgets
+    en el mismo run (borrarlos después lanza StreamlitAPIException).
+    """
+    for k in list(st.session_state.keys()):
+        if k.startswith('rewrite_scan_keep_') or k.startswith('rewrite_scan_anchor_'):
+            del st.session_state[k]
+
+
+def render_scanned_links_section(
+    html_contents: List[Dict[str, Any]],
+    rewrite_mode: str,
+) -> List[Dict[str, str]]:
+    """
+    Barrido OPT-IN de los enlaces internos ya presentes en el HTML a reescribir.
+
+    Solo se renderiza en modo SINGLE. Detecta los `<a href>` internos (blog/PLP/PDP),
+    los muestra con checkbox "mantener" (marcados por defecto) y anchor editable, y
+    devuelve los seleccionados para que el pipeline los preserve.
+
+    Degradación graceful: si el módulo de barrido no está disponible, no hay HTML o el
+    modo no es single, devuelve [] sin renderizar nada.
+
+    Returns:
+        Lista de enlaces a preservar: [{'url', 'anchor', 'kind'}] (solo los marcados,
+        con anchor posiblemente editado; se omiten los de anchor vacío).
+    """
+    if not _scan_links_available or scan_existing_links is None:
+        return []
+    if rewrite_mode != RewriteMode.SINGLE or not html_contents:
+        return []
+
+    source_html = (html_contents[0].get('html', '') or '').strip()
+    if not source_html:
+        return []
+
+    with st.expander("🔎 Analizar enlaces existentes en el HTML", expanded=False):
+        enabled = st.checkbox(
+            "Detectar y revisar los enlaces internos ya presentes en el HTML",
+            key="rewrite_scan_enabled",
+            help=(
+                "Adicional a los enlaces editoriales manuales. Detecta los enlaces "
+                "internos (blog/PLP/PDP) que ya existen en el HTML para que puedas "
+                "decidir cuáles conservar en la versión reescrita."
+            ),
+        )
+        if not enabled:
+            return []
+
+        # Invalidación por hash: si el HTML cambió, re-escanear y purgar los widget
+        # keys ANTES de instanciar las filas (para que los defaults vuelvan a aplicarse).
+        current_hash = hashlib.md5(source_html.encode('utf-8', errors='ignore')).hexdigest()
+        if st.session_state.get('rewrite_scan_source_hash') != current_hash:
+            try:
+                scanned = scan_existing_links(source_html)
+            except Exception:
+                logger.warning("render_scanned_links_section: fallo en el barrido", exc_info=True)
+                scanned = []
+            st.session_state.rewrite_scan_links = scanned
+            st.session_state.rewrite_scan_source_hash = current_hash
+            _purge_scan_widget_keys()
+
+        scanned = st.session_state.get('rewrite_scan_links', [])
+        if not scanned:
+            st.caption("No se han detectado enlaces internos en el HTML.")
+            return []
+
+        st.caption(
+            f"Detectados {len(scanned)} enlaces internos. Desmarca los que NO quieras "
+            "conservar y edita el anchor si lo necesitas (el destino se mantiene intacto)."
+        )
+
+        _kind_badge = {
+            'blog': '📰 Blog',
+            'pdp': '🛒 PDP',
+            'plp': '🗂️ PLP',
+            'otro': '🔗 Interno',
+        }
+
+        preserved: List[Dict[str, str]] = []
+        for i, link in enumerate(scanned):
+            kind = link.get('kind', 'otro')
+            url = link.get('url', '')
+            detected_anchor = link.get('anchor', '')
+
+            cols = st.columns([0.14, 0.5, 0.36])
+            with cols[0]:
+                keep = st.checkbox(
+                    _kind_badge.get(kind, '🔗 Interno'),
+                    value=True,
+                    key=f"rewrite_scan_keep_{i}",
+                )
+            with cols[1]:
+                anchor = st.text_input(
+                    "Anchor",
+                    value=detected_anchor,
+                    key=f"rewrite_scan_anchor_{i}",
+                    label_visibility="collapsed",
+                    placeholder="(enlace sin texto)",
+                )
+            with cols[2]:
+                st.caption(url)
+
+            if keep and anchor.strip():
+                preserved.append({'url': url, 'anchor': anchor.strip(), 'kind': kind})
+
+        return preserved
 
 
 # ============================================================================
@@ -2394,7 +2536,8 @@ def render_generation_summary(
     rewrite_mode: str,
     rewrite_instructions: Dict,
     alternative_products: List[Dict] = None,
-    posts_plps_links: List[Dict] = None
+    posts_plps_links: List[Dict] = None,
+    preserved_links: List[Dict] = None
 ) -> None:
     """Muestra un resumen de la configuración antes de generar."""
     
@@ -2451,7 +2594,11 @@ def render_generation_summary(
             if posts_plps_links:
                 with_context = sum(1 for l in posts_plps_links if l.get('html_content') or l.get('top_text'))
                 st.markdown(f"- 📝 Enlaces editoriales: `{len(posts_plps_links)}` ({with_context} con contexto)")
-    
+
+            # Enlaces internos existentes a preservar (barrido)
+            if preserved_links:
+                st.markdown(f"- 🔗 Enlaces preservados: `{len(preserved_links)}`")
+
     st.caption("✅ Todo listo — el pipeline generará borrador → análisis crítico → versión final.")
 
 
@@ -2472,7 +2619,8 @@ def prepare_rewrite_config(
     posts_plps_links: List[Dict],
     product_links: List[Dict],
     alternative_products: List[Dict] = None,
-    products: List = None  # NUEVO v5.0: lista unificada de productos
+    products: List = None,  # NUEVO v5.0: lista unificada de productos
+    preserved_links: List[Dict] = None,  # enlaces internos existentes a preservar (barrido)
 ) -> Dict:
     """Prepara la configuración completa para el proceso de generación."""
     
@@ -2600,7 +2748,37 @@ def prepare_rewrite_config(
             if link.get('product_data'):
                 link_dict['product_data'] = link['product_data']
             config['product_links'].append(link_dict)
-    
+
+    # =========================================================================
+    # ENLACES INTERNOS EXISTENTES A PRESERVAR (barrido opt-in)
+    # Viven SOLO en config['preserved_links'] — NO se añaden a config['links']
+    # (que el pipeline mapea a editorial_links → otro formatter/semántica).
+    # Se deduplican contra los enlaces editoriales/producto manuales por URL
+    # normalizada: si una URL ya está configurada a mano, gana el manual.
+    # =========================================================================
+    config['preserved_links'] = []
+    if preserved_links:
+        _manual_urls = {
+            _normalize_link_url(l.get('url', ''))
+            for l in (config['editorial_links'] + config['product_links'])
+        }
+        _seen_preserved = set()
+        for link in preserved_links:
+            url = link.get('url', '')
+            anchor = link.get('anchor', '')
+            if not url or not anchor:
+                continue
+            norm = _normalize_link_url(url)
+            if not norm or norm in _manual_urls or norm in _seen_preserved:
+                continue
+            _seen_preserved.add(norm)
+            config['preserved_links'].append({
+                'url': url,
+                'anchor': anchor,
+                'kind': link.get('kind', 'otro'),
+                'type': 'preserved',
+            })
+
     # =========================================================================
     # ENLACES UNIFICADOS (compatibilidad)
     # =========================================================================

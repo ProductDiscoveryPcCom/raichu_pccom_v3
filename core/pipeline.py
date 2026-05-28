@@ -503,6 +503,7 @@ Usa este contenido como base, mejóralo y amplíalo según el análisis competit
                 'context': context_with_html,
                 'editorial_links': config.get('links', config.get('editorial_links', [])),
                 'product_links': config.get('product_links', []),
+                'preserved_links': config.get('preserved_links', []),
                 'objetivo': config.get('objetivo', ''),
                 'producto_alternativo': config.get('producto_alternativo', {}),
                 'alternative_products': config.get('alternative_products', []),
