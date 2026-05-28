@@ -541,7 +541,46 @@ def format_product_links_for_prompt(links: List[Dict[str, Any]]) -> str:
                 sections.append(f"- **Puntos fuertes:** {', '.join(advantages[:3])}")
         
         sections.append("")
-    
+
+    return "\n".join(sections)
+
+
+def format_preserved_links_for_prompt(links: List[Dict[str, Any]]) -> str:
+    """
+    Formatea enlaces internos YA EXISTENTES en el contenido que deben preservarse.
+
+    A diferencia de los enlaces editoriales (que aportan contexto de un destino al
+    que enlazar), estos enlaces ya están en el contenido original. La instrucción es
+    mantenerlos: el destino (URL) es intocable; el anchor debe usarse integrándolo
+    de forma natural en el texto reescrito.
+    """
+    if not links:
+        return ""
+
+    _kind_label = {
+        'blog': 'Blog',
+        'pdp': 'PDP/Producto',
+        'plp': 'PLP/Categoría',
+        'otro': 'Interno',
+    }
+
+    sections = ["## 🔗 ENLACES INTERNOS EXISTENTES A PRESERVAR\n"]
+    sections.append(
+        "Estos enlaces YA existen en el contenido original. **El destino (URL) es "
+        "OBLIGATORIO e intocable**: no lo cambies, no lo elimines y no inventes contexto "
+        "de destino. **Usa el anchor indicado**, integrándolo de forma natural en el texto "
+        "reescrito (puedes adaptar la redacción alrededor; no fuerces el anchor si chirría)."
+    )
+    sections.append("")
+
+    for i, link in enumerate(links, 1):
+        url = link.get('url', '')
+        anchor = link.get('anchor', '')
+        kind = link.get('kind', 'otro')
+        label = _kind_label.get(kind, 'Interno')
+        sections.append(f"{i}. [{label}] [{anchor}]({url}) — URL intacta: `{url}`")
+
+    sections.append("")
     return "\n".join(sections)
 
 
@@ -732,6 +771,7 @@ def build_rewrite_prompt_stage1(
     main_product = config.get('main_product')
     editorial_links = config.get('editorial_links', [])
     product_links = config.get('product_links', [])
+    preserved_links = config.get('preserved_links', [])
     alternative_products = config.get('alternative_products', [])
     products = config.get('products', [])  # v5.0
     headings_config = config.get('headings_config')  # v5.0
@@ -890,7 +930,12 @@ La keyword "{keyword}" DEBE aparecer de forma natural en el contenido:
     editorial_links_info = format_editorial_links_for_prompt(editorial_links)
     if editorial_links_info:
         sections.append(editorial_links_info)
-    
+
+    # Enlaces internos existentes a preservar (barrido del HTML original)
+    preserved_links_info = format_preserved_links_for_prompt(preserved_links)
+    if preserved_links_info:
+        sections.append(preserved_links_info)
+
     # Enlaces a productos (solo si NO se usó products v5.0, para evitar duplicar)
     if not products:
         product_links_info = format_product_links_for_prompt(product_links)
@@ -1037,6 +1082,7 @@ def build_rewrite_correction_prompt_stage2(
     objetivo = config.get('objetivo', '')
     editorial_links = config.get('editorial_links', [])
     product_links = config.get('product_links', [])
+    preserved_links = config.get('preserved_links', [])
     alternative_products = config.get('alternative_products', [])
     products = config.get('products', [])  # v5.0
     arquetipo_code = config.get('arquetipo_codigo', '')
@@ -1095,14 +1141,19 @@ def build_rewrite_correction_prompt_stage2(
     
     # Checklist de enlaces
     links_checklist = ""
-    if editorial_links or product_links or alternative_products or products:
+    if editorial_links or product_links or preserved_links or alternative_products or products:
         links_checklist = "\n### Verificar ENLACES incluidos:\n"
-        
+
         for link in editorial_links:
             url = link.get('url', '')
             anchor = link.get('anchor', '')
             links_checklist += f"- [ ] Editorial: [{anchor}]({url})\n"
-        
+
+        for link in preserved_links:
+            url = link.get('url', '')
+            anchor = link.get('anchor', '')
+            links_checklist += f"- [ ] PRESERVAR existente (misma URL): [{anchor}]({url})\n"
+
         # v5.0: productos unificados (incluye principal, alternativo, enlazado)
         if products:
             for prod in products:
@@ -1299,6 +1350,7 @@ def build_rewrite_final_prompt_stage3(
     keyword = config.get('keyword', '')
     editorial_links = config.get('editorial_links', [])
     product_links = config.get('product_links', [])
+    preserved_links = config.get('preserved_links', [])
     alternative_products = config.get('alternative_products', [])
     products = config.get('products', [])  # v5.0
     rewrite_instructions = config.get('rewrite_instructions', {})
@@ -1332,7 +1384,16 @@ def build_rewrite_final_prompt_stage3(
             url = link.get('url', '')
             anchor = link.get('anchor', '')
             critical_reminders.append(f"- [{anchor}]({url})")
-    
+
+    if preserved_links:
+        critical_reminders.append(
+            "\n### 🔗 ENLACES EXISTENTES OBLIGATORIOS (mantén la misma URL; usa el anchor de forma natural):"
+        )
+        for link in preserved_links:
+            url = link.get('url', '')
+            anchor = link.get('anchor', '')
+            critical_reminders.append(f"- [{anchor}]({url})")
+
     # v5.0: productos unificados (incluye principal, alternativo, enlazado)
     if products:
         critical_reminders.append("\n### [PRODUCTO] PRODUCTOS QUE DEBEN APARECER:")
