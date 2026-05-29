@@ -494,7 +494,7 @@ _CANONICAL_CSS = """:root{--orange-900:#FF6000;--blue-m-900:#170453;--white:#FFF
 .callout-alert{background:linear-gradient(135deg,#FF6000,#FF8533);color:var(--white);padding:var(--space-lg);border-radius:var(--radius-md);text-align:center;margin:var(--space-lg) 0;border-left:6px solid #CC4D00;}
 .callout-alert p:first-of-type{font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;font-size:1.2em;}
 table{width:100%;border-collapse:collapse;margin:var(--space-lg) 0;table-layout:fixed;font-size:15px;}
-thead th{background:var(--gray-100);font-weight:700;text-align:left;padding:12px 16px;border-bottom:2px solid var(--gray-200);}
+thead th{background:#170453;color:#fff;font-weight:700;text-align:left;padding:12px 16px;border-bottom:2px solid var(--gray-200);}
 tbody td{padding:10px 16px;text-align:left;border-bottom:1px solid var(--gray-200);}
 tbody tr:hover{background:rgba(0,0,0,0.02);}
 .table-responsive{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:var(--space-lg) 0;}

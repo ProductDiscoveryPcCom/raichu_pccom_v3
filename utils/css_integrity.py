@@ -133,6 +133,30 @@ def check_css_integrity(verbose: bool = False) -> List[str]:
             issues.append(
                 f"comparison-table th sin #170453/!important en {name}"
             )
+
+    # Check 4-bis: paridad editor↔CMS para `table thead th` genérico.
+    # Tras el blindaje de TODAS las tablas (no solo comparison), el header
+    # genérico también debe ir en azul de marca en las 3 fuentes.
+    _generic_th_pattern = re.compile(
+        r'(?:table\s+)?thead\s+th\s*\{[^}]*background\s*:\s*#170453',
+        re.IGNORECASE,
+    )
+    for name in _LITERAL_SOURCES:
+        css = sources.get(name)
+        if css and not _generic_th_pattern.search(css):
+            issues.append(f"table thead th sin #170453 en {name}")
+
+    # Check 5: `.lt .r:first-child` con azul de marca (header de Light Table).
+    # Solo en cms_compatible.css; design_system._CANONICAL_CSS no incluye .lt.
+    _lt_pattern = re.compile(
+        r'\.lt\s+\.r:first-child\s*\{[^}]*background\s*:\s*#170453',
+        re.IGNORECASE,
+    )
+    _LT_SOURCES = ('cms_compatible.css',)
+    for name in _LT_SOURCES:
+        css = sources.get(name)
+        if css and not _lt_pattern.search(css):
+            issues.append(f".lt .r:first-child sin #170453 en {name}")
     
     if verbose:
         if issues:
