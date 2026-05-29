@@ -519,13 +519,27 @@ class TestComparisonTableEnforcer:
         # El comentario META debe seguir siendo lo primero.
         assert out.index('<!-- META:') < out.index('<style>')
 
-    def test_no_op_without_comparison_table(self):
+    def test_no_op_without_any_table(self):
+        """Sin ninguna tabla → no-op (CSS muerto evitado)."""
         from utils.table_fixer import enforce_comparison_table_css
-        html = '<style>table{width:100%;}</style><table><tr><td>x</td></tr></table>'
+        html = '<style>p{color:#000;}</style><p>solo texto</p>'
         out, stats = enforce_comparison_table_css(html)
         assert stats['comparison_tables_found'] == 0
+        assert stats['generic_tables_found'] == 0
+        assert stats['light_tables_found'] == 0
         assert stats['css_injected'] is False
         assert out == html
+
+    def test_generic_table_now_injects_override(self):
+        """Tras este PR, <table> genérico también recibe override (era no-op antes)."""
+        from utils.table_fixer import enforce_comparison_table_css, PCC_TABLE_FIX_MARKER
+        html = '<style>table{width:100%;}</style><table><tr><td>x</td></tr></table>'
+        out, stats = enforce_comparison_table_css(html)
+        assert stats['generic_tables_found'] == 1
+        assert stats['comparison_tables_found'] == 0
+        assert stats['css_injected'] is True
+        assert PCC_TABLE_FIX_MARKER in out
+        assert 'article table:not(.comparison-table)' in out
 
     def test_injects_into_last_style(self):
         from utils.table_fixer import enforce_comparison_table_css, PCC_TABLE_FIX_MARKER
@@ -613,6 +627,129 @@ class TestComparisonTableFixInteraction:
         assert '<thead>' in out
         assert 'comparison-table' in out
         assert '#170453' in out
+
+
+# ============================================================================
+# TEST 9: Blindaje multi-tipo (generic + comparison + lt)
+# ============================================================================
+
+# Fixture sintética: 3 tipos de tabla coexistiendo (mismo HTML que
+# tmp/test_tables_all_types.py — ese script genera tmp/tables_clean.html y
+# tmp/tables_cms.html para inspección visual; aquí lo usamos como fixture in-line).
+_ALL_TYPES_HTML = '''<style>.contentGenerator__main{font-family:Open Sans;}</style>
+<article class="contentGenerator__main">
+<h3>1) Generica</h3>
+<table><thead><tr><th>Spec</th><th>Detalle</th></tr></thead>
+<tbody><tr><td>CPU</td><td>i7</td></tr></tbody></table>
+<h3>2) Comparativa</h3>
+<table class="comparison-table"><thead><tr><th>Spec</th><th>A</th><th>B</th></tr></thead>
+<tbody><tr><td>GPU</td><td>RTX</td><td>RX</td></tr></tbody></table>
+<h3>3) Light table</h3>
+<div class="lt cols-3"><div class="r"><div class="c">H1</div><div class="c">H2</div><div class="c">H3</div></div>
+<div class="r"><div class="c">d1</div><div class="c">d2</div><div class="c">d3</div></div></div>
+</article>'''
+
+_ONLY_LT_HTML = '''<style>p{}</style>
+<article class="contentGenerator__main">
+<div class="lt cols-2"><div class="r"><div class="c">H</div><div class="c">V</div></div></div>
+</article>'''
+
+
+class TestTableEnforcerMultiType:
+    """Blindaje extendido a los 3 tipos: generic / comparison / light."""
+
+    def test_enforce_injects_generic_override(self):
+        from utils.table_fixer import enforce_table_css, PCC_TABLE_FIX_MARKER
+        html = '<style>x{}</style><article><table><tr><th>a</th></tr></table></article>'
+        out, stats = enforce_table_css(html)
+        assert stats['generic_tables_found'] == 1
+        assert stats['css_injected'] is True
+        assert PCC_TABLE_FIX_MARKER in out
+        assert 'article table:not(.comparison-table)' in out
+        assert '#170453 !important' in out
+        assert 'color:#fff !important' in out
+        assert 'display:table !important' in out
+        assert 'display:table-header-group !important' in out
+
+    def test_enforce_injects_lt_override(self):
+        from utils.table_fixer import enforce_table_css, PCC_TABLE_FIX_MARKER
+        out, stats = enforce_table_css(_ONLY_LT_HTML)
+        assert stats['light_tables_found'] == 1
+        assert stats['generic_tables_found'] == 0
+        assert stats['css_injected'] is True
+        assert PCC_TABLE_FIX_MARKER in out
+        assert 'article .lt .r:first-child' in out
+        assert '#170453 !important' in out
+        assert 'display:grid !important' in out
+
+    def test_enforce_injects_all_three_when_all_present(self):
+        from utils.table_fixer import enforce_table_css, PCC_TABLE_FIX_MARKER
+        out, stats = enforce_table_css(_ALL_TYPES_HTML)
+        assert stats['generic_tables_found'] >= 1
+        assert stats['comparison_tables_found'] == 1
+        assert stats['light_tables_found'] == 1
+        assert stats['css_injected'] is True
+        # Un único marcador.
+        assert out.count(PCC_TABLE_FIX_MARKER) == 1
+        # Los 3 bloques presentes (selector representativo de cada uno).
+        assert 'article table:not(.comparison-table)' in out
+        assert '.comparison-table th{background:#170453 !important' in out
+        assert 'article .lt' in out
+
+    def test_enforce_skips_blocks_for_absent_types(self):
+        """Solo .lt → no inyecta genérico ni comparison-table."""
+        from utils.table_fixer import enforce_table_css
+        out, _ = enforce_table_css(_ONLY_LT_HTML)
+        assert 'article table:not(.comparison-table)' not in out
+        assert '.comparison-table th{background:#170453' not in out
+        assert 'article .lt' in out
+
+    def test_enforce_idempotent_with_marker(self):
+        from utils.table_fixer import enforce_table_css, PCC_TABLE_FIX_MARKER
+        once, _ = enforce_table_css(_ALL_TYPES_HTML)
+        twice, stats2 = enforce_table_css(once)
+        assert twice == once
+        assert stats2['already_present'] is True
+        assert stats2['css_injected'] is False
+        assert twice.count(PCC_TABLE_FIX_MARKER) == 1
+
+    def test_preserves_existing_comparison_protection(self):
+        """Regression-guard PR#19: el bloque de comparison-table mantiene sus
+        propiedades clave byte-idénticas (#170453, !important, display groups)."""
+        from utils.table_fixer import _COMPARISON_TABLE_OVERRIDE_BODY
+        body = _COMPARISON_TABLE_OVERRIDE_BODY
+        assert '.comparison-table{display:table !important' in body
+        assert '.comparison-table thead{display:table-header-group !important;}' in body
+        assert '.comparison-table tbody{display:table-row-group !important;}' in body
+        assert '.comparison-table th{background:#170453 !important;color:#fff !important' in body
+        assert 'border:none !important' in body
+        assert 'tbody tr:nth-child(even) td{background:#F4F4F4' in body
+
+    def test_alias_enforce_comparison_table_css_still_works(self):
+        """Imports históricos (core/pipeline.py L1057) siguen funcionando."""
+        from utils.table_fixer import (
+            enforce_comparison_table_css, enforce_table_css,
+        )
+        # Mismo objeto: alias directo.
+        assert enforce_comparison_table_css is enforce_table_css
+        # Y funciona con la firma esperada.
+        out, stats = enforce_comparison_table_css(_ALL_TYPES_HTML)
+        assert stats['css_injected'] is True
+        assert 'comparison_tables_found' in stats
+
+    def test_pipeline_smoke_all_three_types(self):
+        """Smoke end-to-end: fix_tables → enforce_table_css sobre HTML con 3 tipos."""
+        from utils.table_fixer import fix_tables, enforce_table_css, PCC_TABLE_FIX_MARKER
+        fixed, fstats = fix_tables(_ALL_TYPES_HTML)
+        # fix_tables solo toca <table> (no .lt); ambas <table> ya tienen thead.
+        assert fstats['tables_found'] == 2
+        out, cstats = enforce_table_css(fixed)
+        assert cstats['css_injected'] is True
+        # El <style> final contiene: marcador único + 3 bloques.
+        assert out.count(PCC_TABLE_FIX_MARKER) == 1
+        assert 'article table:not(.comparison-table)' in out
+        assert '.comparison-table th{background:#170453' in out
+        assert 'article .lt' in out
 
 
 # ============================================================================

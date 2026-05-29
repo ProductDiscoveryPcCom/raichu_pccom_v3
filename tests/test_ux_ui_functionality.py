@@ -843,6 +843,46 @@ class TestCSSIntegrity:
         assert isinstance(CRITICAL_SELECTORS, (list, set, tuple))
         assert len(CRITICAL_SELECTORS) > 0
 
+    def test_integrity_check_passes_after_table_blindaje(self):
+        """Tras blindar TODAS las tablas (PR all-types): el checker no debe
+        reportar issues sobre `table thead th` (Check 4-bis) ni `.lt .r:first-child`
+        (Check 5). Las 3 fuentes CSS deben estar sincronizadas en #170453."""
+        from utils.css_integrity import check_css_integrity
+        issues = check_css_integrity(verbose=False)
+        # Ningún issue del nuevo Check 4-bis ni del Check 5.
+        for issue in issues:
+            assert 'table thead th sin #170453' not in issue, (
+                f"Check 4-bis falla: {issue}"
+            )
+            assert '.lt .r:first-child sin #170453' not in issue, (
+                f"Check 5 falla: {issue}"
+            )
+
+    def test_cms_css_generic_th_uses_brand_blue(self):
+        """Check 4-bis (paridad editor↔CMS): `table thead th` con #170453."""
+        css = Path("config/cms_compatible.css").read_text(encoding='utf-8')
+        # Bloque genérico (no .comparison-table) debe llevar azul de marca.
+        import re
+        m = re.search(r'table thead th\s*\{[^}]*\}', css)
+        assert m, "Falta selector 'table thead th' en cms_compatible.css"
+        block = m.group(0)
+        assert '#170453' in block, f"thead th sin #170453: {block}"
+        assert '#fff' in block or '#ffffff' in block.lower(), (
+            f"thead th sin color blanco: {block}"
+        )
+
+    def test_cms_css_lt_first_row_uses_brand_blue(self):
+        """Check 5: `.lt .r:first-child` con #170453 en cms_compatible.css."""
+        css = Path("config/cms_compatible.css").read_text(encoding='utf-8')
+        import re
+        m = re.search(r'\.lt \.r:first-child\s*\{[^}]*\}', css)
+        assert m, "Falta selector '.lt .r:first-child' en cms_compatible.css"
+        block = m.group(0)
+        assert '#170453' in block, f".lt .r:first-child sin #170453: {block}"
+        assert '#fff' in block or '#ffffff' in block.lower(), (
+            f".lt .r:first-child sin color blanco: {block}"
+        )
+
 
 class TestMainFormDiscoverability:
     """render_main_form expone keyword, keywords secundarias e instrucciones de

@@ -25,16 +25,37 @@ __version__ = "1.0.0"
 # Umbral de columnas para envolver en wrapper responsive
 RESPONSIVE_THRESHOLD = 4
 
-# Marcador de idempotencia del refuerzo CSS de tablas comparativas.
+# Marcador de idempotencia del refuerzo CSS de tablas (los 3 tipos).
 PCC_TABLE_FIX_MARKER = "/* PCC-TABLE-FIX */"
 
-# Bloque override (con !important) que gana la cascada frente a lo que el modelo
+# Bloques override (con !important) que ganan la cascada frente a lo que el modelo
 # haya reescrito y frente al CSS del CMS de producción
 # (.chunkPostView-* table{display:block} y th{background:#ebebeb}).
-# Valores LITERALES (hex/px, sin var(...)) para ser autosuficiente.
-_COMPARISON_TABLE_OVERRIDE = (
-    PCC_TABLE_FIX_MARKER
-    + ".comparison-table{display:table !important;table-layout:fixed;width:100%;"
+# Valores LITERALES (hex/px, sin var(...)) para ser autosuficientes.
+#
+# El selector empieza por `article ...` para elevar especificidad sobre
+# `.chunkPostView ...`: la estructura CMS 3-<article> es invariante del proyecto
+# (CLAUDE.md "NO TOCAR").
+
+# Tabla <table> genérica (sin class="comparison-table"). Roto hoy en CMS por
+# `.chunkPostView table{display:block}` y `.chunkPostView th{background:#ebebeb}`.
+_GENERIC_TABLE_OVERRIDE = (
+    "article table:not(.comparison-table){display:table !important;table-layout:fixed;"
+    "width:100%;border-collapse:collapse;font-size:15px;}"
+    "article table:not(.comparison-table) thead{display:table-header-group !important;}"
+    "article table:not(.comparison-table) tbody{display:table-row-group !important;}"
+    "article table:not(.comparison-table) thead th{background:#170453 !important;"
+    "color:#fff !important;font-weight:800;padding:12px 16px;text-align:left;"
+    "border-bottom:2px solid #E6E6E6 !important;}"
+    "article table:not(.comparison-table) tbody td{padding:10px 16px;color:#141822;"
+    "border-bottom:1px solid #E6E6E6;text-align:left;}"
+    "article table:not(.comparison-table) tbody tr:nth-child(even) td{background:#F4F4F4;}"
+)
+
+# Tabla comparativa (PR #19). Body byte-idéntico al original; el marcador se
+# antepone solo en el constante combinado para retrocompat de imports históricos.
+_COMPARISON_TABLE_OVERRIDE_BODY = (
+    ".comparison-table{display:table !important;table-layout:fixed;width:100%;"
     "border-collapse:collapse;font-size:14px;}"
     ".comparison-table thead{display:table-header-group !important;}"
     ".comparison-table tbody{display:table-row-group !important;}"
@@ -44,6 +65,24 @@ _COMPARISON_TABLE_OVERRIDE = (
     "font-weight:700;font-size:15px;border:none !important;}"
     ".comparison-table td{border-bottom:1px solid #E6E6E6;}"
     ".comparison-table tbody tr:nth-child(even) td{background:#F4F4F4;}"
+)
+_COMPARISON_TABLE_OVERRIDE = PCC_TABLE_FIX_MARKER + _COMPARISON_TABLE_OVERRIDE_BODY
+
+# Light Table (.lt). Defensa: el CMS de hoy no la rompe, pero los selectores
+# de clase únicos perderían frente a reglas hostiles futuras.
+_LIGHT_TABLE_OVERRIDE = (
+    "article .lt{display:block !important;border:1px solid #E6E6E6 !important;"
+    "border-radius:0 !important;overflow:hidden;background:#fff;}"
+    "article .lt .r{display:grid !important;border-top:1px solid #E6E6E6;}"
+    "article .lt .r:first-child{border-top:none;background:#170453 !important;"
+    "color:#fff !important;font-weight:800;}"
+    "article .lt .c{padding:10px !important;}"
+    "article .lt.zebra .r:nth-child(odd):not(:first-child){background:#FCFCFD !important;}"
+    "article .lt.cols-2 .r{grid-template-columns:1.4fr 0.6fr !important;}"
+    "article .lt.cols-3 .r{grid-template-columns:1fr 1fr 1fr !important;}"
+    "article .lt.cols-7 .r{grid-template-columns:1fr 1fr !important;}"
+    "@media (min-width:900px){article .lt.cols-7 .r{"
+    "grid-template-columns:0.7fr 0.9fr 0.7fr 1.1fr 0.8fr 0.9fr 0.8fr !important;}}"
 )
 
 
@@ -160,26 +199,33 @@ def validate_tables(html: str) -> List[str]:
     return issues
 
 
-def enforce_comparison_table_css(html: str) -> Tuple[str, Dict]:
-    """Inyecta un override CSS determinista para .comparison-table.
+def enforce_table_css(html: str) -> Tuple[str, Dict]:
+    """Inyecta overrides CSS deterministas para los 3 tipos de tabla.
 
-    Estrategia OVERRIDE POR CASCADA: el bloque (_COMPARISON_TABLE_OVERRIDE, con
-    !important) se inserta al FINAL del <style> del artículo. Al ir último y ser
-    !important, gana sobre lo que el modelo haya reescrito y sobre el CSS del CMS
-    de producción, sin parsear ni reemplazar reglas existentes.
+    Estrategia OVERRIDE POR CASCADA: los bloques (con !important) se insertan
+    al FINAL del <style> del artículo. Al ir últimos y ser !important, ganan
+    sobre lo que el modelo haya reescrito y sobre el CSS del CMS de producción
+    (.chunkPostView table/th hostiles), sin parsear ni reemplazar reglas existentes.
+
+    Detección por tipo: solo se inyecta el bloque correspondiente a los tipos
+    de tabla que están presentes en el HTML (evita CSS muerto).
 
     Args:
         html: HTML final del artículo (con o sin <style>).
 
     Returns:
         (html, stats) donde stats tiene:
+            - generic_tables_found: int     (nº de <table> sin .comparison-table)
             - comparison_tables_found: int  (nº de class="comparison-table")
-            - css_injected: bool            (se añadió el override)
+            - light_tables_found: int       (nº de class="lt")
+            - css_injected: bool            (se añadió al menos un bloque)
             - style_created: bool           (se creó un <style> nuevo)
             - already_present: bool         (marcador ya existía → no-op)
     """
     stats = {
+        'generic_tables_found': 0,
         'comparison_tables_found': 0,
+        'light_tables_found': 0,
         'css_injected': False,
         'style_created': False,
         'already_present': False,
@@ -188,30 +234,56 @@ def enforce_comparison_table_css(html: str) -> Tuple[str, Dict]:
     if not html:
         return html, stats
 
-    # Guard: solo actuar si hay tablas comparativas (evita CSS muerto).
-    stats['comparison_tables_found'] = len(
-        re.findall(r'class\s*=\s*["\'][^"\']*\bcomparison-table\b', html, re.IGNORECASE)
-    )
-    if stats['comparison_tables_found'] == 0:
-        return html, stats
-
-    # Idempotencia: si el marcador ya está, no apilar (refinamientos/reruns).
+    # Idempotencia global: el marcador implica que TODOS los bloques aplicables
+    # ya están (mismo marcador para los 3 tipos).
     if PCC_TABLE_FIX_MARKER in html:
         stats['already_present'] = True
         return html, stats
+
+    # Detección por tipo (gates contra CSS muerto).
+    stats['comparison_tables_found'] = len(
+        re.findall(r'class\s*=\s*["\'][^"\']*\bcomparison-table\b', html, re.IGNORECASE)
+    )
+    # Genérico = <table> que NO sea .comparison-table. Aproximación regex: <table sin
+    # ningún 'comparison-table' antes del cierre del tag de apertura.
+    stats['generic_tables_found'] = len(
+        re.findall(r'<table\b(?![^>]*comparison-table)', html, re.IGNORECASE)
+    )
+    stats['light_tables_found'] = len(
+        re.findall(r'class\s*=\s*["\'][^"\']*\blt\b', html, re.IGNORECASE)
+    )
+
+    blocks = [PCC_TABLE_FIX_MARKER]
+    if stats['generic_tables_found'] > 0:
+        blocks.append(_GENERIC_TABLE_OVERRIDE)
+    if stats['comparison_tables_found'] > 0:
+        blocks.append(_COMPARISON_TABLE_OVERRIDE_BODY)
+    if stats['light_tables_found'] > 0:
+        blocks.append(_LIGHT_TABLE_OVERRIDE)
+
+    # Solo el marcador → nada que blindar.
+    if len(blocks) == 1:
+        return html, stats
+
+    payload = ''.join(blocks)
 
     # Insertar antes del ÚLTIMO </style> (mayor prioridad de cascada local).
     style_closes = list(re.finditer(r'</style\s*>', html, re.IGNORECASE))
     if style_closes:
         last = style_closes[-1]
-        result = html[:last.start()] + _COMPARISON_TABLE_OVERRIDE + html[last.start():]
+        result = html[:last.start()] + payload + html[last.start():]
         stats['css_injected'] = True
-        logger.info("Comparison-table CSS override inyectado en <style> existente")
+        logger.info(
+            "Table CSS override inyectado en <style> existente "
+            f"(generic={stats['generic_tables_found']}, "
+            f"comparison={stats['comparison_tables_found']}, "
+            f"lt={stats['light_tables_found']})"
+        )
         return result, stats
 
     # No hay <style>: crear uno. Debe ir DESPUÉS del comentario líder <!-- META: ... -->
     # si existe (su extracción exige que vaya primero); si no, al inicio.
-    new_style = f'<style>{_COMPARISON_TABLE_OVERRIDE}</style>'
+    new_style = f'<style>{payload}</style>'
     meta = re.search(r'<!--\s*META:.*?-->', html, re.DOTALL | re.IGNORECASE)
     if meta:
         result = html[:meta.end()] + new_style + html[meta.end():]
@@ -219,5 +291,9 @@ def enforce_comparison_table_css(html: str) -> Tuple[str, Dict]:
         result = new_style + html
     stats['css_injected'] = True
     stats['style_created'] = True
-    logger.info("Comparison-table CSS override inyectado en <style> nuevo")
+    logger.info("Table CSS override inyectado en <style> nuevo")
     return result, stats
+
+
+# Alias retrocompat: imports históricos en core/pipeline.py y tests siguen funcionando.
+enforce_comparison_table_css = enforce_table_css
