@@ -6,8 +6,9 @@ Reusa tono de marca + anti-IA de `prompts.brand_tone`. El JSON-LD NO está aquí
 se construye determinista en `utils/jsonld_builder.py`.
 
 Convención: los assets que devuelven JSON usan `prefill='{'` en la llamada a
-Claude (ver `core/repurpose_pipeline.py`) — el prompt cierra con la línea
-"Empieza tu respuesta con `{`" para reforzar el formato.
+Claude (ver `core/repurpose_pipeline.py`). El prefill ya fuerza el primer
+carácter `{`; el prompt NO debe pedir además "empieza con {" o el modelo puede
+emitir un segundo `{` y producir `{{` (JSON inválido).
 """
 from __future__ import annotations
 
@@ -106,7 +107,7 @@ def build_repurpose_rsa_prompt(article_text: str, keyword: str, **_: Any) -> str
         "- Cada título debe ofrecer un ángulo distinto (precio, garantía, envío, calidad, comparativa...)\n\n"
         "[OUTPUT — JSON estricto]\n"
         "{\"titles\": [\"...\", ...15], \"descriptions\": [\"...\", ...4]}\n\n"
-        "Responde SOLO con JSON válido. Empieza tu respuesta con `{`.\n"
+        "Responde SOLO con JSON válido, sin texto antes ni después.\n"
     )
 
 
@@ -120,7 +121,7 @@ def build_repurpose_newsletter_prompt(article_text: str, keyword: str, **_: Any)
         "- CTA: 2-4 palabras accionables (ej. 'Ver comparativa')\n\n"
         "[OUTPUT — JSON estricto]\n"
         "{\"subject\":\"...\",\"preheader\":\"...\",\"body\":\"...\",\"cta_text\":\"...\"}\n\n"
-        "Responde SOLO con JSON válido. Empieza tu respuesta con `{`.\n"
+        "Responde SOLO con JSON válido, sin texto antes ni después.\n"
     )
 
 
@@ -135,7 +136,7 @@ def build_repurpose_x_thread_prompt(article_text: str, keyword: str, **_: Any) -
         "- Cada tweet aporta valor independiente; nada de 'sigue leyendo'\n\n"
         "[OUTPUT — JSON estricto]\n"
         "{\"tweets\": [{\"n\":1,\"text\":\"...\"}, ...]}\n\n"
-        "Responde SOLO con JSON válido. Empieza tu respuesta con `{`.\n"
+        "Responde SOLO con JSON válido, sin texto antes ni después.\n"
     )
 
 
@@ -150,7 +151,7 @@ def build_repurpose_linkedin_carousel_prompt(article_text: str, keyword: str, **
         "- Tono profesional, sin emojis salvo en CTA final\n\n"
         "[OUTPUT — JSON estricto]\n"
         "{\"slides\": [{\"n\":1,\"title\":\"...\",\"body_markdown\":\"...\"}, ...]}\n\n"
-        "Responde SOLO con JSON válido. Empieza tu respuesta con `{`.\n"
+        "Responde SOLO con JSON válido, sin texto antes ni después.\n"
     )
 
 
@@ -163,7 +164,7 @@ def build_repurpose_featured_snippet_prompt(article_text: str, keyword: str, **_
         "- Tono directo, optimizada para position-zero\n\n"
         "[OUTPUT — JSON estricto]\n"
         "{\"question\":\"...\",\"answer\":\"...\"}\n\n"
-        "Responde SOLO con JSON válido. Empieza tu respuesta con `{`.\n"
+        "Responde SOLO con JSON válido, sin texto antes ni después.\n"
     )
 
 

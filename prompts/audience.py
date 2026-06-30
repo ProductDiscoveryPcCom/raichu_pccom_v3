@@ -7,13 +7,32 @@ inyecta como `audience_feedback` en `build_final_prompt_stage3` (parámetro
 opcional retrocompatible).
 
 Uso de prefill='{' en la llamada a Claude para forzar JSON desde el primer
-carácter (ver `core/audience_test.py`).
+carácter (ver `core/audience_test.py`). El prefill ya inyecta el `{` inicial; el
+prompt NO debe pedir además "empieza con {" (produciría `{{` → JSON inválido).
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Optional
 
 from config.audiencias import Persona
+
+
+def coerce_conviction(value: Any) -> Optional[float]:
+    """
+    Coacciona `nivel_conviccion` a float de forma tolerante.
+
+    El modelo a veces devuelve la convicción como string ("7") o la omite; sin
+    esta coerción, `sum(...)` o `... < 6` sobre tipos mixtos elevan TypeError y
+    descartan TODO el feedback de audiencia (no solo el de la persona afectada).
+    Devuelve None si el valor falta o no es numérico, para que el llamador lo
+    excluya de los agregados en vez de tratarlo como 0.
+    """
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _persona_block(persona: Persona) -> str:
@@ -55,7 +74,7 @@ def build_audience_test_prompt(draft_text: str, persona: Persona, keyword: str) 
         "  \"veredicto_compra\": \"si\" | \"no\" | \"talvez\",\n"
         "  \"razon_veredicto\": \"string ≤ 150 chars\"\n"
         "}\n\n"
-        "Responde SOLO con JSON válido. Empieza tu respuesta con `{`.\n"
+        "Responde SOLO con JSON válido, sin texto antes ni después.\n"
     )
 
 
@@ -86,8 +105,11 @@ def build_audience_merge_directive(
     if not valid:
         return ""
 
-    convictions = [r["feedback"].get("nivel_conviccion", 0) for r in valid]
-    avg = sum(convictions) / len(convictions)
+    convictions = [
+        c for c in (coerce_conviction(r["feedback"].get("nivel_conviccion")) for r in valid)
+        if c is not None
+    ]
+    avg = (sum(convictions) / len(convictions)) if convictions else 0.0
 
     lines = [
         f"[FEEDBACK DE AUDIENCIA SIMULADA — {len(valid)} personas testeadas]",

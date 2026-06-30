@@ -30,21 +30,64 @@ def _extract_headline(soup: "BeautifulSoup") -> str:
     return ""
 
 
+_FAQ_HEADINGS = ('h3', 'h4', 'h5', 'h6')
+
+
 def _extract_faqs(soup: "BeautifulSoup") -> List[Dict[str, str]]:
-    """Extrae pares (pregunta, respuesta) del article __faqs."""
+    """
+    Extrae pares (pregunta, respuesta) del article __faqs.
+
+    Tolera tres markups habituales (Raichu usa headings; el HTML pegado del CMS
+    puede traer acordeones o listas de definición):
+      1. `<details><summary>Pregunta</summary> respuesta </details>`
+      2. `<dl><dt>Pregunta</dt><dd>Respuesta</dd>`
+      3. Headings h3-h6 como pregunta + hermanos hasta el siguiente heading.
+
+    Antes solo reconocía h3/h4: con HTML pegado en otro markup devolvía [] y
+    `validate_jsonld(expects_faqs=True)` marcaba el asset como fallido pese a que
+    el artículo SÍ tenía FAQs.
+    """
     faqs_article = soup.find('article', class_='contentGenerator__faqs')
     if not faqs_article:
         return []
 
     items: List[Dict[str, str]] = []
-    questions = faqs_article.find_all(['h3', 'h4'])
-    for q in questions:
+
+    # 1) Acordeones <details><summary>…</summary>…</details>
+    for det in faqs_article.find_all('details'):
+        summary = det.find('summary')
+        if not summary:
+            continue
+        question_text = summary.get_text(strip=True)
+        answer_parts = [
+            child.get_text(' ', strip=True)
+            for child in det.find_all(recursive=False)
+            if child.name != 'summary'
+        ]
+        answer_text = ' '.join(p for p in answer_parts if p).strip()
+        if question_text and answer_text:
+            items.append({"question": question_text, "answer": answer_text})
+    if items:
+        return items
+
+    # 2) Listas de definición <dt>Pregunta</dt><dd>Respuesta</dd>
+    for dt in faqs_article.find_all('dt'):
+        question_text = dt.get_text(strip=True)
+        dd = dt.find_next_sibling('dd')
+        answer_text = dd.get_text(' ', strip=True) if dd else ""
+        if question_text and answer_text:
+            items.append({"question": question_text, "answer": answer_text})
+    if items:
+        return items
+
+    # 3) Headings h3-h6 (no h2: suele ser el título "Preguntas frecuentes")
+    for q in faqs_article.find_all(list(_FAQ_HEADINGS)):
         question_text = q.get_text(strip=True)
         if not question_text:
             continue
-        answer_parts: List[str] = []
+        answer_parts = []
         for sibling in q.find_next_siblings():
-            if sibling.name in ('h3', 'h4'):
+            if sibling.name in _FAQ_HEADINGS:
                 break
             text = sibling.get_text(' ', strip=True)
             if text:

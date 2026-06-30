@@ -31,7 +31,11 @@ from core.audience_test import (
     PersonaFeedback,
     run_audience_test,
 )
-from prompts.audience import build_audience_merge_directive, build_audience_test_prompt
+from prompts.audience import (
+    build_audience_merge_directive,
+    build_audience_test_prompt,
+    coerce_conviction,
+)
 
 
 # ----------------------- FakeGenerator -----------------------
@@ -331,7 +335,10 @@ def test_audience_test_prompt_contiene_persona_y_keyword():
     assert "pc gaming 2026" in prompt
     assert "Texto del artículo" in prompt
     assert "JSON" in prompt
-    assert "Empieza tu respuesta con `{`" in prompt
+    # El prefill '{' (core/audience_test.py) ya fuerza el primer carácter; el
+    # prompt NO debe pedir además "empieza con {" o el modelo produce '{{'.
+    assert "Empieza tu respuesta con `{`" not in prompt
+    assert "JSON válido" in prompt
 
 
 def test_merge_directive_resume_correctamente():
@@ -374,6 +381,83 @@ def test_merge_directive_resume_correctamente():
 def test_merge_directive_sin_feedbacks_devuelve_vacio():
     assert build_audience_merge_directive([]) == ""
     assert build_audience_merge_directive([{"ok": False}]) == ""
+
+
+# ----------------------- coerce_conviction (robustez de tipos) -----------------------
+
+def test_coerce_conviction_acepta_int_float_y_string():
+    assert coerce_conviction(7) == 7.0
+    assert coerce_conviction(6.5) == 6.5
+    assert coerce_conviction("8") == 8.0
+
+
+def test_coerce_conviction_no_numerico_o_ausente_devuelve_none():
+    assert coerce_conviction(None) is None
+    assert coerce_conviction("alto") is None
+    assert coerce_conviction(True) is None  # bool no es una convicción válida
+    assert coerce_conviction([5]) is None
+
+
+def test_merge_directive_tolera_conviccion_string():
+    # El modelo a veces devuelve "7" en vez de 7 — antes esto reventaba el merge.
+    feedbacks = [
+        {"persona_id": "a", "persona_nombre": "A", "ok": True,
+         "feedback": {"nivel_conviccion": "8", "dudas_no_resueltas": []}},
+        {"persona_id": "b", "persona_nombre": "B", "ok": True,
+         "feedback": {"nivel_conviccion": 6, "dudas_no_resueltas": []}},
+    ]
+    text = build_audience_merge_directive(feedbacks)
+    assert "7.0/10" in text  # (8 + 6) / 2
+
+
+def test_run_audience_conviccion_string_no_descarta_feedback():
+    # Una persona con nivel_conviccion como string NO debe tirar TypeError ni
+    # borrar el feedback de las demás (regresión del fix de la autorevisión).
+    def responder(prompt: str) -> FakeResult:
+        payload = json.dumps({
+            "nivel_conviccion": "9",  # string a propósito
+            "dudas_no_resueltas": [],
+            "fricciones_copy": [],
+            "sugerencias": [],
+            "veredicto_compra": "si",
+            "razon_veredicto": "ok",
+        })[1:]
+        return FakeResult(True, payload)
+
+    gen = FakeGenerator(responder)
+    result = run_audience_test(
+        draft_html=DRAFT_HTML,
+        persona_ids=["gamer_entry", "gamer_enthusiast"],
+        keyword=KEYWORD,
+        generator=gen,
+    )
+    assert all(pf.ok for pf in result.by_persona.values())
+    assert result.avg_conviction == pytest.approx(9.0)
+    assert result.has_usable_feedback
+
+
+def test_run_audience_conviccion_ausente_se_excluye_del_promedio():
+    # Falta nivel_conviccion → se EXCLUYE del promedio (no cuenta como 0)
+    # y no genera objeción bloqueante (no cuenta como <6).
+    def responder(prompt: str) -> FakeResult:
+        payload = json.dumps({
+            "dudas_no_resueltas": ["¿garantía?"],
+            "fricciones_copy": [],
+            "sugerencias": [],
+            "veredicto_compra": "talvez",
+        })[1:]
+        return FakeResult(True, payload)
+
+    gen = FakeGenerator(responder)
+    result = run_audience_test(
+        draft_html=DRAFT_HTML,
+        persona_ids=["gamer_entry", "gamer_enthusiast"],
+        keyword=KEYWORD,
+        generator=gen,
+    )
+    assert all(pf.ok for pf in result.by_persona.values())
+    assert result.avg_conviction is None          # ninguna convicción numérica
+    assert result.blocking_objections == []        # ausente ≠ <6
 
 
 # ----------------------- prompts/new_content (regresión + inyección) -----------------------

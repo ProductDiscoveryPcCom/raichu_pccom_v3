@@ -98,3 +98,43 @@ def test_html_vacio_no_lanza():
     out = build_article_jsonld("", keyword="x")
     assert out["@type"] == "Article"
     assert out["headline"] == ""
+
+
+# ---------- FAQs en markup alternativo (HTML pegado del CMS) ----------
+
+HTML_FAQS_DETAILS = """
+<article class="contentGenerator__main"><h2>Título</h2><p>Cuerpo.</p></article>
+<article class="contentGenerator__faqs">
+  <h2>Preguntas frecuentes</h2>
+  <details><summary>¿Qué SSD comprar?</summary><p>Un NVMe Gen4 de 1TB.</p></details>
+  <details><summary>¿Cuánta RAM?</summary><p>32GB para AAA.</p></details>
+</article>
+"""
+
+HTML_FAQS_DL = """
+<article class="contentGenerator__main"><h2>Título</h2><p>Cuerpo.</p></article>
+<article class="contentGenerator__faqs">
+  <dl>
+    <dt>¿Qué fuente necesito?</dt><dd>Una de 750W 80+ Gold.</dd>
+    <dt>¿Refrigeración líquida?</dt><dd>Solo si haces overclock.</dd>
+  </dl>
+</article>
+"""
+
+
+def test_extrae_faqs_desde_details_summary():
+    out = build_article_jsonld(HTML_FAQS_DETAILS, keyword="pc gaming")
+    faqpage = next(b for b in out["@graph"] if b["@type"] == "FAQPage")
+    assert len(faqpage["mainEntity"]) == 2
+    assert faqpage["mainEntity"][0]["name"] == "¿Qué SSD comprar?"
+    assert "NVMe" in faqpage["mainEntity"][0]["acceptedAnswer"]["text"]
+    # El <h2> "Preguntas frecuentes" NO debe colarse como pregunta.
+    assert all("Preguntas frecuentes" != q["name"] for q in faqpage["mainEntity"])
+
+
+def test_extrae_faqs_desde_dl_dt_dd():
+    out = build_article_jsonld(HTML_FAQS_DL, keyword="pc gaming")
+    faqpage = next(b for b in out["@graph"] if b["@type"] == "FAQPage")
+    assert len(faqpage["mainEntity"]) == 2
+    assert faqpage["mainEntity"][0]["name"] == "¿Qué fuente necesito?"
+    assert "750W" in faqpage["mainEntity"][0]["acceptedAnswer"]["text"]

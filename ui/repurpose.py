@@ -19,7 +19,15 @@ from core.repurpose_pipeline import (
 )
 from prompts.repurpose import SUPPORTED_ASSETS
 
+try:
+    from utils.html_utils import count_words_in_html
+except ImportError:  # degradación graceful — fallback aproximado
+    def count_words_in_html(html_content: str) -> int:
+        return len((html_content or "").split())
+
 logger = logging.getLogger(__name__)
+
+MIN_ARTICLE_WORDS = 300
 
 
 ASSET_LABELS = {
@@ -175,9 +183,12 @@ def render_repurpose_mode() -> None:
         key="repurpose_selected_assets",
     )
 
-    can_run = bool(article and len(article.split()) >= 300 and keyword and assets)
-    if article and len(article.split()) < 300:
-        st.warning("⚠️ El artículo debe tener al menos 300 palabras.")
+    # Conteo sobre el TEXTO, no sobre el HTML crudo: las etiquetas/atributos no
+    # son palabras (count_words_in_html las strippea).
+    word_count = count_words_in_html(article) if article else 0
+    can_run = bool(article and word_count >= MIN_ARTICLE_WORDS and keyword and assets)
+    if article and word_count < MIN_ARTICLE_WORDS:
+        st.warning(f"⚠️ El artículo debe tener al menos {MIN_ARTICLE_WORDS} palabras.")
 
     if st.button("🔁 Generar derivados", type="primary", disabled=not can_run):
         gen = _get_generator()

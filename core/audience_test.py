@@ -19,7 +19,11 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from config.audiencias import PERSONAS, Persona
-from prompts.audience import build_audience_merge_directive, build_audience_test_prompt
+from prompts.audience import (
+    build_audience_merge_directive,
+    build_audience_test_prompt,
+    coerce_conviction,
+)
 
 try:
     from utils.html_utils import sanitize_html, strip_html_tags
@@ -219,12 +223,18 @@ def run_audience_test(
     # Agregados
     ok_feedbacks = [pf for pf in result.by_persona.values() if pf.ok and pf.feedback]
     if ok_feedbacks:
-        convictions = [pf.feedback.get("nivel_conviccion", 0) for pf in ok_feedbacks]
-        result.avg_conviction = sum(convictions) / len(convictions)
+        # `nivel_conviccion` puede venir como string ("7") o faltar — coerce
+        # defensivo (ver coerce_conviction): los no numéricos se EXCLUYEN de los
+        # agregados en vez de contar como 0 o 10 (defaults antes inconsistentes).
+        convictions = [
+            c for c in (coerce_conviction(pf.feedback.get("nivel_conviccion")) for pf in ok_feedbacks)
+            if c is not None
+        ]
+        result.avg_conviction = (sum(convictions) / len(convictions)) if convictions else None
         result.blocking_objections = [
             d
             for pf in ok_feedbacks
-            if pf.feedback.get("nivel_conviccion", 10) < 6
+            if (_conv := coerce_conviction(pf.feedback.get("nivel_conviccion"))) is not None and _conv < 6
             for d in (pf.feedback.get("dudas_no_resueltas") or [])
         ]
 
