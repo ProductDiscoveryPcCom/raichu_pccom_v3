@@ -31,10 +31,11 @@ def render_app_header(app_title: str, version: str) -> str:
     with col_mode:
         mode = st.radio(
             "Modo",
-            options=['new', 'rewrite', 'verify', 'opportunities', 'assistant'],
+            options=['new', 'rewrite', 'repurpose', 'verify', 'opportunities', 'assistant'],
             format_func=lambda x: {
                 'new': '\U0001f4dd Nuevo',
                 'rewrite': '\U0001f504 Reescritura Competitiva',
+                'repurpose': '\U0001f501 Repurpose',
                 'verify': '\U0001f50d Verificar',
                 'opportunities': '\U0001f4ca Oportunidades',
                 'assistant': '\U0001f4ac Asistente',

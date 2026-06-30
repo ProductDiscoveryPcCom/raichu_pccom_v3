@@ -25,6 +25,13 @@ _MODE_RESULT_KEYS = [
     '_refinement_feedback',
     '_translation_feedback',
     '_batch_translation_feedback',
+    # Repurposer
+    'repurpose_assets',
+    'repurpose_source_html',
+    'repurpose_keyword',
+    'repurpose_selected_assets',
+    # Audience Tester (Stage 2.5)
+    'audience_test_result',
 ]
 
 

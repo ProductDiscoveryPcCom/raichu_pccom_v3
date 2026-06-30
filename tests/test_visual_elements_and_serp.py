@@ -720,7 +720,7 @@ class TestTruncationGuard:
     def _stage3_block(self):
         src = open("core/pipeline.py", encoding='utf-8').read()
         idx = src.index("Etapa 3/3: Generando")
-        return src[idx:idx + 4000]
+        return src[idx:idx + 6000]
 
     def test_detects_max_tokens_stop_reason(self):
         block = self._stage3_block()

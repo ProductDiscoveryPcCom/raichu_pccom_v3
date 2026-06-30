@@ -290,13 +290,21 @@ def call_claude_api(
     max_retries: int = DEFAULT_MAX_RETRIES,
     retry_delay: float = DEFAULT_RETRY_DELAY,
     client: Optional[Any] = None,
+    prefill: Optional[str] = None,
 ) -> APIResponse:
     """
     Llama a la API de Claude con manejo robusto de errores y reintentos.
+
+    Si se pasa `prefill`, se añade un mensaje assistant con ese texto al final
+    de `messages`. Anthropic continuará la respuesta desde ahí. Útil para forzar
+    formato JSON (prefill='{') y eliminar fallos de parseo tipo "Aquí mi JSON:".
+    El texto del prefill se prepende al `content` retornado.
     """
     client = client or get_client()
-    
+
     messages = [{"role": "user", "content": prompt}]
+    if prefill:
+        messages.append({"role": "assistant", "content": prefill})
     
     current_delay = retry_delay
     last_error = None
@@ -335,7 +343,10 @@ def call_claude_api(
                 for block in response.content:
                     if hasattr(block, 'text'):
                         content += block.text
-            
+
+            if prefill:
+                content = prefill + content
+
             return APIResponse(
                 content=content,
                 input_tokens=response.usage.input_tokens,
@@ -401,6 +412,7 @@ def generate_content(
     temperature: float = DEFAULT_TEMPERATURE,
     system_prompt: Optional[str] = None,
     client: Optional[Any] = None,
+    prefill: Optional[str] = None,
 ) -> GenerationResult:
     """Genera contenido usando Claude API."""
     start_time = time.time()
@@ -413,6 +425,7 @@ def generate_content(
             temperature=temperature,
             system_prompt=system_prompt,
             client=client,
+            prefill=prefill,
         )
         
         generation_time = time.time() - start_time
@@ -704,16 +717,19 @@ class ContentGenerator:
         system_prompt: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
+        prefill: Optional[str] = None,
     ) -> GenerationResult:
         """
         Genera contenido con un prompt simple.
-        
+
         Args:
             prompt: Prompt para generar
             system_prompt: Prompt de sistema opcional
             temperature: Override de temperatura
             max_tokens: Override de max_tokens
-            
+            prefill: Texto assistant que fuerza el inicio de la respuesta
+                (ej. '{' para JSON). Se prepende al `content` retornado.
+
         Returns:
             GenerationResult con el contenido generado
         """
@@ -724,6 +740,7 @@ class ContentGenerator:
             temperature=temperature if temperature is not None else self.temperature,
             system_prompt=system_prompt,
             client=self._client,
+            prefill=prefill,
         )
     
     def generate_with_stages(
