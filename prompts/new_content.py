@@ -2088,6 +2088,7 @@ def build_final_prompt_stage3(
     alternative_product: Optional[Dict] = None,
     products: Optional[List[Dict]] = None,  # v5.0
     visual_elements: Optional[List[str]] = None,
+    audience_feedback: Optional[str] = None,
 ) -> str:
     """
     Construye prompt para Etapa 3: Versión final corregida.
@@ -2163,12 +2164,21 @@ def build_final_prompt_stage3(
     
     # CSS dinámico (incluye componentes seleccionados)
     css_for_prompt = _get_css_for_prompt(visual_elements=visual_elements)
-    
+
     # Instrucciones imperativas de elementos visuales para stage 3
     visual_reminder = ""
     if visual_elements:
         visual_reminder = _build_stage3_visual_instructions(visual_elements)
-    
+
+    # Stage 2.5: feedback de audiencia simulada (opt-in). Si no se pasa, la
+    # sección no aparece en el prompt — regresión cero garantizada.
+    audience_section = ""
+    if audience_feedback:
+        audience_section = (
+            "\n\n# FEEDBACK DE AUDIENCIA SIMULADA (STAGE 2.5)\n\n"
+            f"{audience_feedback[:2500]}\n"
+        )
+
     return f"""Genera la VERSIÓN FINAL corregida como editor SEO senior de PcComponentes.
 
 # BORRADOR ORIGINAL
@@ -2178,6 +2188,7 @@ def build_final_prompt_stage3(
 # ANÁLISIS Y CORRECCIONES A APLICAR
 
 {analysis_feedback[:4000]}
+{audience_section}
 {links_section}
 {alt_section}
 {visual_reminder}

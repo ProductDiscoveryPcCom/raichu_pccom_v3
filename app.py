@@ -125,6 +125,15 @@ except ImportError as e:
     _results_available = False
     render_results_section = None
 
+# UI Repurpose
+try:
+    from ui.repurpose import render_repurpose_mode
+    _repurpose_available = True
+except ImportError as e:
+    logger.warning(f"No se pudo importar ui.repurpose: {e}")
+    _repurpose_available = False
+    render_repurpose_mode = None
+
 try:
     from ui.sidebar import render_sidebar
     _sidebar_available = True
@@ -818,6 +827,11 @@ def main():
         except ImportError as e:
             logger.error(f"Módulo de oportunidades no disponible: {e}")
             st.error("❌ Módulo de oportunidades no disponible. Verifica la instalación.")
+    elif mode == 'repurpose':
+        if _repurpose_available and render_repurpose_mode:
+            render_repurpose_mode()
+        else:
+            st.error("❌ Módulo de repurpose no disponible.")
     elif mode == 'assistant':
         render_assistant_mode()
     
@@ -837,6 +851,7 @@ def main():
         'inputs_ui': _inputs_available,
         'rewrite_ui': _rewrite_ui_available,
         'results_ui': _results_available,
+        'repurpose': _repurpose_available,
     })
 
 

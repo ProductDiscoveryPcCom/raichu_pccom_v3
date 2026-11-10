@@ -1420,7 +1420,17 @@ def build_rewrite_final_prompt_stage3(
                 critical_reminders.append(f"- [{anchor}]({url})")
     
     reminders_text = "\n".join(critical_reminders) if critical_reminders else ""
-    
+
+    # Stage 2.5: feedback de audiencia simulada (opt-in, vive en config). Si no
+    # está presente, no se inyecta nada — regresión cero garantizada.
+    audience_feedback = config.get('audience_feedback', '')
+    audience_section = ""
+    if audience_feedback:
+        audience_section = (
+            "\n## FEEDBACK DE AUDIENCIA SIMULADA (ETAPA 2.5)\n\n"
+            f"{audience_feedback[:2500]}\n"
+        )
+
     # v5.0: Visual elements en Stage 3 rewrite
     visual_elements = config.get('visual_elements', [])
     visual_section = ""
@@ -1463,7 +1473,7 @@ Esta es la ETAPA FINAL. Genera la versión DEFINITIVA aplicando TODAS las correc
 ```json
 {corrections_json[:4000]}
 ```
-
+{audience_section}
 {reminders_text}
 
 {BRAND_TONE}

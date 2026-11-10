@@ -909,11 +909,48 @@ Formato tu respuesta de manera clara y accionable."""
                 st.session_state.analysis_json.setdefault('cms_structure_issues', _cms_feedback)
 
         progress_bar.progress(75)
-        
+
+        # ====================================================================
+        # ETAPA 2.5 (opcional): TEST CON AUDIENCIA SIMULADA
+        # ====================================================================
+        audience_feedback_text = ""
+        if config.get('audience_test_enabled') and config.get('audience_personas'):
+            try:
+                from core.audience_test import run_audience_test
+                status_widget.update(label="Etapa 2.5/3: Test con audiencia simulada...", state="running")
+                status_widget.write(
+                    f"🧪 Simulando reacción de {len(config['audience_personas'])} personas..."
+                )
+                audience_result = run_audience_test(
+                    draft_html=st.session_state.draft_html or "",
+                    persona_ids=config['audience_personas'],
+                    keyword=config.get('keyword', ''),
+                    generator=generator,
+                    system_prompt=None,  # crítico: tono persona, no de marca
+                )
+                st.session_state.audience_test_result = audience_result
+                audience_feedback_text = audience_result.audience_feedback_text
+                n_ok = sum(1 for pf in audience_result.by_persona.values() if pf.ok)
+                n_total = len(audience_result.by_persona)
+                if audience_feedback_text:
+                    status_widget.write(
+                        f"✅ Audiencia: {n_ok}/{n_total} personas, "
+                        f"convicción media {audience_result.avg_conviction:.1f}/10"
+                    )
+                else:
+                    status_widget.write(
+                        f"⚠️ Audiencia: solo {n_ok}/{n_total} personas OK. "
+                        f"Stage 3 continuará sin feedback de audiencia."
+                    )
+            except Exception as e:
+                logger.warning(f"Stage 2.5 (audiencia) falló: {e}")
+                status_widget.write(f"⚠️ Test de audiencia no disponible: {e}")
+                audience_feedback_text = ""
+
         # ====================================================================
         # ETAPA 3: VERSIÓN FINAL
         # ====================================================================
-        
+
         status_widget.update(label="Etapa 3/3: Generando Versión Final...", state="running")
         status_widget.write("✅ Aplicando correcciones y generando versión final...")
         st.session_state.current_stage = 3
@@ -933,10 +970,14 @@ Formato tu respuesta de manera clara y accionable."""
                 _s3_sig = inspect.signature(new_content.build_final_prompt_stage3)
                 if 'visual_elements' in _s3_sig.parameters:
                     stage3_kwargs['visual_elements'] = config.get('visual_elements', [])
+                if 'audience_feedback' in _s3_sig.parameters and audience_feedback_text:
+                    stage3_kwargs['audience_feedback'] = audience_feedback_text
             except Exception:
                 pass
             stage3_prompt = new_content.build_final_prompt_stage3(**stage3_kwargs)
         else:  # mode == 'rewrite'
+            if audience_feedback_text:
+                rewrite_config['audience_feedback'] = audience_feedback_text
             stage3_prompt = rewrite.build_rewrite_final_prompt_stage3(
                 draft_content=st.session_state.draft_html,
                 corrections_json=st.session_state.analysis_json,

@@ -147,6 +147,9 @@ def render_results_section(
     # Checklist pre-publicación (Task I2)
     render_pre_publication_checklist(final_html, target_length)
 
+    # Stage 2.5: feedback de audiencia simulada (opt-in)
+    _render_audience_feedback_section()
+
     # Preview y HTML (tabs internos solo para formato de visualización)
     render_content_tab(
         html_content=final_html,
@@ -572,6 +575,72 @@ def _detect_visual_elements(html_lower: str) -> List[str]:
 # ============================================================================
 # VALIDACIÓN CMS (nuevo v5.0 — extraído de render_content_tab)
 # ============================================================================
+
+def _render_audience_feedback_section() -> None:
+    """Renderiza el feedback de las personas simuladas (Stage 2.5).
+
+    Lee `st.session_state.audience_test_result` (un AudienceTestResult).
+    Si no existe o no aplica, no renderiza nada.
+    """
+    result = st.session_state.get('audience_test_result')
+    if not result or not getattr(result, 'by_persona', None):
+        return
+
+    n_personas = len(result.by_persona)
+    n_ok = sum(1 for pf in result.by_persona.values() if pf.ok)
+    avg = result.avg_conviction
+
+    title = f"🧪 Feedback de audiencia simulada ({n_ok}/{n_personas} personas)"
+    if avg is not None:
+        title += f" — convicción media {avg:.1f}/10"
+
+    with st.expander(title, expanded=False):
+        if not result.has_usable_feedback:
+            st.warning(
+                "Menos del mínimo de personas completó el test. Stage 3 se generó "
+                "sin feedback de audiencia."
+            )
+
+        for pf in result.by_persona.values():
+            with st.container(border=True):
+                if not pf.ok:
+                    st.markdown(f"❌ **{pf.persona_nombre}** — error: {pf.error or 'desconocido'}")
+                    continue
+
+                fb = pf.feedback or {}
+                conviction = fb.get('nivel_conviccion', '?')
+                veredicto = fb.get('veredicto_compra', '?')
+                veredicto_emoji = {"si": "🟢", "talvez": "🟡", "no": "🔴"}.get(veredicto, "⚪")
+
+                st.markdown(f"**{pf.persona_nombre}** {veredicto_emoji} {veredicto}")
+                if isinstance(conviction, (int, float)):
+                    st.progress(min(max(conviction, 0), 10) / 10, text=f"Convicción {conviction}/10")
+
+                razon = fb.get('razon_veredicto')
+                if razon:
+                    st.caption(f"💬 {razon}")
+
+                dudas = fb.get('dudas_no_resueltas') or []
+                if dudas:
+                    st.markdown("**Dudas no resueltas:**")
+                    for d in dudas[:5]:
+                        st.markdown(f"- {d}")
+
+                fricciones = fb.get('fricciones_copy') or []
+                if fricciones:
+                    st.markdown("**Fricciones en el copy:**")
+                    for fr in fricciones[:5]:
+                        cita = fr.get('cita', '')
+                        problema = fr.get('problema', '')
+                        if cita and problema:
+                            st.markdown(f'- *"{cita}"* → {problema}')
+
+                sugerencias = fb.get('sugerencias') or []
+                if sugerencias:
+                    st.markdown("**Sugerencias:**")
+                    for s in sugerencias[:5]:
+                        st.markdown(f"- {s}")
+
 
 def _render_cms_validation(html_content: str) -> None:
     """Validación completa de estructura CMS, ahora en expander colapsable."""

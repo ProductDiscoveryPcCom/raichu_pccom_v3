@@ -286,6 +286,9 @@ class FormData:
     authoritative_sources: Optional[str] = None
     # Enriquecer con búsqueda web (OpenAI web search → fallback SERP)
     web_research: bool = False
+    # Stage 2.5: test con audiencia simulada
+    audience_test_enabled: bool = False
+    audience_personas: List[str] = field(default_factory=list)
 
 
 # ============================================================================
@@ -2921,6 +2924,39 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
         ),
     )
 
+    # Stage 2.5: Audience Tester opt-in
+    try:
+        from config.audiencias import PERSONAS, _pick_personas_for_arquetipo
+        _audience_available = True
+    except ImportError:
+        _audience_available = False
+        PERSONAS = {}
+        def _pick_personas_for_arquetipo(_code: str):
+            return []
+
+    audience_test_enabled = False
+    audience_personas: List[str] = []
+    if _audience_available:
+        audience_test_enabled = st.checkbox(
+            "🧪 Test con audiencia simulada (+8-15s)",
+            key="main_audience_test",
+            value=False,
+            help=(
+                "Simula la reacción de 3-5 personas-tipo de PcComponentes leyendo el "
+                "borrador antes del Stage 3 final. Su feedback se inyecta como input "
+                "extra para que la versión final aborde dudas y fricciones reales."
+            ),
+        )
+        if audience_test_enabled:
+            default_personas = _pick_personas_for_arquetipo(arquetipo)
+            audience_personas = st.multiselect(
+                "Personas a simular",
+                options=list(PERSONAS.keys()),
+                default=st.session_state.get('main_audience_personas', default_personas),
+                format_func=lambda pid: PERSONAS[pid].nombre,
+                key="main_audience_personas",
+            )
+
     # Productos — dentro de expander, con hint contextual por arquetipo
     _PRODUCT_CENTRIC_ARCHETYPES = {
         'ARQ-4', 'ARQ-5', 'ARQ-6', 'ARQ-7', 'ARQ-8', 'ARQ-9', 'ARQ-10',
@@ -3077,6 +3113,8 @@ def render_main_form(mode: str = "new") -> Optional[FormData]:
         faq_questions=faq_questions or None,
         authoritative_sources=authoritative_sources or None,
         web_research=web_research,
+        audience_test_enabled=audience_test_enabled,
+        audience_personas=audience_personas,
     )
 
 
@@ -3190,6 +3228,9 @@ def render_content_inputs() -> Tuple[bool, Dict[str, Any]]:
         'authoritative_sources': form_data.authoritative_sources or '',
         # Investigación web opt-in (OpenAI web search → fallback SERP)
         'web_research': form_data.web_research,
+        # Stage 2.5: Audience Tester opt-in
+        'audience_test_enabled': form_data.audience_test_enabled,
+        'audience_personas': form_data.audience_personas or [],
     }
     
     # REC-6: Resumen pre-generación compacto
